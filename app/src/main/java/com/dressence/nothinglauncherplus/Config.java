@@ -44,6 +44,8 @@ public final class Config {
     public static final String KEY_DOT_ICONS = "dot_icons";
     public static final String KEY_NDOT_STATUS = "ndot_status_bar";
     public static final String KEY_STATUS_DATE = "status_bar_date";
+    public static final String KEY_DUAL_STATUS = "dual_status_bar";
+    public static final String KEY_DUAL_STATUS_LAND = "dual_status_bar_landscape";
     public static final String KEY_SYSTEM_FONT = "system_font";
     public static final String KEY_NDOT_QS = "ndot_quick_settings";
     public static final String KEY_QS_AMBER = "qs_amber";
@@ -155,6 +157,10 @@ public final class Config {
     public boolean ndotStatusBar = false;
     /** The date beside the status bar clock. */
     public boolean statusBarDate = false;
+    /** A second status bar row: notifications, and the date in full, under the clock. */
+    public boolean dualStatusBar = false;
+    /** The second row in landscape too. */
+    public boolean dualStatusBarLandscape = false;
     /**
      * The font hooked apps draw their text in: "file:" and a font file's path, "res:" and a
      * font of Nothing's widgets app, or empty for the phone's own.
@@ -349,6 +355,8 @@ public final class Config {
         dotIcons = in.bool(KEY_DOT_ICONS, false);
         ndotStatusBar = in.bool(KEY_NDOT_STATUS, false);
         statusBarDate = in.bool(KEY_STATUS_DATE, false);
+        dualStatusBar = in.bool(KEY_DUAL_STATUS, false);
+        dualStatusBarLandscape = in.bool(KEY_DUAL_STATUS_LAND, false);
         systemFont = in.text(KEY_SYSTEM_FONT, "");
         ndotQuickSettings = in.bool(KEY_NDOT_QS, false);
         qsAmber = in.bool(KEY_QS_AMBER, false);
@@ -399,6 +407,8 @@ public final class Config {
         out.bool(KEY_DOT_ICONS, dotIcons);
         out.bool(KEY_NDOT_STATUS, ndotStatusBar);
         out.bool(KEY_STATUS_DATE, statusBarDate);
+        out.bool(KEY_DUAL_STATUS, dualStatusBar);
+        out.bool(KEY_DUAL_STATUS_LAND, dualStatusBarLandscape);
         out.text(KEY_SYSTEM_FONT, systemFont);
         out.bool(KEY_NDOT_QS, ndotQuickSettings);
         out.bool(KEY_QS_AMBER, qsAmber);

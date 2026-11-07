@@ -47,11 +47,29 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.52.4, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.53.0, what is pending, what still needs testing</summary>
 
-**Current build: 0.52.5** (CMF Phone 1, Nothing OS 4.1, Android 16): 0.52.4 plus a private signing key, live icons, and dot icons powering on in step again.
+**Current build: 0.53.0** (CMF Phone 1, Nothing OS 4.1, Android 16): 0.52.5 plus a dual status bar.
 
 **Not tested on a phone yet**
+- **0.53.0, dual status bar** (Status bar & quick settings → Dual status bar, and Dual status
+  bar in landscape; off by default; restart System UI after changing either). Everything stays
+  on the top row as Nothing lays it out; the notifications go on a second row under the
+  clock, with the date in full ("Friday, 7 November", the language's own order) when Date in
+  status bar is on. Built from Nothing's System UI 16 without moving any of its views to
+  another parent (what makes such mods crash System UI on every notification): one icon row
+  is added where System UI and its window take the bar's height
+  (`SystemBarUtils.getStatusBarHeight` and `…ForRotation`), so apps move down with it; the
+  clock and notification row Nothing already has (`status_bar_start_side_except_heads_up`)
+  is turned vertical, the notification area one icon row high and the clock in the rest;
+  the end side gets one row of bottom padding so its icons stay level with the clock; the
+  date is drawn on the notification area's overlay in the clock's own font, colour and glow.
+  Guard: three System UI starts within three minutes with it on turn it off until a setting
+  is saved again. Compiled here against Android 36 (the new code and what it uses). Needs on
+  the phone: both rows in portrait (and landscape with its switch), apps' content starting
+  under the taller bar, notifications arriving without System UI crashing, the bar over a
+  light app (dark text and date), during a call or screen recording (its chip sits between
+  the rows), and the lock screen's status bar and clock (they use the same height).
 - **0.52.5, dot-matrix icons powering on in step again:** icons drawn while their view was still
   hidden (the first frames of the drawer or a folder opening, when Android fades and slides the
   page without redrawing icons) waited for a 1 s recheck, so they lit up late and one by one. They

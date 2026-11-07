@@ -40,6 +40,11 @@ public final class ConfigStore {
         }
     }
 
+    /** When the settings were last saved (their file's time): a change of any setting. */
+    public long stamp() {
+        return prefs.getFile().lastModified();
+    }
+
     public void addChangeListener(Runnable listener) {
         changeListeners.add(listener);
     }

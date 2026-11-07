@@ -47,7 +47,8 @@ final class Clock {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
                 if (store.get().statusBarDate && param.getResult() instanceof CharSequence
-                        && !inHeader((View) param.thisObject)) {
+                        && !inHeader((View) param.thisObject)
+                        && !DualStatusBar.dateBelow((View) param.thisObject)) {
                     param.setResult(DateFormat.format(datePattern(), new Date()) + "  "
                             + param.getResult());
                 }

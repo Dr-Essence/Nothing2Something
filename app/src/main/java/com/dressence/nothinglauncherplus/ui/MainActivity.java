@@ -432,6 +432,19 @@ public class MainActivity extends Activity {
                     config.statusBarDate = checked;
                     store.save(this);
                 });
+        ui.switchRow("Dual status bar",
+                "Notifications on a second row under the clock, with the date in full when"
+                        + " Date in status bar is on · restart System UI",
+                config.dualStatusBar, checked -> {
+                    config.dualStatusBar = checked;
+                    store.save(this);
+                });
+        ui.switchRow("Dual status bar in landscape",
+                "The second row in landscape too · restart System UI",
+                config.dualStatusBarLandscape, checked -> {
+                    config.dualStatusBarLandscape = checked;
+                    store.save(this);
+                });
 
         ui.section("Quick settings");
         ui.switchRow("Green quick settings", "Quick settings icons in glowing green",
