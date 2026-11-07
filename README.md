@@ -1377,7 +1377,7 @@ The module's code is grouped by where it runs:
 | --- | --- |
 | `xposed` | The entry point (`ModuleEntry`, named in `assets/xposed_init`), hook helpers (`Hooks`: installing a feature so its failure is its own, guarding code the apps call back into), the settings as hooked apps read them (`ConfigStore`) and Nothing's NDot font (`NdotFont`). |
 | `launcher` | Everything in Nothing Launcher: the Smart drawer's folders and covers, the folder menu, landscape, controllers, sounds, dot-matrix icons (`DotIcons`, `IconScreen`) and scrolling names. |
-| `systemui` | The status bar and quick settings: `Clock`, `Battery`, `GreenIcons`, `GreenTexts`, `QuickSettings`, `NetworkSpeed`, all in the lit look of `Led`. |
+| `systemui` | The status bar and quick settings: `Clock`, `Battery`, `GreenIcons`, `GreenTexts`, `QuickSettings`, `NetworkSpeed`, all in the lit look of `Led`, and the second status bar row (`DualStatusBar`). |
 | `perf` | CMF Phone 1 only: the device check and root helper (`Device`), the Ndot performance overlay (`OverlayService` reads, `PerfHud` draws) and the per-game 120 fps unlock (`GameUnlock`), the Game Bar's buttons (`GameBar`, in the Game Bar; `GameBarReceiver`, in the module app). |
 | `system` | The system font, set in the font map system_server gives every app (`SystemFonts`), the gaming launcher while a controller is connected (`ControllerHome`), Settings screens opened on a feature's behalf (`SystemShortcuts`) and a probe writing to the LSPosed log which window decides the screen's orientation each time it changes (`OrientationProbe`, `orientation: requested … by …`, naming the activity or window at the end of the chain). |
 | `widgets` | Nothing's widget apps in landscape. |
@@ -1386,6 +1386,11 @@ The module's code is grouped by where it runs:
 | `settings` | Developer options → Running services as a task manager, in Settings (`TaskManager`, `TaskHeader`, `TaskStats`). |
 | `anim`, `sound` | The emoji animations and dot-matrix screens, and the music and interface sounds. |
 | `ui` | The module's settings app: a menu of pages (App drawer, Home screen, Sound, Status bar & quick settings, Lock screen, System font, Backup, Diagnostics). |
+
+**Languages:** the module is Java, and new features are written in **Kotlin** (from 0.53.0
+on; the build has both). An existing Java file becomes Kotlin only when it is reworked anyway,
+and is tested again then; files that work stay as they are. Kotlin's null safety suits hook
+code, where a class, field or view may be missing on another Nothing OS version.
 
 Code the module hands to an app (a posted runnable, a listener, a view or drawable it draws)
 runs as that app's own, so it is guarded: a fault costs that one feature, never the app. A
