@@ -47,12 +47,12 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.53.0, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.53.1, what is pending, what still needs testing</summary>
 
-**Current build: 0.53.0** (CMF Phone 1, Nothing OS 4.1, Android 16): 0.52.5 plus a dual status bar.
+**Current build: 0.53.1** (CMF Phone 1, Nothing OS 4.1, Android 16): 0.52.5 plus a dual status bar (fixed in 0.53.1), and Kotlin in the build.
 
 **Not tested on a phone yet**
-- **0.53.0, dual status bar** (Status bar & quick settings → Dual status bar, and Dual status
+- **0.53.1, dual status bar** (Status bar & quick settings → Dual status bar, and Dual status
   bar in landscape; off by default; restart System UI after changing either). Everything stays
   on the top row as Nothing lays it out; the notifications go on a second row under the
   clock, with the date in full ("Friday, 7 November", the language's own order) when Date in
@@ -106,6 +106,12 @@ Each section below opens when tapped.
   will be retaken for the public release.
 
 **Fixed recently**
+- 0.53.1: the dual status bar did nothing but take the date off the clock (seen on the phone:
+  one row, no date). Its layout step stored what it changes on System UI's views under an
+  Android-owned tag id, which Android refuses ("The key must be an application-specific
+  resource id", in the LSPosed log on every layout), so it stopped before changing anything;
+  the guard kept System UI running. What it keeps per view is now held in the module's own
+  weak maps, never in System UI's view tags.
 - 0.52.4: controller menus are Nothing's own, as on a long-press.
 - 0.52.3: rings on widgets no longer treat them as containers or squash them; the ring's
   shape ignores the dot badge; focused tiles no longer push their neighbours; focus comes back

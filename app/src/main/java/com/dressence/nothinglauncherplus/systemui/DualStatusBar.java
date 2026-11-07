@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
@@ -83,6 +85,15 @@ final class DualStatusBar {
 
     /** The date drawn under the clock, with the clock it takes its look from. */
     private static final List<WeakReference<DateRow>> ROWS = new ArrayList<>();
+
+    /*
+     * What the module keeps for a view of System UI's, held here rather than in the view's
+     * tags: a tag key must be an id the app owns (Android refuses its own ids, seen on the
+     * phone), and any id of System UI's could be one it uses itself. Weak, so a view System UI
+     * drops is let go. Main thread only.
+     */
+    private static final Map<View, Saved> SAVED = new WeakHashMap<>();
+    private static final Map<View, DateRow> DATES = new WeakHashMap<>();
 
     private DualStatusBar() {
     }
@@ -253,18 +264,14 @@ final class DualStatusBar {
 
         /** Saved once per bar, the first time it is arranged (still Nothing's values). */
         static Saved of(LinearLayout start, View clock, View area, View end) {
-            Object tag = start.getTag(TAG_KEY);
-            if (tag instanceof Saved) {
-                return (Saved) tag;
+            Saved s = SAVED.get(start);
+            if (s == null) {
+                s = new Saved(start, clock, area, end);
+                SAVED.put(start, s);
             }
-            Saved s = new Saved(start, clock, area, end);
-            start.setTag(TAG_KEY, s);
             return s;
         }
     }
-
-    /** A view tag key: an id from the android package, never used for a tag by System UI. */
-    private static final int TAG_KEY = android.R.id.custom;
 
     private static void refreshDates() {
         synchronized (ROWS) {
@@ -301,11 +308,10 @@ final class DualStatusBar {
         }
 
         static void attach(View area, TextView clock, Saved saved, boolean show) {
-            Object tag = area.getTag(TAG_KEY);
-            DateRow row = tag instanceof DateRow ? (DateRow) tag : null;
+            DateRow row = DATES.get(area);
             if (show && row == null) {
                 row = new DateRow(area, clock, saved);
-                area.setTag(TAG_KEY, row);
+                DATES.put(area, row);
                 area.getOverlay().add(row);
                 area.addOnLayoutChangeListener(row);
                 synchronized (ROWS) {
@@ -315,7 +321,7 @@ final class DualStatusBar {
             } else if (!show && row != null) {
                 area.getOverlay().remove(row);
                 area.removeOnLayoutChangeListener(row);
-                area.setTag(TAG_KEY, null);
+                DATES.remove(area);
                 area.setPaddingRelative(saved.areaStart, area.getPaddingTop(), saved.areaEnd,
                         area.getPaddingBottom());
             }
