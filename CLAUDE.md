@@ -37,3 +37,11 @@
     each one.
 
   Keep the README's Roadmap and the beta notes in line with this.
+- **A Kotlin course from this project.** Dr.Essence is learning to code and plans to maintain
+  this module. New features are written in Kotlin (the Java code is converted only when a file
+  is reworked anyway), and the project will become a course for learning Kotlin from it: how
+  each feature was found in Nothing's code and implemented, and the mistakes made and how they
+  were fixed (the commit history and the README's Status are its record). Write new code and
+  its comments so it can be taught from: clear names, the reason for each step, and what was
+  checked. Focus: unlocking features and bypassing limits in Nothing OS and Android, not
+  ordinary apps.
