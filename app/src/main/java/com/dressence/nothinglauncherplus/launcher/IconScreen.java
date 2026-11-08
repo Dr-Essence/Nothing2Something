@@ -113,6 +113,9 @@ final class IconScreen {
         float[] glass;
         float[] depth;
         int[] art;
+        /** The screen's centre: the dot grid is laid out from it, the same on every side. */
+        float cx;
+        float cy;
     }
 
     /** The launcher's circle: dark glass in a bezel ring, the artwork scaled into the glass. */
@@ -125,6 +128,8 @@ final class IconScreen {
         float bezel = w * BEZEL_ROUND + EDGE_COVER * w / GRID;
         float inner = r - bezel;
         Layout l = new Layout();
+        l.cx = cx;
+        l.cy = cy;
         int n = w * h;
         l.body = new float[n];
         l.glass = new float[n];
@@ -168,6 +173,8 @@ final class IconScreen {
         float[] fromShape = Distance.to(shape, w, h);
         float[] fromOutside = Distance.to(outside, w, h);
         Layout l = new Layout();
+        l.cx = box.exactCenterX();
+        l.cy = box.exactCenterY();
         l.body = new float[n];
         l.glass = new float[n];
         l.depth = new float[n];
@@ -294,22 +301,41 @@ final class IconScreen {
         glow = toHardware(glowBitmap);
     }
 
-    /** The square grid's dot centres where any of the dot shows on the glass. */
+    /**
+     * The square grid's dot centres where any of the dot shows on the glass. The grid is laid
+     * out from the screen's centre, so it meets the bezel the same way on every side. (Until
+     * 0.55.10 it started at the bitmap's corner and a dot was kept by the depth at the pixel
+     * its centre fell in, with a margin: at 34 dots across, the left edge of a rounded-square
+     * icon ended in a dark strip before the bezel while the right edge ran under it, seen in
+     * a render.)
+     */
     private static List<float[]> grid(Layout l, int w, int h, float pitch) {
         List<float[]> spots = new ArrayList<>();
-        int rows = Math.max(1, Math.round(h / pitch));
-        for (int gy = 0; gy < rows; gy++) {
-            for (int gx = 0; gx < GRID; gx++) {
-                float dx = (gx + 0.5f) * pitch;
-                float dy = (gy + 0.5f) * pitch;
-                int cx = Math.min(w - 1, (int) dx);
-                int cy = Math.min(h - 1, (int) dy);
-                if (l.depth[cy * w + cx] > -radiusFor(pitch) * 0.8f) {
+        float reach = radiusFor(pitch);
+        // The first column and row at or after the bitmap's edge, on the centre's lattice.
+        float x0 = l.cx - (float) Math.floor(l.cx / pitch) * pitch;
+        float y0 = l.cy - (float) Math.floor(l.cy / pitch) * pitch;
+        for (float dy = y0; dy < h; dy += pitch) {
+            for (float dx = x0; dx < w; dx += pitch) {
+                if (depthAt(l, w, h, dx, dy) > -reach) {
                     spots.add(new float[] {dx, dy});
                 }
             }
         }
         return spots;
+    }
+
+    /** The depth into the glass at a point between pixel centres (bilinear). */
+    private static float depthAt(Layout l, int w, int h, float x, float y) {
+        float fx = Math.max(0, Math.min(w - 1.001f, x - 0.5f));
+        float fy = Math.max(0, Math.min(h - 1.001f, y - 0.5f));
+        int ix = (int) fx;
+        int iy = (int) fy;
+        float tx = fx - ix;
+        float ty = fy - iy;
+        float top = l.depth[iy * w + ix] * (1 - tx) + l.depth[iy * w + ix + 1] * tx;
+        float bottom = l.depth[(iy + 1) * w + ix] * (1 - tx) + l.depth[(iy + 1) * w + ix + 1] * tx;
+        return top * (1 - ty) + bottom * ty;
     }
 
     private static float radiusFor(float pitch) {
