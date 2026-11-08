@@ -62,28 +62,15 @@ Each section below opens when tapped.
   where it was), the year option, and in landscape the notifications at the end of the left
   half under the right icons (screenshots). The OLED saver hid the bar (instantly) and moved
   it (log: "move every 60 s by 2 dp").
+- 0.55.2, app icon: the dot-matrix face in the launcher (Dr.Essence: "perfect").
+- 0.55.1, Nothing2Something in Settings: the row shows and opens the app (Dr.Essence: "I
+  think it works"; the icon's tint in light mode and the LSPosed log line not checked yet).
+- 0.54.10, the dock turning with the home screen: the squeezed dock not seen again in use
+  (Dr.Essence: "seems fixed"; not yet recorded after a reboot or on battery saving).
+- 0.54.9, Check orientation on wake and unlock: the screen came on and unlocked in the way
+  the phone was held (Dr.Essence: "seems to work"; the LSPosed log not checked yet).
 
 **Not tested on a phone yet**
-- **0.55.2, app icon.** The app had Android's default icon. It now has the Settings row's
-  face as a dot matrix in Nothing's style (white dots on black, a 15 x 15 grid inside the
-  adaptive icon's safe zone, the third eye's pupil in Nothing's red), with a monochrome layer
-  for themed icons; the mouth is a straight row of dots rising at its right end (picked from
-  three drawn for the dot grid). Needs on the phone: the icon in the launcher and the drawer,
-  with themed icons on and off.
-- **0.55.1, Nothing2Something in Settings.** A row on the Settings home page, first in
-  Nothing's group with Intelligence toolkit, Lock screen and Customisation
-  (`top_level_nt_custom_category`), with its own icon (three eyes, two dots and a smile rising
-  to the right, drawn to Dr.Essence's sketch); a tap opens the app. Found in Nothing's
-  Settings: the home page adds rows apps declare as standard Settings tiles (an activity
-  answering `com.android.settings.action.EXTRA_SETTINGS` with the homepage category and a
-  `group_key`), as Intelligence toolkit is added, but only from system apps (settingslib's
-  TileUtils: `resolveInfo.system`). The app declares such a tile (order -1000, so first in the
-  group, whose rows are -30 / -20 / -10), and in Settings `SettingsTile.kt` marks this module's
-  own tile as a system one when Settings looks tiles up
-  (`ApplicationPackageManager.queryIntentActivitiesAsUser`); placement, title, the icon's tint
-  and the tap are Nothing's own code. Loaded in Launcher only too. Needs on the phone: after
-  force-stopping Settings, the row first in that group, the icon tinted like its neighbours
-  (dark mode and light), a tap opening the app; LSPosed log "settings row: … hooks".
 - **0.55.0, Launcher only** (main page, Mode; off by default). With it on, the module changes
   only Nothing Launcher and Nothing's widget apps (Nothing Widgets, NothingCardService), and in
   the system only home screen rotation's part (`CardOrientation`: the home screen and widget
@@ -131,34 +118,6 @@ Each section below opens when tapped.
   at every landscape turn in the working period too. Needs: a debug report (or LSPosed log)
   started within a minute or two of a failure, so the system log still covers it, and what
   the failure looked like (no reaction, "not recognised", or slow).
-- **0.54.9, Check orientation on wake and unlock** (Lock screen → Landscape, off by default;
-  `WakeOrientation.kt`). The rotation sensor here (MediaTek `dev_orient`) reports only
-  changes, though Android's rules have an on-change sensor report its current value when it is
-  switched on; so as the screen came on, the window manager learned how the phone was held only
-  once it moved (DebuG23: woken at 55.97 s, landscape kept until the sensor's first report at
-  57.27 s). With the setting on, as the window manager switches the sensor on
-  (`WindowOrientationListener.enable`) and again on unlock (`KeyguardController
-  .setKeyguardShown`, the lock screen gone), the accelerometer is read for three samples and,
-  if the phone is held still and clearly upright or on a side (not flat, not between two
-  sides), that rotation goes to Android's own judge as a `dev_orient` report would; auto-rotate
-  and apps' orientation still decide. Needs on the phone: waking and unlocking with the phone
-  held each way, the screen in that orientation at once; the LSPosed log ("wake orientation
-  (screen on|unlock): held at angle …", the first three always, all with diagnostic logging).
-- **0.54.10, the dock turns with the home screen, whatever the load.** Seen after a reboot,
-  under load and on battery saving (not in DebuG23, where every home turn was clean): the dock's
-  icons and folders squeezed together or too big before the turn finished. Found in the
-  launcher's code: a turn gives the dock its new frame at once (`reapplyUi` →
-  `Hotseat.setInsets`: a 240 px bar at the side, or a full-width row) but its grid only on the
-  bind after it (`ModelCallbacks.startBinding` → `Hotseat.resetLayout`; DebuG23: profile at
-  0.70 s, dock grid at 0.83 s), so meanwhile five icons sat in a row inside a narrow column, or
-  in a column inside a low row. The module's draw hold hid that gap only while it lasted (1 s,
-  with focus). The pages already got their new grid at the profile change; now the dock does
-  too: what `resetLayout` does (vertical or not, cell size, grid), with its icons kept and
-  each moved to the cell Nothing's `getCellXFromOrder` / `getCellYFromOrder` give its place.
-  The 0.54.9 log lines stay ("rotation hold: let go after 1000 ms …", "… not held, the
-  launcher had no focus", "… pages filled after … ms") in case anything else shows. Needs on
-  the phone: turning the home screen right after a reboot and on battery saving, the dock
-  right in every frame (a recording).
 - **0.54.8, the lock screen turns straight into its layout.** DebuG23 (a recording on
   perfmtk battery saving, with the log beside it, looked at frame by frame): after each turn
   the landscape lock screen was first drawn with the portrait layout (weather pills across the
