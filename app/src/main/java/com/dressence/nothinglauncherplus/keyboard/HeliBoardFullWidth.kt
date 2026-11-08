@@ -1,8 +1,11 @@
 package com.dressence.nothinglauncherplus.keyboard
 
 import android.content.Context
+import android.graphics.Insets
 import android.inputmethodservice.InputMethodService
 import android.os.Build
+import android.view.View
+import android.view.ViewTreeObserver
 import android.view.WindowInsets
 import android.view.WindowManager
 import com.dressence.nothinglauncherplus.xposed.ConfigStore
@@ -29,6 +32,17 @@ import de.robv.android.xposed.XposedHelpers
  * With the setting on, both are changed at the source: the keyboard window asks for ALWAYS (as
  * Android lets any window do), and HeliBoard's width leaves out only the system bars. In
  * portrait the camera is above the keyboard, so nothing changes there.
+ *
+ * Mistake recorded (0.57.0): with only those two, the window covered the whole width and the
+ * keys were sized to it, but they started 106 px in and the last key went past the right edge
+ * (Dr.Essence's screenshot: `q`'s key from about 106 px, `p` cut off; window dump:
+ * `frame=[0,103][2400,1080]`). The phone's `InsetsState.calculateInsets` gives views the
+ * cutout as part of their legacy "system window" insets (`systemBars() | displayCutout()`), so
+ * a view in the keyboard window that fits system windows padded itself by the camera's strip.
+ * Now, while the setting is on, the insets given to the keyboard window's views leave the
+ * cutout out (the window root's own insets listener; nothing else in the window changes).
+ * A diagnostic line logs the views from the keyboard to the window root (left, width, left
+ * padding) once per layout change, to confirm on the phone which view it was.
  */
 internal object HeliBoardFullWidth {
 
@@ -84,9 +98,58 @@ internal object HeliBoardFullWidth {
                 attrs.layoutInDisplayCutoutMode = wanted
                 window.attributes = attrs // only when it changes: no extra relayouts
             }
+            val decor = window.decorView
+            val full = wanted == WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+            if (full != (decor.getTag(TAG_STRIPPING) == true)) {
+                decor.setTag(TAG_STRIPPING, full)
+                decor.setOnApplyWindowInsetsListener(if (full) STRIP_CUTOUT else null)
+                decor.requestApplyInsets()
+            }
+            if (full) watchLayout(service, decor)
         } catch (t: Throwable) {
             Hooks.log("heliboard full width: window: $t")
         }
+    }
+
+    /** A tag key of the module's own (any id unused by the window's views). */
+    private const val TAG_STRIPPING = 0x7e4e4c50
+
+    /** The window root's insets without the cutout; everything else as Android gave it. */
+    private val STRIP_CUTOUT = View.OnApplyWindowInsetsListener { view, insets ->
+        val cutout = WindowInsets.Type.displayCutout()
+        val stripped = WindowInsets.Builder(insets)
+            .setInsets(cutout, Insets.NONE)
+            .setInsetsIgnoringVisibility(cutout, Insets.NONE)
+            .setDisplayCutout(null)
+            .build()
+        view.onApplyWindowInsets(stripped)
+    }
+
+    /** Diagnostic: the views from the keyboard to the window root, once per layout change. */
+    private fun watchLayout(service: InputMethodService, decor: View) {
+        if (decor.getTag(TAG_STRIPPING + 1) != null) return
+        var last = ""
+        val listener = ViewTreeObserver.OnGlobalLayoutListener {
+            try {
+                val id = service.resources.getIdentifier("keyboard_view", "id", service.packageName)
+                var v: View? = if (id == 0) null else decor.findViewById(id)
+                val chain = StringBuilder()
+                while (v != null) {
+                    chain.append(v.javaClass.simpleName).append('[').append(v.left).append('+')
+                        .append(v.width).append(" pl").append(v.paddingLeft).append("] ")
+                    v = v.parent as? View
+                }
+                val line = chain.toString().trim()
+                if (line != last) {
+                    last = line
+                    Hooks.log("heliboard full width: views (left+width padLeft): $line")
+                }
+            } catch (t: Throwable) {
+                Hooks.log("heliboard full width: views: $t")
+            }
+        }
+        decor.setTag(TAG_STRIPPING + 1, listener)
+        decor.viewTreeObserver.addOnGlobalLayoutListener(listener)
     }
 
     private fun hookWidth(cl: ClassLoader, store: ConfigStore): Boolean {
