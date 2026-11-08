@@ -129,6 +129,18 @@ final class LockScreenTurn {
     private static Object notifications;
     private static Object[] notificationArgs;
     private static ConfigStore settings;
+    /** System UI's KeyguardBlueprintInteractor, once started (main thread). */
+    private static Object blueprints;
+    /** The rotation the lock screen's constraints were last applied for here (main thread). */
+    private static int appliedRotation = -1;
+    /**
+     * While the pass runs here, the rotation it is for (else -1): the turn's own rotation is
+     * known for certain there, whichever of configuration and display arrived first.
+     */
+    private static int passRotation = -1;
+    /** The lock screen's window (NotificationShadeWindowView), once attached. */
+    private static java.lang.ref.WeakReference<View> shadeWindow =
+            new java.lang.ref.WeakReference<>(null);
 
     private LockScreenTurn() {
     }
@@ -158,6 +170,7 @@ final class LockScreenTurn {
         settings = store;
         mirrorNotifications(cl, store);
         layOutOnFlip(cl, store);
+        layOutWithTurn(cl, store);
         logFingerprint(cl, store);
         sensorTouches(cl, store);
         Class<?> window = XposedHelpers.findClassIfExists(CLS_SHADE_WINDOW, cl);
@@ -166,6 +179,7 @@ final class LockScreenTurn {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) {
                     View root = (View) param.thisObject;
+                    shadeWindow = new java.lang.ref.WeakReference<>(root);
                     root.getViewTreeObserver().addOnGlobalLayoutListener(
                             Hooks.guard("lock screen layout", () -> {
                                 if (store.get().lockRotation
@@ -798,6 +812,9 @@ final class LockScreenTurn {
      * rotation of the configuration being laid out.
      */
     private static int layoutRotation(android.content.Context context) {
+        if (passRotation >= 0) {
+            return passRotation; // Laid out here with the turn: its own rotation.
+        }
         int display = 0;
         android.view.WindowManager wm = context == null ? null
                 : (android.view.WindowManager) context.getSystemService(
@@ -1005,7 +1022,7 @@ final class LockScreenTurn {
         XposedBridge.hookAllMethods(interactor, "start", new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
-                Object blueprints = param.thisObject;
+                blueprints = param.thisObject;
                 android.app.Application app = android.app.AndroidAppHelper.currentApplication();
                 android.hardware.display.DisplayManager displays = app == null ? null
                         : app.getSystemService(android.hardware.display.DisplayManager.class);
@@ -1033,9 +1050,14 @@ final class LockScreenTurn {
                             if (!flipped || !store.get().lockRotation) {
                                 return;
                             }
-                            @SuppressWarnings({"unchecked", "rawtypes"})
-                            Object none = Enum.valueOf((Class) type, "NoTransition");
-                            XposedHelpers.callMethod(blueprints, "refreshBlueprint", none);
+                            if (rotation == appliedRotation) {
+                                return; // Already laid out with the turn (layOutWithTurn).
+                            }
+                            if (!applyNow(cl, rotation)) {
+                                @SuppressWarnings({"unchecked", "rawtypes"})
+                                Object none = Enum.valueOf((Class) type, "NoTransition");
+                                XposedHelpers.callMethod(blueprints, "refreshBlueprint", none);
+                            }
                             layOutNotifications();
                             Hooks.log("lock screen flip: laid out again for rotation "
                                     + rotation);
@@ -1055,6 +1077,106 @@ final class LockScreenTurn {
                 Hooks.log("lock screen flip: watching turns");
             }
         });
+    }
+
+    /**
+     * The lock screen laid out for a turn in the frame the turn is drawn in.
+     *
+     * <p>How it was found (DebuG23, a recording on battery saving with the log beside it): after
+     * each turn, the first landscape frames of the lock screen were drawn with the portrait
+     * constraints (weather pills across the middle, no notifications, no fingerprint ring, the
+     * clock on the wrong side), and 0.35 to 0.8 s later everything jumped into its halves, in
+     * the very pass the log shows as "lock screen halves". That pass is System UI's own:
+     * a configuration change reaches the lock screen as a coroutine (KeyguardBlueprintInteractor
+     * on onAnyConfigurationChange), then a handler post (KeyguardBlueprintRepository
+     * .refreshBlueprint), then a flow the view binder collects (KeyguardBlueprintViewBinder:
+     * clone the constraints, KeyguardBlueprint.applyConstraints, applyTo). Each hop waits its
+     * turn on the main thread, and the frame for the new size is drawn first (Android blocks
+     * ordinary messages until it is). Portrait-only Nothing OS never shows it: there both
+     * orientations would have the same layout.
+     *
+     * <p>So the module does not move anything afterwards: as the new configuration reaches the
+     * lock screen's window (NotificationShadeWindowView.onConfigurationChanged, before that
+     * frame is laid out), it runs that same constraint pass of System UI's at once. System UI's
+     * own pass still comes and finds the constraints as it would set them.
+     */
+    private static void layOutWithTurn(ClassLoader cl, ConfigStore store) {
+        Class<?> window = XposedHelpers.findClassIfExists(CLS_SHADE_WINDOW, cl);
+        if (window == null) {
+            Hooks.log("lock screen turn: no " + CLS_SHADE_WINDOW);
+            return;
+        }
+        XposedHelpers.findAndHookMethod(window, "onConfigurationChanged", Configuration.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) {
+                        if (!store.get().lockRotation) {
+                            return;
+                        }
+                        Hooks.guard("lock screen turn", () -> {
+                            View window = (View) param.thisObject;
+                            shadeWindow = new java.lang.ref.WeakReference<>(window);
+                            int rotation = configuredRotation((Configuration) param.args[0]);
+                            if (rotation >= 0 && rotation != appliedRotation) {
+                                applyNow(cl, rotation);
+                            }
+                        }).run();
+                    }
+                });
+    }
+
+    /**
+     * System UI's lock screen constraint pass, done now, as its view binder does it on a
+     * refresh without a transition. False if it could not be done here (not started yet).
+     */
+    private static boolean applyNow(ClassLoader cl, int rotation) {
+        Object interactor = blueprints;
+        if (interactor == null) {
+            return false;
+        }
+        try {
+            Object blueprint = XposedHelpers.callMethod(interactor, "getCurrentBlueprint");
+            View window = shadeWindow.get();
+            if (blueprint == null || window == null) {
+                return false;
+            }
+            int id = window.getResources().getIdentifier("keyguard_root_view", "id",
+                    window.getContext().getPackageName());
+            View root = id != 0 ? window.findViewById(id) : null;
+            if (root == null) {
+                return false;
+            }
+            Class<?> layout = cl.loadClass("androidx.constraintlayout.widget.ConstraintLayout");
+            Class<?> setClass = cl.loadClass("androidx.constraintlayout.widget.ConstraintSet");
+            Object set = setClass.getConstructor().newInstance();
+            setClass.getMethod("clone", layout).invoke(set, root);
+            passRotation = rotation;
+            try {
+                cl.loadClass("com.android.systemui.keyguard.shared.model.KeyguardBlueprint")
+                        .getMethod("applyConstraints", setClass).invoke(blueprint, set);
+            } finally {
+                passRotation = -1;
+            }
+            setClass.getMethod("applyTo", layout).invoke(set, root);
+            appliedRotation = rotation;
+            if (settings != null && settings.get().diagnosticLogging) {
+                Hooks.log("lock screen turn: laid out with the turn to rotation " + rotation);
+            }
+            return true;
+        } catch (Throwable t) {
+            Hooks.log("lock screen turn: " + t);
+            return false;
+        }
+    }
+
+    /** The display rotation a configuration is for, or -1 if it does not say. */
+    private static int configuredRotation(Configuration config) {
+        try {
+            Object window = XposedHelpers.getObjectField(config, "windowConfiguration");
+            return (Integer) XposedHelpers.callMethod(window, "getDisplayRotation");
+        } catch (Throwable t) {
+            return -1; // Hidden API missing: System UI's own pass places it.
+        }
     }
 
     private static boolean isLandscapeRotation(int rotation) {

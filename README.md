@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.54.7, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.54.8, what is pending, what still needs testing</summary>
 
-**Current build: 0.54.7** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver (now shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module. Pending: the lock screen, always-on display and home screen turns, which still show a moment of the wrong layout (being traced in DebuG23).
+**Current build: 0.54.8** (CMF Phone 1, Nothing OS 4.1, Android 16): the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -64,6 +64,24 @@ Each section below opens when tapped.
   it (log: "move every 60 s by 2 dp").
 
 **Not tested on a phone yet**
+- **0.54.8, the lock screen turns straight into its layout.** DebuG23 (a recording on
+  perfmtk battery saving, with the log beside it, looked at frame by frame): after each turn
+  the landscape lock screen was first drawn with the portrait layout (weather pills across the
+  middle, no notifications, no fingerprint ring, the clock on the wrong side) and jumped into
+  its halves 0.35 to 0.8 s later (59.65 to 60.3 s and 66.3 to 66.7 s in the recording), in the
+  pass the log shows as "lock screen halves". That pass is System UI's own and reaches the lock
+  screen through a coroutine, a handler post and a flow, each waiting on the main thread, while
+  Android draws the turned frame first. The module now runs that same pass of System UI's
+  (`KeyguardBlueprint.applyConstraints`, as its view binder does) as the new configuration
+  reaches the lock screen's window, before that frame is laid out; System UI's own pass
+  follows and finds it as it would set it. Turning straight from one side to the other does the
+  same pass at once instead of asking System UI for one. Not seen in DebuG23: the home screen
+  turns went straight to their layout (only about two frames of the dock with four icons at the
+  end of a turn to portrait, the launcher's own rebuild), and waking from the always-on display
+  was Nothing's own fade. Needs on the phone: a recording of the lock screen turning both ways
+  and from side to side, on battery saving, with diagnostic logging ("lock screen turn: laid
+  out with the turn to rotation …"); the notifications may still arrive a moment later (their
+  container is placed by its own System UI flow).
 - **0.54.7, OLED saver over full-screen apps:** with Hide the status bar on, a swipe from the
   top over a full-screen app (a game, a video) brought back an empty strip, and a tap was
   needed on top. The saver now shows the bar for as long as Android shows it after that swipe
