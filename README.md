@@ -47,47 +47,46 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.54.0, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.54.1, what is pending, what still needs testing</summary>
 
-**Current build: 0.54.0** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar's options and tighter rows, and an OLED saver for the status bar; the module's first Kotlin code.
+**Current build: 0.54.1** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver, and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
   the other icons, the date in full ("SUNDAY, 8 NOVEMBER") and the notifications under it,
   apps under the taller bar (screenshots). The gap between the rows was too large; see 0.54.0.
-
-**In progress (on the branch, not a build to test)**
-- Dual status bar: "Notifications at the end" becomes **Date at the end** (the notifications
-  at the start of the second row, the date opposite them at the end of the left half), as
-  asked; waiting for portrait and landscape screenshots of 0.54.0, where the notifications
-  sat on the left in landscape only, before it is built. Still to come in the same build:
-  the OLED saver waking only for new notifications and the start of a shade pull (0.54.0
-  woke the bar on every progress update, about every 2 s on the home screen while a download
-  ran), and a Restart System UI row that the crash guards do not count.
+- 0.54.0, dual status bar: the tighter gap (the second row just under the clock, the top row
+  where it was), the year option, and in landscape the notifications at the end of the left
+  half under the right icons (screenshots). The OLED saver hid the bar (instantly) and moved
+  it (log: "move every 60 s by 2 dp").
 
 **Not tested on a phone yet**
-- **0.54.0, dual status bar options and tighter rows** (now Kotlin, `DualStatusBar.kt`):
-  Month as a number ("Sunday, 8/11", the language's order), Year in the date, and
-  Notifications at the end (the date at the start of the second row, the notifications at
-  the end of the left half: before the camera gap in portrait, up to the right icons in
-  landscape; the right half belongs to the Wi-Fi/signal/battery icons, and moving the
-  icons into it is what crashes other mods; being replaced, see In progress). The second row now starts in the room the bar
-  already has under the clock's text (worked out from the bar's real height, the clock's
-  text height in its font and the row height), leaving a gap of 0.3 text heights, and the
-  bar grows only by the rest; the top row stays where it was. Needs on the phone: the gap,
-  the three options, the top row unmoved; still from 0.53: the bar over a light app (dark
-  text and date), during a call or screen recording (its chip sits between the rows), and
-  the lock screen's status bar and clock (they use the same height).
-- **0.54.0, OLED saver** (Status bar & quick settings → OLED saver; `StatusBarSaver.kt`):
+- **0.54.1, dual status bar: Date at the end** (replaces Notifications at the end): the
+  notifications keep the start of the second row and the whole left half; the date goes on
+  the end side's second row, under the Wi-Fi/signal/battery icons, where the bar is empty
+  (drawn on that side's overlay; nothing moves there). In portrait the camera gap ends the
+  left half, and the full date with the notifications after it left room only for System
+  UI's overflow dot (seen on the phone); with the date at the end the icons have the half.
+  Month as a number and Year in the date as before (the year now in full, see Fixed). Needs
+  on the phone: both orientations with Date at the end on and off, with notifications; still
+  from 0.53: the bar over a light app (dark text and date), during a call or screen recording
+  (its chip sits between the rows), and the lock screen's status bar and clock.
+- **0.54.1, OLED saver** (Status bar & quick settings → OLED saver; `StatusBarSaver.kt`):
   Move the status bar (never, every 30 s … 30 min), How far it moves (1-6 dp) and Hide the
-  status bar (never, instantly with 5 s shown, after 1-30 min; back on a new notification,
-  the shade being pulled or the screen turning on). It moves and fades only
+  status bar (never, instantly with 5 s shown, after 1-30 min). It moves and fades only
   `status_bar_contents`, which neither System UI nor Nothing moves or fades themselves;
   before each move it measures the room the visible content has inside the bar and stays
-  within it, so nothing goes past an edge on any layout. Its own crash-loop guard, like the
-  dual status bar's. Needs on the phone: the moves (a recording over a few intervals, a
-  short interval to see it), hiding and coming back on each trigger, nothing cut at the
-  edges, with and without the dual status bar.
+  within it. Back on screen for a notification not seen before (or an update that alerts
+  again, like a new message), a shade pull starting, or the screen turning on; each such
+  wake is logged ("status bar saver: shown again (…)", at most every 10 s, until confirmed).
+  Needs on the phone: hiding that stays hidden while a download runs, coming back on each
+  trigger (LSPosed log), the moves over a few intervals (a recording), nothing cut at the
+  edges.
+- **0.54.1, Restart System UI** (top of Status bar & quick settings and of Lock screen):
+  applies the options marked "restart System UI" at once (root). It first leaves a "planned
+  restart" note in System UI's folder, so the crash-loop guards do not count that start.
+  Needs on the phone: the options applying after it; pressing it three times within three
+  minutes leaves the dual status bar and the saver on.
 - **0.52.5, dot-matrix icons powering on in step again:** icons drawn while their view was still
   hidden (the first frames of the drawer or a folder opening, when Android fades and slides the
   page without redrawing icons) waited for a 1 s recheck, so they lit up late and one by one. They
@@ -124,6 +123,12 @@ Each section below opens when tapped.
   will be retaken for the public release.
 
 **Fixed recently**
+- 0.54.1: the dual status bar's year showed as "26" (android.text.format.DateFormat writes a
+  lone "y" as two digits); the date is made with ICU's formatter, which writes it in full.
+- 0.54.1: the OLED saver's hidden bar came back every 2 s on the home screen (seen on the
+  phone): every notification update counted as a new notification, and a download posts its
+  progress every second or two. Only new notifications, or updates that alert again, wake it
+  now, and the shade only when a pull starts.
 - 0.53.1: the dual status bar did nothing but take the date off the clock (seen on the phone:
   one row, no date). Its layout step stored what it changes on System UI's views under an
   Android-owned tag id, which Android refuses ("The key must be an application-specific

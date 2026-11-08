@@ -451,6 +451,7 @@ public class MainActivity extends Activity {
     }
 
     private void renderSystemUi(Ui ui, Config config) {
+        restartSystemUiRow(ui);
         ui.section("Status bar");
         ui.switchRow("Ndot status bar",
                 "Ndot clock and date, every status icon in glowing green",
@@ -543,6 +544,7 @@ public class MainActivity extends Activity {
     }
 
     private void renderLock(Ui ui, Config config) {
+        restartSystemUiRow(ui);
         ui.section("Landscape");
         ui.switchRow("Lock screen rotation (test)",
                 "Lock screen, PIN screen and fingerprint follow auto-rotate",
@@ -1174,6 +1176,17 @@ public class MainActivity extends Activity {
                         : "Failed: " + failure, Toast.LENGTH_LONG).show();
             });
         }).start();
+    }
+
+    /** A row restarting System UI, for the options on a page that it reads when it starts. */
+    private void restartSystemUiRow(Ui ui) {
+        ui.row("Restart System UI", "Applies the options marked \"restart System UI\" now"
+                + " · needs root", null, null, v -> new Thread(() -> {
+                    boolean done = SystemUiRestart.restart();
+                    runOnUiThread(() -> Toast.makeText(this, done ? "System UI restarted"
+                            : "Root not available; force stop System UI from App info",
+                            Toast.LENGTH_LONG).show());
+                }).start());
     }
 
     private void restartLauncher() {

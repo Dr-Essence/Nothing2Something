@@ -9,7 +9,6 @@ import android.graphics.PixelFormat
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.text.TextPaint
-import android.text.format.DateFormat
 import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
@@ -88,6 +87,7 @@ internal object DualStatusBar {
      * above): weak maps, so a view System UI drops is let go. Main thread only.
      */
     private val saved = WeakHashMap<View, Saved>()
+    /** The date shown for each bar, by its row container. */
     private val dates = WeakHashMap<View, DateRow>()
 
     @JvmStatic
@@ -219,11 +219,11 @@ internal object DualStatusBar {
     /** Lays the bar out on one row or two, for the orientation it is in now. */
     private fun arrange(bar: ViewGroup) {
         val start = find(bar, "status_bar_start_side_except_heads_up") as? LinearLayout
-        val startContent = find(bar, "status_bar_start_side_content")
+        val endSide = find(bar, "status_bar_end_side_container")
         val end = find(bar, "status_bar_end_side_content")
         val area = find(bar, "notification_icon_area")
         val clock = find(bar, "clock") as? TextView
-        if (start == null || startContent == null || end == null || area == null || clock == null
+        if (start == null || endSide == null || end == null || area == null || clock == null
             || clock.layoutParams !is LinearLayout.LayoutParams
             || area.layoutParams !is LinearLayout.LayoutParams
         ) {
@@ -231,14 +231,13 @@ internal object DualStatusBar {
             return
         }
         clockFace = clock.typeface
-        val keep = saved.getOrPut(start) { Saved(start, startContent, clock, area, end) }
+        val keep = saved.getOrPut(start) { Saved(start, clock, area, end) }
         // The two rows' measures, or null when this orientation keeps one row.
         val rows = baseHeight(bar.context)?.let { rows(bar.context, it) }
             ?.takeIf { landscape || !isLandscape(bar.context) }
 
         val clockLp = clock.layoutParams as LinearLayout.LayoutParams
         val areaLp = area.layoutParams as LinearLayout.LayoutParams
-        val contentLp = startContent.layoutParams
         if (rows != null) {
             start.orientation = LinearLayout.VERTICAL
             // The clock takes what the row leaves: the original bar height.
@@ -251,12 +250,6 @@ internal object DualStatusBar {
             // The end side's icons stay level with the clock: its box ends where the bar did.
             end.setPadding(end.paddingLeft, end.paddingTop, end.paddingRight,
                 keep.endBottom + rows.growth)
-            if (dateAtEnd && showDate) {
-                // The left half's content fills its half (Nothing already gives the half its
-                // width), so the date can go at its end, opposite the notifications.
-                contentLp.width = ViewGroup.LayoutParams.MATCH_PARENT
-                areaLp.width = ViewGroup.LayoutParams.MATCH_PARENT
-            }
         } else {
             start.orientation = keep.orientation
             clockLp.height = keep.clockHeight
@@ -265,25 +258,25 @@ internal object DualStatusBar {
             areaLp.weight = keep.areaWeight
             areaLp.topMargin = keep.areaTop
             end.setPadding(end.paddingLeft, end.paddingTop, end.paddingRight, keep.endBottom)
-            contentLp.width = keep.contentWidth
-            areaLp.width = keep.areaWidth
         }
         clock.layoutParams = clockLp
         area.layoutParams = areaLp
-        startContent.layoutParams = contentLp
-        DateRow.attach(area as ViewGroup, clock, keep, rows != null && showDate)
+        // The date: before the notifications, or (Date at the end) on the end side's second
+        // row, under its icons, where the bar is empty, leaving the notifications the whole
+        // left half (in portrait the camera gap ends that half, and the full date left the
+        // icons no room: seen on the phone, only System UI's overflow dot showed).
+        val host = if (dateAtEnd) endSide else area
+        DateRow.attach(start, host, clock, keep, rows?.takeIf { showDate })
     }
 
     /** What [arrange] changes, as Nothing set it: put back for one row. */
-    private class Saved(start: LinearLayout, content: View, clock: View, area: View, end: View) {
+    private class Saved(start: LinearLayout, clock: View, area: View, end: View) {
         val orientation = start.orientation
         val clockHeight: Int
         val clockWeight: Float
         val areaHeight: Int
         val areaWeight: Float
         val areaTop: Int
-        val areaWidth: Int
-        val contentWidth = content.layoutParams.width
         val endBottom = end.paddingBottom
         val areaStart = area.paddingStart
         val areaEnd = area.paddingEnd
@@ -296,7 +289,6 @@ internal object DualStatusBar {
             areaHeight = a.height
             areaWeight = a.weight
             areaTop = a.topMargin
-            areaWidth = a.width
         }
     }
 
@@ -304,84 +296,104 @@ internal object DualStatusBar {
 
     /**
      * The date ("Sunday, 8 November", in the language's own order; the month as a number
-     * and the year as set) drawn in the notification area: at its start, before the icons,
-     * or with Date at the end at its end, opposite them; in the room a padding makes on that
-     * side, in the clock's own paint (font, colour, glow). A drawable on the area's overlay:
-     * nothing is added inside System UI's views.
+     * and the year as set), in the clock's own paint (font, colour, glow), drawn on the
+     * overlay of [host]: nothing is added inside System UI's views.
+     *
+     * - At the start ([host] is the notification area): in the room its start padding
+     *   makes, before the icons.
+     * - At the end ([host] is the end side's container): on its second row ([rows]),
+     *   at its end, under the Wi-Fi, signal and battery icons.
+     *
+     * Mistake recorded (0.54.0): the year came out as "26". android.text.format.DateFormat
+     * writes a lone "y" as two digits; ICU's formatter, made from the same skeleton, writes
+     * the full year.
      */
-    private class DateRow(area: View, clock: TextView, private val keep: Saved) :
-        Drawable(), View.OnLayoutChangeListener {
+    private class DateRow(
+        host: View, clock: TextView, private val keep: Saved, val rows: Rows,
+    ) : Drawable(), View.OnLayoutChangeListener {
 
-        private val area = WeakReference(area)
+        private val host = WeakReference(host)
         private val clock = WeakReference(clock)
+        private val atEnd = dateAtEnd
         private val paint = TextPaint(Paint.ANTI_ALIAS_FLAG)
-        private var patternLocale: Locale? = null
-        private var pattern = ""
+        private var formatLocale: Locale? = null
+        private var format: android.icu.text.DateFormat? = null
         private var text = ""
         private var width = -1
         private var gap = 0
 
+        fun hostIs(v: View) = host.get() === v
+
         companion object {
-            fun attach(area: ViewGroup, clock: TextView, keep: Saved, show: Boolean) {
-                val row = dates[area]
-                if (show && row == null) {
-                    val made = DateRow(area, clock, keep)
-                    dates[area] = made
-                    area.overlay.add(made)
-                    area.addOnLayoutChangeListener(made)
+            /** Shows the date for the bar of [start] on [host] (or removes it: [rows] null). */
+            fun attach(start: View, host: View, clock: TextView, keep: Saved, rows: Rows?) {
+                val old = dates[start]
+                if (old != null && (rows == null || !old.hostIs(host) || old.rows.row != rows.row
+                        || old.rows.overlap != rows.overlap)) {
+                    old.detach()
+                    dates.remove(start)
+                }
+                if (rows != null && dates[start] == null) {
+                    val made = DateRow(host, clock, keep, rows)
+                    dates[start] = made
+                    host.overlay.add(made)
+                    host.addOnLayoutChangeListener(made)
                     made.refresh()
-                } else if (!show && row != null) {
-                    area.overlay.remove(row)
-                    area.removeOnLayoutChangeListener(row)
-                    dates.remove(area)
-                    area.setPaddingRelative(keep.areaStart, area.paddingTop, keep.areaEnd,
-                        area.paddingBottom)
                 }
             }
         }
 
-        /** The date's pattern for the language, from a skeleton Android orders itself. */
-        private fun pattern(): String {
+        fun detach() {
+            val h = host.get() ?: return
+            h.overlay.remove(this)
+            h.removeOnLayoutChangeListener(this)
+            if (!atEnd) {
+                h.setPaddingRelative(keep.areaStart, h.paddingTop, keep.areaEnd, h.paddingBottom)
+            }
+        }
+
+        /** The date for today, in the language's order, from a skeleton ICU orders itself. */
+        private fun today(): String {
             val locale = Locale.getDefault()
-            if (locale != patternLocale) {
-                patternLocale = locale
+            if (locale != formatLocale || format == null) {
+                formatLocale = locale
                 val month = if (monthNumber) "M" else "MMMM"
                 val year = if (withYear) "y" else ""
-                pattern = DateFormat.getBestDateTimePattern(locale, "EEEEd$month$year")
+                format = android.icu.text.DateFormat.getInstanceForSkeleton(
+                    "EEEEd$month$year", locale)
             }
-            return pattern
+            return format!!.format(Date())
         }
 
         /** New text or look; the room for it is made again only when its width changed. */
         fun refresh() {
-            val a = area.get() ?: return
+            val h = host.get() ?: return
             val c = clock.get() ?: return
-            text = DateFormat.format(pattern(), Date()).toString()
+            text = today()
             paint.set(c.paint)
             paint.color = c.currentTextColor
             gap = (c.textSize * 0.6f).roundToInt()
             val w = paint.measureText(text).roundToInt() + gap
             if (w != width) {
                 width = w
-                // Room for the date on its side, so the icons never run under it.
-                if (dateAtEnd) {
-                    a.setPaddingRelative(keep.areaStart, a.paddingTop, keep.areaEnd + w,
-                        a.paddingBottom)
-                } else {
-                    a.setPaddingRelative(keep.areaStart + w, a.paddingTop, keep.areaEnd,
-                        a.paddingBottom)
+                // At the start, room for the date so the icons begin after it.
+                if (!atEnd) {
+                    h.setPaddingRelative(keep.areaStart + w, h.paddingTop, keep.areaEnd,
+                        h.paddingBottom)
                 }
-                place(a)
+                place(h)
             }
             invalidateSelf()
         }
 
-        /** The date's box: [width] wide, at the area's start or (Date at the end) its end. */
+        /** The date's box: [width] wide, at the start of the area or at the end side's end. */
         private fun place(v: View) {
             val w = maxOf(width, 0)
             val rtl = v.layoutDirection == View.LAYOUT_DIRECTION_RTL
-            val atRight = dateAtEnd != rtl
-            setBounds(if (atRight) v.width - w else 0, 0, if (atRight) v.width else w, v.height)
+            val atRight = atEnd != rtl
+            // At the end, the second row is the bottom row's height of the end side.
+            val top = if (atEnd) maxOf(v.height - rows.row, 0) else 0
+            setBounds(if (atRight) v.width - w else 0, top, if (atRight) v.width else w, v.height)
         }
 
         override fun onLayoutChange(v: View, l: Int, t: Int, r: Int, b: Int, ol: Int, ot: Int,
@@ -392,7 +404,7 @@ internal object DualStatusBar {
             val b = bounds
             val m = paint.fontMetrics
             // The gap is on the icons' side: after the date at the start, before it at the end.
-            val x = if (dateAtEnd) b.left + gap else b.left
+            val x = if (atEnd) b.left + gap else b.left
             canvas.drawText(text, x.toFloat(), b.exactCenterY() - (m.ascent + m.descent) / 2f,
                 paint)
         }
@@ -414,7 +426,8 @@ internal object DualStatusBar {
  * A crash-loop guard for a System UI feature: false once System UI has started three times
  * within three minutes with the feature on, until a setting is saved again (the settings'
  * file time, [stamp], changes). Each start is recorded with that stamp in System UI's own
- * data folder (user 0, device storage), which only System UI writes.
+ * data folder (user 0, device storage). A start within a minute of the module app's
+ * Restart System UI (its "planned restart" note, [PLANNED]) is not counted.
  */
 internal class CrashGuard(private val key: String, private val name: String) {
 
@@ -426,6 +439,9 @@ internal class CrashGuard(private val key: String, private val name: String) {
         if (read(failed) == stamp.toString()) {
             Hooks.log("$name left off: System UI kept restarting with it on; save any setting to try again")
             false
+        } else if (System.currentTimeMillis() - (read(File(dir, PLANNED)).trim().toLongOrNull()
+                ?: 0L) < PLANNED_MS) {
+            true // Restarted from the module app on purpose: not a crash.
         } else {
             val now = System.currentTimeMillis()
             val recent = read(starts).lines()
@@ -457,8 +473,11 @@ internal class CrashGuard(private val key: String, private val name: String) {
         f.writeText(s)
     }
 
-    private companion object {
-        const val LOOP_MS = 3 * 60_000L
-        const val LOOP_STARTS = 3
+    companion object {
+        private const val LOOP_MS = 3 * 60_000L
+        private const val LOOP_STARTS = 3
+        /** The note the module app writes before it restarts System UI (ms since 1970). */
+        const val PLANNED = "nlplus_planned_restart"
+        private const val PLANNED_MS = 60_000L
     }
 }

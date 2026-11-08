@@ -6,6 +6,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
+import android.app.Notification
+import android.os.SystemClock
+import android.service.notification.StatusBarNotification
 import android.view.View
 import android.view.ViewGroup
 import com.dressence.nothinglauncherplus.xposed.ConfigStore
@@ -30,8 +33,15 @@ import java.util.WeakHashMap
  * makes it work on any layout, whatever device or row setup.
  *
  * Back on screen (after hiding): a new notification (System UI's NotificationListener), the
- * shade being pulled (ShadeExpansionStateManager) or the screen turning on; then it hides
- * again after the set time ("instant": after [INSTANT_MS]).
+ * shade starting to be pulled (ShadeExpansionStateManager) or the screen turning on; then it
+ * hides again after the set time ("instant": after [INSTANT_MS]).
+ *
+ * Mistake recorded (0.54.0): every notification *update* woke the bar too. System UI's
+ * listener hears a download's progress as "posted" every second or two, so the bar came back
+ * every 2 s on the home screen while a download ran (seen on the phone). Now only a
+ * notification it has not seen, or an update that alerts again (a new message), wakes it;
+ * updates that are ongoing or "alert only once" (progress, media) do not. The shade wakes it
+ * when a pull starts, not on each frame of it.
  *
  * The settings are read once, when System UI starts (restart System UI after a change).
  */
@@ -57,6 +67,15 @@ internal object StatusBarSaver {
     @Volatile private var hideMs = -1L
 
     private val main = Handler(Looper.getMainLooper())
+
+    /** Notifications the bar has seen (by key): an update of one of them is not "new". */
+    private val seen = object : LinkedHashMap<String, Boolean>() {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>) =
+            size > 500
+    }
+    private var lastFraction = 0f
+    /** When each wake reason was last logged, to log it at most every 10 s. */
+    private val logged = HashMap<String, Long>()
     private val savers = WeakHashMap<View, Saver>()
     private var screenReceiver: BroadcastReceiver? = null
 
@@ -85,14 +104,22 @@ internal object StatusBarSaver {
             XposedBridge.hookAllMethods(XposedHelpers.findClass(CLS_LISTENER, cl),
                 "onNotificationPosted", object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
-                        main.post { guarded { wakeAll() } }
+                        val sbn = param.args.firstOrNull() as? StatusBarNotification
+                            ?: return
+                        main.post { guarded { if (isNew(sbn)) wakeAll("notification") } }
                     }
                 })
             XposedBridge.hookAllMethods(XposedHelpers.findClass(CLS_SHADE, cl),
                 "onPanelExpansionChanged", object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
                         val fraction = param.args.firstOrNull() as? Float ?: return
-                        if (fraction > 0f) main.post { guarded { wakeAll() } }
+                        main.post {
+                            guarded {
+                                // A pull starting from closed, not every frame of it.
+                                if (lastFraction == 0f && fraction > 0f) wakeAll("shade")
+                                lastFraction = fraction
+                            }
+                        }
                     }
                 })
         }
@@ -118,7 +145,8 @@ internal object StatusBarSaver {
         savers.getOrPut(bar) { Saver(contents) }.start()
         if (hideMs >= 0 && screenReceiver == null) {
             val receiver = object : BroadcastReceiver() {
-                override fun onReceive(context: Context, intent: Intent) = guarded { wakeAll() }
+                override fun onReceive(context: Context, intent: Intent) =
+                    guarded { wakeAll("screen on") }
             }
             bar.context.applicationContext.registerReceiver(receiver,
                 IntentFilter(Intent.ACTION_SCREEN_ON), Context.RECEIVER_NOT_EXPORTED)
@@ -126,7 +154,25 @@ internal object StatusBarSaver {
         }
     }
 
-    private fun wakeAll() = savers.values.toList().forEach { it.wake() }
+    /**
+     * True for a notification worth showing the bar for: one not seen before, or an update
+     * that alerts again; not progress or media updates (ongoing, or "alert only once").
+     */
+    private fun isNew(sbn: StatusBarNotification): Boolean {
+        val first = seen.put(sbn.key, true) == null
+        if (first) return true
+        val flags = sbn.notification.flags
+        return flags and (Notification.FLAG_ONGOING_EVENT or Notification.FLAG_ONLY_ALERT_ONCE) == 0
+    }
+
+    private fun wakeAll(reason: String) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - (logged[reason] ?: -60_000L) >= 10_000L) {
+            logged[reason] = now
+            Hooks.log("status bar saver: shown again ($reason)")
+        }
+        savers.values.toList().forEach { it.wake() }
+    }
 
     /** The saver of one status bar. Main thread only. */
     private class Saver(private val contents: ViewGroup) {
