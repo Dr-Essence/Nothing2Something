@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.54.10, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.54.11, what is pending, what still needs testing</summary>
 
-**Current build: 0.54.10** (CMF Phone 1, Nothing OS 4.1, Android 16): the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.54.11** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -64,6 +64,26 @@ Each section below opens when tapped.
   it (log: "move every 60 s by 2 dp").
 
 **Not tested on a phone yet**
+- **0.54.11, the dual status bar's date hides with the clock.** DebuG24 (recording, frame by
+  frame): on the landscape lock screen a line of green text, the date ("SUNDAY, 8 NOVEMBER
+  2026"), showed cut in half along the screen's top edge (15.0, 23.8 and 26.0 s). System UI
+  takes the status bar clock out of the layout (`GONE`) on the lock screen, while dozing and
+  with the shade closed (`CollapsedStatusBarFragment.clockHiddenMode`); the date, drawn on
+  the second row, stayed, and with the clock's row gone that row rose to the top. The date is
+  the clock's and is now drawn only while the clock is shown (TextView's
+  `onVisibilityChanged` on the clock redraws it). Needs on the phone: the landscape and
+  portrait lock screen with nothing at the top edge; the date back with the clock once
+  unlocked. The debug report also copies the module's settings again (LSPosed keeps them in
+  its own folder; the copy came out empty in DebuG23 and DebuG24).
+- **Fingerprint on the turned lock screen and always-on display: cause found, test pending.**
+  DebuG24's log: in landscape the touch panel's firmware never reports a finger on the sensor
+  (`KEY_GESTURE_FOD`), on the always-on display (eleven turns, 04:22:18 to 04:22:47) and on the
+  lock screen alike; every reading in the log came in portrait. Nothing's window manager
+  (`NtWindowManagerService.updateRotation`) turns the panel's edge mode on in landscape
+  (`sys.touch.edge_mode.enable` 3 or 2, 0 in portrait), its grip rejection on the USB side,
+  where the sensor is. Needs before a change: `su -c 'sleep 20; setprop
+  sys.touch.edge_mode.enable 0'`, then the always-on display held still in landscape and a
+  finger on the sensor after 20 s; if it unlocks, edge mode is the cause.
 - **0.54.9, Check orientation on wake and unlock** (Lock screen → Landscape, off by default;
   `WakeOrientation.kt`). The rotation sensor here (MediaTek `dev_orient`) reports only
   changes, though Android's rules have an on-change sensor report its current value when it is

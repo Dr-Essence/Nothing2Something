@@ -170,6 +170,21 @@ internal object DualStatusBar {
         val clock = XposedHelpers.findClass(CLS_CLOCK, cl)
         XposedBridge.hookAllMethods(clock, "updateClock", refresh)
         XposedBridge.hookAllMethods(clock, "onDarkChanged", refresh)
+        // ...and is shown only while the clock is. System UI hides the clock with GONE on the
+        // lock screen, while dozing and with the shade closed (CollapsedStatusBarFragment
+        // .clockHiddenMode). Mistake recorded (0.54.10, DebuG24): the date stayed drawn, and
+        // with the clock's row gone the second row rose to the top, so on the landscape lock
+        // screen its date showed cut in half along the screen's top edge. TextView's own
+        // onVisibilityChanged (the clock is one) tells when to draw it again or not.
+        XposedBridge.hookAllMethods(TextView::class.java, "onVisibilityChanged",
+            object : XC_MethodHook() {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    if (!clock.isInstance(param.thisObject)) return
+                    runCatching {
+                        dates.values.toList().forEach { it.clockChanged(param.thisObject as View) }
+                    }.onFailure { Hooks.log("dual status bar date: $it") }
+                }
+            })
         Hooks.log("dual status bar on" + if (landscape) ", landscape too" else "")
     }
 
@@ -395,6 +410,11 @@ internal object DualStatusBar {
 
         fun hostIs(v: View) = host.get() === v
 
+        /** The clock was shown or hidden: the date follows it. */
+        fun clockChanged(v: View) {
+            if (clock.get() === v) invalidateSelf()
+        }
+
         companion object {
             /** Shows the date for the bar of [start] on [host] (or removes it: [rows] null). */
             fun attach(start: View, host: View, area: View, clock: TextView, keep: Saved,
@@ -479,6 +499,9 @@ internal object DualStatusBar {
 
         override fun draw(canvas: Canvas) {
             if (text.isEmpty()) return
+            // The date is the clock's: hidden with it (see clockChanged).
+            val c = clock.get() ?: return
+            if (c.visibility != View.VISIBLE || c.alpha == 0f) return
             val b = bounds
             val m = paint.fontMetrics
             // The gap is on the icons' side: after the date at the start, before it at the end.

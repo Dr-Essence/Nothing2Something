@@ -186,8 +186,13 @@ final class DebugReport {
             // sounds play on the system stream and stay quiet on silent or vibrate), and the
             // module's own settings.
             + "dumpsys audio > $D/audio.txt 2>&1\n"
-            + "nsenter -t 1 -m -- cat /data/user/0/com.dressence.nothinglauncherplus/shared_prefs/"
-            + "config.xml > $D/module_config.xml 2>/dev/null\n"
+            // The settings are world-readable for LSPosed, which keeps the file in its own
+            // folder (/data/misc/<id>/prefs/<package>), not the app's shared_prefs: the copy
+            // from shared_prefs alone came out empty (DebuG23, DebuG24).
+            + "{ nsenter -t 1 -m -- cat /data/user/0/com.dressence.nothinglauncherplus/shared_prefs/"
+            + "config.xml 2>/dev/null || nsenter -t 1 -m -- sh -c"
+            + " 'cat /data/misc/*/prefs/com.dressence.nothinglauncherplus/config.xml';"
+            + " } > $D/module_config.xml 2>/dev/null\n"
             + "mkdir -p $D/launcher; rm -rf /data/local/tmp/nlplus-launcher;"
             + " mkdir -p /data/local/tmp/nlplus-launcher\n"
             + "nsenter -t 1 -m -- sh -c 'for d in user user_de; do"
