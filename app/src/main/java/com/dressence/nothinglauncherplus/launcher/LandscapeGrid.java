@@ -682,8 +682,71 @@ final class LandscapeGrid {
                     protected void afterHookedMethod(MethodHookParam param) {
                         Hooks.guard("pages on a profile change",
                                 () -> regridPages(param.thisObject)).run();
+                        Hooks.guard("dock on a profile change",
+                                () -> regridHotseat(param.thisObject)).run();
                     }
                 });
+    }
+
+    /**
+     * The dock (hotseat) in the new orientation's grid as the profile changes, its icons kept.
+     *
+     * <p>How it was found: on a turn the launcher gives the dock its new frame at once
+     * (reapplyUi: Hotseat.setInsets, a 240 px bar at the side in landscape, a full-width row in
+     * portrait), but its grid only on the bind that follows (ModelCallbacks.startBinding:
+     * Hotseat.resetLayout, logged as "hotseat layout vertical=…"; DebuG23: new profile at 0.70
+     * s, dock grid at 0.83 s). In between, the five dock icons and folders are a row inside a
+     * narrow column (squeezed together) or a column inside a low row (too big). The draw hold
+     * hides that gap only while it lasts (1 s, with focus); after a reboot, under load and on
+     * battery saving the bind came later, and the squeezed dock showed. The pages are given
+     * their new grid here already (regridPages); now the dock is too: what resetLayout does
+     * (vertical or not, cell size, grid), with each icon moved to the cell Nothing's own
+     * getCellXFromOrder / getCellYFromOrder give its place in the dock, instead of emptied. The
+     * bind then rebuilds the dock as always and finds it as it builds it.
+     */
+    private void regridHotseat(Object launcher) {
+        Object hotseat = XposedHelpers.callMethod(launcher, "getHotseat");
+        Object profile = XposedHelpers.callMethod(launcher, "getDeviceProfile");
+        if (hotseat == null || profile == null) {
+            return;
+        }
+        boolean vertical = (Boolean) XposedHelpers.callMethod(profile, "isVerticalBarLayout");
+        boolean was = XposedHelpers.getBooleanField(hotseat, "mHasVerticalHotseat");
+        if (was == vertical) {
+            return;
+        }
+        ViewGroup container = (ViewGroup) XposedHelpers.callMethod(hotseat,
+                "getShortcutsAndWidgets");
+        int oldRows = (Integer) XposedHelpers.callMethod(hotseat, "getCountY");
+        List<View> views = new ArrayList<>();
+        List<Integer> places = new ArrayList<>();
+        for (int i = 0; i < container.getChildCount(); i++) {
+            View child = container.getChildAt(i);
+            Object lp = child.getLayoutParams();
+            int x = (Integer) XposedHelpers.callMethod(lp, "getCellX");
+            int y = (Integer) XposedHelpers.callMethod(lp, "getCellY");
+            // The reverse of getCellXFromOrder / getCellYFromOrder for the old layout.
+            views.add(child);
+            places.add(was ? oldRows - 1 - y : x);
+        }
+        for (View view : views) {
+            XposedHelpers.callMethod(hotseat, "markCellsAsUnoccupiedForView", view);
+        }
+        int icons = XposedHelpers.getIntField(profile, "numShownHotseatIcons");
+        XposedHelpers.setBooleanField(hotseat, "mHasVerticalHotseat", vertical);
+        XposedHelpers.callMethod(hotseat, "resetCellSize", profile);
+        XposedHelpers.callMethod(hotseat, "setGridSize", vertical ? 1 : icons, vertical ? icons : 1);
+        for (int i = 0; i < views.size(); i++) {
+            View view = views.get(i);
+            int place = places.get(i);
+            Object lp = view.getLayoutParams();
+            XposedHelpers.callMethod(lp, "setCellX",
+                    XposedHelpers.callMethod(hotseat, "getCellXFromOrder", place));
+            XposedHelpers.callMethod(lp, "setCellY",
+                    XposedHelpers.callMethod(hotseat, "getCellYFromOrder", place));
+            XposedHelpers.callMethod(hotseat, "markCellsAsOccupiedForView", view);
+        }
+        container.requestLayout();
     }
 
     private void regridPages(Object launcher) {
