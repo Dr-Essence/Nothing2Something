@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.55.8, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.55.9, what is pending, what still needs testing</summary>
 
-**Current build: 0.55.8** (CMF Phone 1, Nothing OS 4.1, Android 16): dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.55.9** (CMF Phone 1, Nothing OS 4.1, Android 16): dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -260,6 +260,10 @@ Each section below opens when tapped.
   will be retaken for the public release.
 
 **Fixed recently**
+- 0.55.9: CMF Stereo's live icon stayed still at times: the LSPosed log (16:08) showed "live
+  icons analyse failed: … pixel access is not supported on Config#HARDWARE bitmaps" 9 times.
+  The launcher keeps some icon bitmaps on the GPU; the analysis now reads a copy, as the dot
+  icons already did (`IconScreen.of`).
 - 0.55.8: with 0.55.7 every dot icon was an empty dark screen, no dot lit (seen on the phone,
   screenshot). Mistake recorded: when the dot colour started counting only the glass under a
   dot (0.55.7), the new count was added but the old `n++` was left in the same loop, so each

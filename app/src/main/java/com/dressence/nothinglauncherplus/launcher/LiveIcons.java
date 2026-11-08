@@ -277,6 +277,14 @@ final class LiveIcons {
      * Anything else is not this icon.
      */
     static Layout analyse(Bitmap icon) {
+        if (icon.getConfig() == Bitmap.Config.HARDWARE) {
+            // Kept on the GPU by the launcher, where its pixels can't be read (seen in the
+            // LSPosed log: "pixel access is not supported on Config#HARDWARE bitmaps").
+            icon = icon.copy(Bitmap.Config.ARGB_8888, false);
+            if (icon == null) {
+                return NONE;
+            }
+        }
         int w = icon.getWidth(), h = icon.getHeight();
         if (w < 48 || h < 48) {
             return NONE;
