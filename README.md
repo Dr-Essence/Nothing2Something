@@ -1,5 +1,4 @@
 <p align="center"><img src="https://raw.githubusercontent.com/Dr-Essence/Nothing2Something/claude/nothing-os-xposed-module-65lsca/docs/images/banner.png?v=14" alt="Nothing2Something: the three-eyed dot-matrix face and the name in Nothing's NDot" width="100%"></p>
-<p align="center"><sub>©Dr.Essence · NDot fonts are owned by ©Nothing</sub></p>
 
 # Nothing2Something
 
@@ -45,8 +44,8 @@ screen, game controller support, live wallpaper sounds and more.
   <img src="https://raw.githubusercontent.com/Dr-Essence/Nothing2Something/claude/nothing-os-xposed-module-65lsca/docs/images/drawer-folders-portrait.png" alt="Portrait app drawer with normal folders" width="32%">
 </p>
 
-<sub>Screenshots from the test phone, alpha builds. Captions use Nothing's NDot
-77 JP Extended as drawn on the phone; the font itself is not part of this repository.</sub>
+*Screenshots from the test phone, alpha builds. Captions use Nothing's NDot 77 JP Extended
+as drawn on the phone; the font itself is not part of this repository.*
 
 Each section below opens when tapped.
 
