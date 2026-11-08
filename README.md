@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.54.4, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.54.5, what is pending, what still needs testing</summary>
 
-**Current build: 0.54.4** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver, and Restart System UI in the module.
+**Current build: 0.54.5** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver, and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -130,6 +130,15 @@ Each section below opens when tapped.
   will be retaken for the public release.
 
 **Fixed recently**
+- 0.54.5: Restart System UI put LSPosed into safe mode when pressed three times within 30 s
+  (seen on the phone: three System UI deaths with no crash report, then LSPosed's safe-mode
+  notification: LSPosed cannot tell a restart from a crash). It now restarts at most once
+  every 90 s and says how long to wait. The module itself did not crash.
+- 0.54.5: with Notifications at the end, the notification row reached the bar's end (no
+  overflow dot in portrait any more) but its icons stayed at its start (seen on the phone).
+  System UI puts the icon container into the row after the bar is built, where the module
+  set it at the end, so it was not there yet; it is now set at the end at each measure of
+  the row, before that pass lays it out.
 - Renamed **Nothing2Something** (was Nothing Launcher+): the app's name, its pages and
   notifications, the LSPosed log's tag (`Nothing2Something: …`) and the build's artifact. The
   package stays `com.dressence.nothinglauncherplus`, so it installs as an update: settings,

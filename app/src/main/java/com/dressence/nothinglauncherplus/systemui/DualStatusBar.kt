@@ -142,9 +142,19 @@ internal object DualStatusBar {
         XposedHelpers.findAndHookMethod(FrameLayout::class.java, "onMeasure",
             Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, object : XC_MethodHook() {
                 override fun beforeHookedMethod(param: MethodHookParam) {
-                    val bar = wide[param.thisObject] ?: return
-                    runCatching { fullWidth(bar) }.getOrNull()?.let {
-                        param.args[0] = View.MeasureSpec.makeMeasureSpec(it, View.MeasureSpec.EXACTLY)
+                    val area = param.thisObject as View
+                    val bar = wide[area] ?: return
+                    runCatching {
+                        fullWidth(bar)?.let {
+                            param.args[0] = View.MeasureSpec.makeMeasureSpec(it,
+                                View.MeasureSpec.EXACTLY)
+                        }
+                        // The icon container is put into the area by System UI after the bar is
+                        // built (after onFinishInflate, where [arrange] runs): set at its end
+                        // here, before this measure, so the same layout pass places it. Seen on
+                        // the phone: set only in [arrange], it was missing and the icons
+                        // stayed at the start.
+                        endGravity(area)
                     }
                 }
             })
@@ -308,15 +318,25 @@ internal object DualStatusBar {
         return w.takeIf { it > 0 }
     }
 
-    /** The icon container at the end of its area (or back at its start). */
+    /** The icon container back at the start of its area (one row, or the option off). */
     private fun alignIcons(area: View, atEnd: Boolean) {
+        if (atEnd) return // Set at each measure: see the onMeasure hook.
         val icons = find(area, "notificationIcons") ?: return
         val lp = icons.layoutParams as? FrameLayout.LayoutParams ?: return
-        val gravity = if (atEnd) Gravity.END or Gravity.CENTER_VERTICAL else Gravity.NO_GRAVITY
-        if (lp.gravity != gravity) {
-            lp.gravity = gravity
+        if (lp.gravity != Gravity.NO_GRAVITY) {
+            lp.gravity = Gravity.NO_GRAVITY
             icons.layoutParams = lp
         }
+    }
+
+    /**
+     * The icon container at the end of its area, set on its layout params in place during
+     * the area's measure (no new layout request: this pass uses it).
+     */
+    private fun endGravity(area: View) {
+        val icons = find(area, "notificationIcons") ?: return
+        val lp = icons.layoutParams as? FrameLayout.LayoutParams ?: return
+        lp.gravity = Gravity.END or Gravity.CENTER_VERTICAL
     }
 
     /** What [arrange] changes, as Nothing set it: put back for one row. */

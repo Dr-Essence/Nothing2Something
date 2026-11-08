@@ -1188,12 +1188,23 @@ public class MainActivity extends Activity {
     /** A row restarting System UI, for the options on a page that it reads when it starts. */
     private void restartSystemUiRow(Ui ui) {
         ui.row("Restart System UI", "Applies the options marked \"restart System UI\" now"
-                + " · needs root", null, null, v -> new Thread(() -> {
-                    boolean done = SystemUiRestart.restart();
-                    runOnUiThread(() -> Toast.makeText(this, done ? "System UI restarted"
-                            : "Root not available; force stop System UI from App info",
-                            Toast.LENGTH_LONG).show());
-                }).start());
+                + " · needs root · once every 90 s", null, null, v -> {
+                    long wait = SystemUiRestart.waitSeconds();
+                    if (wait > 0) {
+                        // More restarts in a row look like a crash loop to LSPosed, which
+                        // then turns on its safe mode.
+                        Toast.makeText(this, "Wait " + wait + " s: restarting System UI again"
+                                + " so soon would put LSPosed in safe mode",
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    new Thread(() -> {
+                        boolean done = SystemUiRestart.restart();
+                        runOnUiThread(() -> Toast.makeText(this, done ? "System UI restarted"
+                                : "Root not available; force stop System UI from App info",
+                                Toast.LENGTH_LONG).show());
+                    }).start();
+                });
     }
 
     private void restartLauncher() {
