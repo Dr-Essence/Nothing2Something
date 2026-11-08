@@ -48,6 +48,28 @@
             </intent-filter>
         </activity>
 
+        <!-- Nothing2Something's row on the Settings home page, first in Nothing's group with
+             Intelligence toolkit, Lock screen and Customisation: a standard Settings tile
+             (Settings shows it once the module marks it as accepted there: SettingsTile). -->
+        <activity-alias
+            android:name=".SettingsTile"
+            android:targetActivity=".ui.MainActivity"
+            android:exported="true"
+            android:icon="@drawable/ic_settings_eyes"
+            android:label="Nothing2Something">
+            <intent-filter>
+                <action android:name="com.android.settings.action.EXTRA_SETTINGS" />
+            </intent-filter>
+            <meta-data android:name="com.android.settings.category"
+                android:value="com.android.settings.category.ia.homepage" />
+            <meta-data android:name="com.android.settings.group_key"
+                android:value="top_level_nt_custom_category" />
+            <meta-data android:name="com.android.settings.order" android:value="-1000" />
+            <meta-data android:name="com.android.settings.title" android:value="Nothing2Something" />
+            <meta-data android:name="com.android.settings.icon"
+                android:resource="@drawable/ic_settings_eyes" />
+        </activity-alias>
+
         <!-- Opened from the launcher's long-press "Edit" item on a custom folder. -->
         <activity
             android:name=".ui.FolderActivity"

@@ -8,6 +8,7 @@ import com.dressence.nothinglauncherplus.perf.GameBar;
 import com.dressence.nothinglauncherplus.perf.GameUnlock;
 import com.dressence.nothinglauncherplus.system.OrientationProbe;
 import com.dressence.nothinglauncherplus.system.WakeOrientation;
+import com.dressence.nothinglauncherplus.settings.SettingsTile;
 import com.dressence.nothinglauncherplus.settings.TaskManager;
 import com.dressence.nothinglauncherplus.system.ControllerHome;
 import com.dressence.nothinglauncherplus.wallpaper.LivingWorlds;
@@ -64,12 +65,17 @@ public final class ModuleEntry implements IXposedHookLoadPackage {
             // Nothing's widget apps: their cards open over the home screen (also in
             // "Launcher only").
             Hooks.install("widget apps", () -> WidgetApps.install(new ConfigStore()));
+        } else if ("com.android.settings".equals(pkg)) {
+            // The module's row on the Settings home page: also in "Launcher only" (it is the
+            // way into the module and changes nothing else in Settings).
+            Hooks.install("settings row", () -> SettingsTile.install(cl));
+            if (!launcherOnly(new ConfigStore())) {
+                Hooks.install("task manager", () -> TaskManager.install(cl, new ConfigStore()));
+            }
         } else if (launcherOnly(new ConfigStore())) {
             return; // "Launcher only": every other app is left as it is.
         } else if (Config.SYSTEMUI_PKG.equals(pkg)) {
             SystemUi.install(cl, new ConfigStore());
-        } else if ("com.android.settings".equals(pkg)) {
-            Hooks.install("task manager", () -> TaskManager.install(cl, new ConfigStore()));
         } else if (LivingWorlds.PKG.equals(pkg)) {
             Hooks.install("living worlds",
                     () -> LivingWorlds.install(cl, new ConfigStore()));

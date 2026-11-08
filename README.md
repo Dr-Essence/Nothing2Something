@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.55.0, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.55.1, what is pending, what still needs testing</summary>
 
-**Current build: 0.55.0** (CMF Phone 1, Nothing OS 4.1, Android 16): a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.55.1** (CMF Phone 1, Nothing OS 4.1, Android 16): a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -64,6 +64,20 @@ Each section below opens when tapped.
   it (log: "move every 60 s by 2 dp").
 
 **Not tested on a phone yet**
+- **0.55.1, Nothing2Something in Settings.** A row on the Settings home page, first in
+  Nothing's group with Intelligence toolkit, Lock screen and Customisation
+  (`top_level_nt_custom_category`), with its own icon (three eyes, two dots and a smile rising
+  to the right, drawn to Dr.Essence's sketch); a tap opens the app. Found in Nothing's
+  Settings: the home page adds rows apps declare as standard Settings tiles (an activity
+  answering `com.android.settings.action.EXTRA_SETTINGS` with the homepage category and a
+  `group_key`), as Intelligence toolkit is added, but only from system apps (settingslib's
+  TileUtils: `resolveInfo.system`). The app declares such a tile (order -1000, so first in the
+  group, whose rows are -30 / -20 / -10), and in Settings `SettingsTile.kt` marks this module's
+  own tile as a system one when Settings looks tiles up
+  (`ApplicationPackageManager.queryIntentActivitiesAsUser`); placement, title, the icon's tint
+  and the tap are Nothing's own code. Loaded in Launcher only too. Needs on the phone: after
+  force-stopping Settings, the row first in that group, the icon tinted like its neighbours
+  (dark mode and light), a tap opening the app; LSPosed log "settings row: … hooks".
 - **0.55.0, Launcher only** (main page, Mode; off by default). With it on, the module changes
   only Nothing Launcher and Nothing's widget apps (Nothing Widgets, NothingCardService), and in
   the system only home screen rotation's part (`CardOrientation`: the home screen and widget
