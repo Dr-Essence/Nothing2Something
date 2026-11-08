@@ -81,6 +81,8 @@ public final class Config {
     public static final String KEY_PERF_OVERLAY = "perf_overlay";
     public static final String KEY_UNLOCK_GAMES = "unlock_games";
     public static final String KEY_FULL_SCREEN_APPS = "full_screen_apps";
+    public static final String KEY_GAMING_CATEGORIES = "gaming_categories";
+    public static final String KEY_GAMING_WARNED = "gaming_warned";
     public static final String KEY_FULL_SCREEN_MODE = "full_screen_mode";
 
     /** Full-screen apps: when the picked apps hide the status bar. */
@@ -250,6 +252,13 @@ public final class Config {
     public boolean perfOverlay = false;
     /** Packages of games shown a Galaxy S24 Ultra, to unlock their 120 fps (CMF Phone 1). */
     public final java.util.Set<String> unlockGames = new java.util.LinkedHashSet<>();
+    /**
+     * Nothing Gaming Space: apps moved to another category by hand, or hidden (package to
+     * category name, see GamingLibrary).
+     */
+    public final java.util.Map<String, String> gamingCategories = new java.util.LinkedHashMap<>();
+    /** Nothing Gaming Space showed its epilepsy warning once already. */
+    public boolean gamingWarned = false;
     /** Apps (packages) that hide the status bar and use its space; see FullScreenApps. */
     public final java.util.Set<String> fullScreenApps = new java.util.LinkedHashSet<>();
     /** When they do: FULL_SCREEN_OFF, _SAVER (while the OLED saver hides the bar), _ALWAYS. */
@@ -451,6 +460,14 @@ public final class Config {
             }
         }
         fullScreenMode = in.number(KEY_FULL_SCREEN_MODE, FULL_SCREEN_OFF);
+        gamingCategories.clear();
+        for (String pair : in.text(KEY_GAMING_CATEGORIES, "").split(",")) {
+            int eq = pair.indexOf('=');
+            if (eq > 0) {
+                gamingCategories.put(pair.substring(0, eq), pair.substring(eq + 1));
+            }
+        }
+        gamingWarned = in.bool(KEY_GAMING_WARNED, false);
     }
 
     private void writeSettings(Sink out) {
@@ -506,6 +523,15 @@ public final class Config {
         out.text(KEY_UNLOCK_GAMES, String.join(",", unlockGames));
         out.text(KEY_FULL_SCREEN_APPS, String.join(",", fullScreenApps));
         out.number(KEY_FULL_SCREEN_MODE, fullScreenMode);
+        StringBuilder gaming = new StringBuilder();
+        for (java.util.Map.Entry<String, String> e : gamingCategories.entrySet()) {
+            if (gaming.length() > 0) {
+                gaming.append(',');
+            }
+            gaming.append(e.getKey()).append('=').append(e.getValue());
+        }
+        out.text(KEY_GAMING_CATEGORIES, gaming.toString());
+        out.bool(KEY_GAMING_WARNED, gamingWarned);
     }
 
     private void readFolders(JSONArray array) throws JSONException {

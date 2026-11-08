@@ -19,6 +19,16 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.HOME" />
         </intent>
+        <!-- Nothing Gaming Space's categories: browsers, and apps made for TV screens too. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+        </intent>
         <!-- Nothing's widgets app, which carries Nothing's fonts (see SystemFont). -->
         <package android:name="com.nothing.hearthstone" />
     </queries>
@@ -47,6 +57,26 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS" />
+            </intent-filter>
+        </activity>
+
+        <!-- Nothing Gaming Space: a home screen for playing with a controller. It is a home
+             app (so it can be picked as the gaming launcher that ControllerHome makes Android's
+             home while a controller is connected), always in landscape, kept out of recents. -->
+        <activity
+            android:name=".ui.GamingSpaceActivity"
+            android:exported="true"
+            android:label="Nothing Gaming Space"
+            android:launchMode="singleTask"
+            android:stateNotNeeded="true"
+            android:excludeFromRecents="true"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 

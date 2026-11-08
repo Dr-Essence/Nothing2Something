@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.58.2, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.59.0, what is pending, what still needs testing</summary>
 
-**Current build: 0.58.2** (CMF Phone 1, Nothing OS 4.1, Android 16): HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.59.0** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing Gaming Space, the module's own gaming launcher in dot-matrix style (new, first part), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.58.1, HeliBoard across the whole width (switch in Landscape & controllers): the keyboard
@@ -95,6 +95,27 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.59.0, Nothing Gaming Space (first part of three).** Asked by Dr.Essence: with a
+  controller connected and Nothing Launcher as home, a gaming launcher in Nothing's style.
+  It is a home screen in the module app (`ui/GamingSpaceActivity`), so it can be picked as the
+  gaming launcher that "Gaming launcher with a controller" makes Android's home while a
+  controller is connected; Nothing Launcher comes back when it disconnects (the screen hands
+  over once Android's home is no longer it). On start: black, "NOTHING GAMING SPACE" glowing
+  in green NDot (NDot 77 from the phone if found), and the first time only a photosensitivity
+  warning that goes on after 8 s (A skips). Then, in landscape: a big dot screen on top
+  (a category's animated emoji, or the selected app's icon as a dot screen, with its name), and
+  below a row of categories with animated NDot emoji covers (the folder covers' engine): Games,
+  Emulators, Browser, Music, Video, TV, Apps. Sorting (`GamingLibrary`): the user's choice,
+  then a list of known emulators, Android's app category (game, audio, video, or the old "is a
+  game" flag), apps that open web links, apps made for TV (leanback), the rest under Apps. Y,
+  X or the menu button (or a long press) moves an app or hides it; "Show hidden apps again" in
+  the settings. Controller: left/right, A or down opens, B or up goes back, L1/R1 change
+  category; the stick moves through Android's own stick-to-D-pad for apps that do not read it.
+  Checked here: it compiles. Needs: opened from its row in the settings, then as the gaming
+  launcher with a controller (intro, warning once, both halves, every control, an app opened
+  and back, moving and hiding an app, the controller disconnected). Next parts: turning 3D
+  boxes for the tiles and animations matching each category on the big screen; then game
+  artwork from SteamGridDB (Dr.Essence's own API key, typed in on the phone; off by default).
 - Found while checking HeliBoard (not the module): HeliBoard 4.2 never splits the keyboard
   (its split flag is never passed to the keyboard builder); fixed in HeliBoard 4.3-beta1
   (commit e1a981b). Taking HeliBoard out of the scope did not change it, and 4.3-beta1 splits.

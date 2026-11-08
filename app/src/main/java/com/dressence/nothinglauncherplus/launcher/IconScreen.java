@@ -30,7 +30,7 @@ import java.util.List;
  *
  * <p>Made once per icon bitmap, off the main thread (see DotIcons).
  */
-final class IconScreen {
+public final class IconScreen {
 
     /**
      * Dots across the icon. 34 (until 0.55.9, 22): Dr.Essence asked for more and smaller dots;
@@ -80,6 +80,16 @@ final class IconScreen {
     float size;
 
     private IconScreen() {
+    }
+
+    /**
+     * The finished dot screen of {@code icon}, or null if it cannot be made into one. For the
+     * module's own pages (Nothing Gaming Space's tiles), which draw it as a picture. Slow: call
+     * it off the main thread.
+     */
+    public static Bitmap dots(Bitmap icon) {
+        IconScreen screen = of(icon);
+        return screen.full;
     }
 
     /** An empty screen: marks an icon that could not be made into one. */

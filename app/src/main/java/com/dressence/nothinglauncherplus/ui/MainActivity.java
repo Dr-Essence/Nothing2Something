@@ -439,6 +439,19 @@ public class MainActivity extends Activity {
                 });
         ui.row("Gaming launcher", gamingLauncherLabel(config.controllerHomeApp), null,
                 ui.chevron(), v -> chooseGamingLauncher(config));
+        ui.row("Nothing Gaming Space", "The module's own gaming launcher, in dot-matrix style:"
+                        + " pick it above as the gaming launcher · tap to open it now",
+                null, ui.chevron(), v -> GamingSpaceActivity.Companion.open(this));
+        int hiddenGaming = java.util.Collections.frequency(config.gamingCategories.values(),
+                GamingLibrary.HIDDEN);
+        if (hiddenGaming > 0) {
+            ui.row("Show hidden apps again", (hiddenGaming == 1 ? "1 app" : hiddenGaming + " apps")
+                            + " hidden from Nothing Gaming Space", null, ui.chevron(), v -> {
+                config.gamingCategories.values().removeIf(GamingLibrary.HIDDEN::equals);
+                store.save(this);
+                render();
+            });
+        }
         ui.switchRow("Controller typing in HeliBoard", "Move over HeliBoard's keys, suggestions"
                 + " and panels with the controller · HeliBoard in the module's LSPosed scope",
                 config.heliboardController, checked -> {
