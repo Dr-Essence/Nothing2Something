@@ -132,6 +132,17 @@ public class MainActivity extends Activity {
                     + " restart the launcher. Changes made now will not reach the launcher.");
         }
 
+        ui.section("Mode");
+        ui.switchRow("Launcher only", "Change only Nothing Launcher and Nothing's widget apps,"
+                + " with home screen rotation; System UI, the lock screen, fonts and other apps are"
+                + " left as Nothing made them. For other Nothing phones, or to keep the system"
+                + " stock · the system's part follows after a reboot", store.config.launcherOnly,
+                checked -> {
+                    store.config.launcherOnly = checked;
+                    store.save(this);
+                    render();
+                });
+
         ui.section("Nothing Launcher");
         ui.row("App drawer", "Custom folders, covers and emoji, background", null, ui.chevron(),
                 v -> openPage(PAGE_DRAWER));
@@ -139,6 +150,11 @@ public class MainActivity extends Activity {
                 v -> openPage(PAGE_HOME));
         ui.row("Sound", "Interface sounds and background music", null, ui.chevron(),
                 v -> openPage(PAGE_SOUND));
+
+        if (store.config.launcherOnly) {
+            sectionModule(ui);
+            return; // System and phone settings do nothing in "Launcher only".
+        }
 
         ui.section("System");
         ui.row("Status bar & quick settings", "Ndot clock and date, glow, system screens", null,
@@ -160,6 +176,10 @@ public class MainActivity extends Activity {
                     null, ui.chevron(), v -> openPage(PAGE_PERFORMANCE));
         }
 
+        sectionModule(ui);
+    }
+
+    private void sectionModule(Ui ui) {
         ui.section("Module");
         ui.row("Backup", "Export or import folders, options and covers", null, ui.chevron(),
                 v -> openPage(PAGE_BACKUP));

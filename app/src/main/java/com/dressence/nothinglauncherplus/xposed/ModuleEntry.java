@@ -42,11 +42,16 @@ public final class ModuleEntry implements IXposedHookLoadPackage {
                     XC_MethodReplacement.returnConstant(true));
         } else if ("android".equals(pkg)) {
             ConfigStore store = new ConfigStore();
-            Hooks.install("system font", () -> SystemFonts.install(cl, store));
+            // Home screen rotation's part in the system: kept in "Launcher only".
             Hooks.install("widget card orientation", () -> CardOrientation.install(cl, store));
             Hooks.install("orientation probe", () -> OrientationProbe.install(cl, store));
             Hooks.install("rotation sensor", () -> RotationSensor.install(cl, store));
             Hooks.install("wake orientation", () -> WakeOrientation.install(cl, store));
+            if (launcherOnly(store)) {
+                Hooks.log("launcher only: the system's other changes left out");
+                return;
+            }
+            Hooks.install("system font", () -> SystemFonts.install(cl, store));
             Hooks.install("controller home", () -> ControllerHome.install(cl, store));
             Hooks.install("system shortcuts", () -> SystemShortcuts.install(cl));
             Hooks.install("saver refresh rate", () -> SaverRefreshRate.install(cl, store));
@@ -55,6 +60,12 @@ public final class ModuleEntry implements IXposedHookLoadPackage {
             return;
         } else if (Config.LAUNCHER_PKG.equals(pkg)) {
             Launcher.install(cl, new ConfigStore());
+        } else if (WidgetApps.handles(pkg)) {
+            // Nothing's widget apps: their cards open over the home screen (also in
+            // "Launcher only").
+            Hooks.install("widget apps", () -> WidgetApps.install(new ConfigStore()));
+        } else if (launcherOnly(new ConfigStore())) {
+            return; // "Launcher only": every other app is left as it is.
         } else if (Config.SYSTEMUI_PKG.equals(pkg)) {
             SystemUi.install(cl, new ConfigStore());
         } else if ("com.android.settings".equals(pkg)) {
@@ -67,8 +78,6 @@ public final class ModuleEntry implements IXposedHookLoadPackage {
         } else if (HeliBoardGamepad.PKG.equals(pkg)) {
             Hooks.install("heliboard gamepad",
                     () -> HeliBoardGamepad.install(cl, new ConfigStore()));
-        } else if (WidgetApps.handles(pkg)) {
-            Hooks.install("widget apps", () -> WidgetApps.install(new ConfigStore()));
         } else if (GameBar.PKG.equals(pkg) && Device.isCmfPhone1()) {
             Hooks.install("game bar", () -> GameBar.install(cl, new ConfigStore()));
         } else if (Device.isCmfPhone1()) {
@@ -78,6 +87,15 @@ public final class ModuleEntry implements IXposedHookLoadPackage {
                     GameUnlock.install(pkg);
                 }
             });
+        }
+    }
+
+    /** "Launcher only" is on (read as this process starts); off if it cannot be read. */
+    private static boolean launcherOnly(ConfigStore store) {
+        try {
+            return store.get().launcherOnly;
+        } catch (Throwable t) {
+            return false;
         }
     }
 }

@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.54.12, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.55.0, what is pending, what still needs testing</summary>
 
-**Current build: 0.54.12** (CMF Phone 1, Nothing OS 4.1, Android 16): the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.55.0** (CMF Phone 1, Nothing OS 4.1, Android 16): a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -64,6 +64,20 @@ Each section below opens when tapped.
   it (log: "move every 60 s by 2 dp").
 
 **Not tested on a phone yet**
+- **0.55.0, Launcher only** (main page, Mode; off by default). With it on, the module changes
+  only Nothing Launcher and Nothing's widget apps (Nothing Widgets, NothingCardService), and in
+  the system only home screen rotation's part (`CardOrientation`: the home screen and widget
+  cards opening in the screen's orientation; the rotation sensor fix; Check orientation on wake
+  and unlock; the orientation log, which only reads). Left out: System UI (status bar, lock
+  screen, quick settings), the system font, controller home, system shortcuts, battery saver
+  refresh rate and sync, Settings' task manager, the wallpapers, HeliBoard, the game bar and
+  the 120 fps unlock; "System screens in landscape" then covers the launcher's own screens
+  only. The main page hides the System and CMF Phone 1 sections while it is on. Read as each
+  process starts: the launcher's part with a launcher restart, the system's after a reboot.
+  Needs on the phone: on, after a reboot, home screen rotation as before (turns, the home
+  screen opening turned, widget cards) and System UI stock (one-row status bar, portrait lock
+  screen); the LSPosed log's "launcher only: the system's other changes left out"; off again,
+  everything back after a reboot.
 - **0.54.12, the crash-loop guard counts crashes only.** Seen on the phone: setting Nothing
   Tweaks' LSPosed scope put the dual status bar back to one row. The LSPosed log (05:03 to
   05:07) showed no conflict between the modules: System UI was restarted from outside three
@@ -265,6 +279,13 @@ Each section below opens when tapped.
   phones and is not meant for them.
 - **Tested on one phone so far:** a CMF Phone 1 on Nothing OS 4.1 (Android 16). Other Nothing
   devices and Nothing OS versions are untested.
+- **Launcher only** (the main page's first switch): the module then changes only Nothing
+  Launcher and Nothing's widget apps, with home screen rotation (its part in the system stays);
+  System UI, the lock screen, the system font, Settings and every other app are left as Nothing
+  made them. Nothing Launcher is much the same app on every Nothing phone, while System UI and
+  the system are built for each phone, so on another Nothing phone this is the safer way to
+  start. In LSPosed, Nothing Launcher (with System framework for rotation, and Nothing Widgets
+  / NothingCardService for their cards) is then all the scope it needs.
 - **Why it exists:** it started as a project for my own CMF Phone 1, which I don't use as my main
   phone but as an Android "iPod" (an *Andropod*): music, games with a controller, the home
   screen in landscape. Much of what it does comes from that.

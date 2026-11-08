@@ -2,6 +2,7 @@ package com.dressence.nothinglauncherplus.widgets;
 
 import android.content.pm.ActivityInfo;
 
+import com.dressence.nothinglauncherplus.Config;
 import com.dressence.nothinglauncherplus.xposed.ConfigStore;
 import com.dressence.nothinglauncherplus.xposed.Hooks;
 
@@ -117,6 +118,9 @@ public final class CardOrientation {
             store.reloadIfChanged();
             if (!store.get().systemScreens) {
                 return;
+            }
+            if (store.get().launcherOnly && !Config.LAUNCHER_PKG.equals(info.packageName)) {
+                return; // "Launcher only": the launcher's own screens, no other app's.
             }
             if (SYSTEM_SCREENS.contains(screen) || (SYSTEM_APPS.contains(info.packageName)
                     && !keepsPortrait(info.name))) {
