@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.55.1, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.55.2, what is pending, what still needs testing</summary>
 
-**Current build: 0.55.1** (CMF Phone 1, Nothing OS 4.1, Android 16): a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.55.2** (CMF Phone 1, Nothing OS 4.1, Android 16): an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -64,6 +64,12 @@ Each section below opens when tapped.
   it (log: "move every 60 s by 2 dp").
 
 **Not tested on a phone yet**
+- **0.55.2, app icon.** The app had Android's default icon. It now has the Settings row's
+  face as a dot matrix in Nothing's style (white dots on black, a 15 x 15 grid inside the
+  adaptive icon's safe zone, the third eye's pupil in Nothing's red), with a monochrome layer
+  for themed icons; the mouth is a straight row of dots rising at its right end (picked from
+  three drawn for the dot grid). Needs on the phone: the icon in the launcher and the drawer,
+  with themed icons on and off.
 - **0.55.1, Nothing2Something in Settings.** A row on the Settings home page, first in
   Nothing's group with Intelligence toolkit, Lock screen and Customisation
   (`top_level_nt_custom_category`), with its own icon (three eyes, two dots and a smile rising
