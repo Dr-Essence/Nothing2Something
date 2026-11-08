@@ -13,6 +13,8 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * An app icon made into a little dot-matrix screen, as Nothing would make one: a bezel round
@@ -98,6 +100,11 @@ final class IconScreen {
         float[] glass;
         float[] depth;
         int[] art;
+        /** A round screen: its centre and the glass's radius (the dots go in rings). */
+        boolean round;
+        float cx;
+        float cy;
+        float inner;
     }
 
     /** The launcher's circle: dark glass in a bezel ring, the artwork scaled into the glass. */
@@ -114,6 +121,10 @@ final class IconScreen {
         l.body = new float[n];
         l.glass = new float[n];
         l.depth = new float[n];
+        l.round = true;
+        l.cx = cx;
+        l.cy = cy;
+        l.inner = inner;
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
                 float d = (float) Math.hypot(x + 0.5f - cx, y + 0.5f - cy);
@@ -192,25 +203,20 @@ final class IconScreen {
         plate = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         plate.setPixels(platePx, 0, w, 0, 0, w, h);
 
-        // The dots: where a whole dot fits on the glass with half a dot to spare.
-        int rows = Math.max(1, Math.round(h / pitch));
-        int[] cells = new int[GRID * rows];
-        boolean[] dark = new boolean[GRID * rows];
+        // The dots. A round screen: rings round its centre, the outer one following the bezel.
+        // (Until 0.55.4 a round screen had the square grid too, and a square grid inside a
+        // circle ends in steps, flat at the top, bottom and sides: the dots did not follow the
+        // bezel, seen on the phone. Dr.Essence picked rings over a grid with a round edge.)
+        // Any other shape: the square grid, where a whole dot fits on the glass with half a dot
+        // to spare.
+        List<float[]> spots = l.round ? rings(l, pitch) : grid(l, w, h, pitch);
+        int[] cells = new int[spots.size()];
         int count = 0;
-        for (int gy = 0; gy < rows; gy++) {
-            for (int gx = 0; gx < GRID; gx++) {
-                int cx = Math.min(w - 1, (int) ((gx + 0.5f) * pitch));
-                int cy = Math.min(h - 1, (int) ((gy + 0.5f) * pitch));
-                if (l.depth[cy * w + cx] < pitch * 0.55f) {
-                    continue;
-                }
-                int c = cellColour(l.art, w, h, gx, gy, pitch);
-                if (c == 0) {
-                    dark[gy * GRID + gx] = true;
-                } else {
-                    cells[gy * GRID + gx] = c;
-                    count++;
-                }
+        for (int i = 0; i < cells.length; i++) {
+            float[] spot = spots.get(i);
+            cells[i] = colourAt(l.art, w, h, spot[0], spot[1], pitch);
+            if (cells[i] != 0) {
+                count++;
             }
         }
         x = new float[count];
@@ -221,17 +227,14 @@ final class IconScreen {
         paint.setColor(unlitColour);
         int k = 0;
         for (int i = 0; i < cells.length; i++) {
-            float dx = (i % GRID + 0.5f) * pitch;
-            float dy = (i / GRID + 0.5f) * pitch;
+            float[] spot = spots.get(i);
             if (cells[i] != 0) {
-                x[k] = dx;
-                y[k] = dy;
+                x[k] = spot[0];
+                y[k] = spot[1];
                 color[k] = cells[i];
                 k++;
             }
-            if (cells[i] != 0 || dark[i]) {
-                plateCanvas.drawCircle(dx, dy, radius, paint);
-            }
+            plateCanvas.drawCircle(spot[0], spot[1], radius, paint); // every dot, lit or not
         }
 
         // The glow: each lit dot's light falling dimly on the glass round it, and a faint wide
@@ -288,14 +291,58 @@ final class IconScreen {
     }
 
     /**
-     * The colour of the dot at cell ({@code gx}, {@code gy}): the artwork's average colour
-     * there at one of a few LED levels by how much of the cell it covers; 0 for a dark dot.
+     * The square grid's dot centres where a whole dot fits on the glass with half a dot to
+     * spare (shapes of their own).
      */
-    private static int cellColour(int[] art, int w, int h, int gx, int gy, float pitch) {
-        int x0 = Math.round(gx * pitch);
-        int x1 = Math.min(w, Math.round((gx + 1) * pitch));
-        int y0 = Math.round(gy * pitch);
-        int y1 = Math.min(h, Math.round((gy + 1) * pitch));
+    private static List<float[]> grid(Layout l, int w, int h, float pitch) {
+        List<float[]> spots = new ArrayList<>();
+        int rows = Math.max(1, Math.round(h / pitch));
+        for (int gy = 0; gy < rows; gy++) {
+            for (int gx = 0; gx < GRID; gx++) {
+                float dx = (gx + 0.5f) * pitch;
+                float dy = (gy + 0.5f) * pitch;
+                int cx = Math.min(w - 1, (int) dx);
+                int cy = Math.min(h - 1, (int) dy);
+                if (l.depth[cy * w + cx] >= pitch * 0.55f) {
+                    spots.add(new float[] {dx, dy});
+                }
+            }
+        }
+        return spots;
+    }
+
+    /**
+     * A round screen's dot centres: one in the middle and rings round it, evenly spaced, the
+     * outermost with half a dot to spare inside the glass (as the grid's edge dots were), each
+     * ring with as many dots as fit at the grid's spacing.
+     */
+    private static List<float[]> rings(Layout l, float pitch) {
+        List<float[]> spots = new ArrayList<>();
+        spots.add(new float[] {l.cx, l.cy});
+        float outer = l.inner - pitch * 0.55f;
+        int count = (int) (outer / pitch);
+        for (int ring = 1; ring <= count; ring++) {
+            float r = outer * ring / count;
+            int dots = Math.max(6, Math.round((float) (2 * Math.PI * r / pitch)));
+            for (int d = 0; d < dots; d++) {
+                double t = 2 * Math.PI * d / dots;
+                spots.add(new float[] {l.cx + r * (float) Math.cos(t),
+                        l.cy + r * (float) Math.sin(t)});
+            }
+        }
+        return spots;
+    }
+
+    /**
+     * The colour of the dot centred at ({@code cx}, {@code cy}): the artwork's average colour
+     * over a dot spacing round it, at one of a few LED levels by how much of that it covers;
+     * 0 for a dark dot.
+     */
+    private static int colourAt(int[] art, int w, int h, float cx, float cy, float pitch) {
+        int x0 = Math.max(0, Math.round(cx - pitch / 2));
+        int x1 = Math.min(w, Math.round(cx + pitch / 2));
+        int y0 = Math.max(0, Math.round(cy - pitch / 2));
+        int y1 = Math.min(h, Math.round(cy + pitch / 2));
         long a = 0, r = 0, g = 0, b = 0;
         int n = 0;
         for (int y = y0; y < y1; y++) {
