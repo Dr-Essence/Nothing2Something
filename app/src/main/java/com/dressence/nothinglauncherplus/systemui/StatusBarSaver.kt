@@ -40,6 +40,14 @@ import java.util.WeakHashMap
  * calls for every finger down on the bar, also while its content is faded out: the saver only
  * watches it; System UI handles the touch as always).
  *
+ * Full-screen apps (a game, a video): the bar is not shown at all, and a swipe from the top
+ * brings it back for a moment ("transient", Android's own immersive mode). Faded out by the
+ * saver, that swipe showed an empty strip and a tap was needed on top (reported on 0.54.6).
+ * System UI hears of it on its status bar state (StatusBarModePerDisplayRepositoryImpl:
+ * showTransient when the swipe brings it back, abortTransient or clearTransient when it goes
+ * again, all on the main thread); the saver shows the bar for exactly that time and starts
+ * the set time again after. Apps that keep their bar keep the set time as before.
+ *
  * Mistake recorded (0.54.0): every notification *update* woke the bar too. System UI's
  * listener hears a download's progress as "posted" every second or two, so the bar came back
  * every 2 s on the home screen while a download ran (seen on the phone). Now only a
@@ -55,6 +63,10 @@ internal object StatusBarSaver {
     private const val CLS_BAR = "com.android.systemui.statusbar.phone.PhoneStatusBarView"
     private const val CLS_LISTENER = "com.android.systemui.statusbar.NotificationListener"
     private const val CLS_SHADE = "com.android.systemui.shade.ShadeExpansionStateManager"
+    private const val CLS_MODE =
+        "com.android.systemui.statusbar.data.repository.StatusBarModePerDisplayRepositoryImpl"
+    /** The repository's CommandQueue listener (a Kotlin object inside it). */
+    private const val CLS_MODE_LISTENER = "$CLS_MODE\$commandQueueCallback\$1"
 
     /** How long "instant" leaves the bar on after it comes back. */
     private const val INSTANT_MS = 5_000L
@@ -80,6 +92,8 @@ internal object StatusBarSaver {
             size > 500
     }
     private var lastFraction = 0f
+    /** Whether the bar is brought back over a full-screen app right now (main thread). */
+    private var transientShown = false
     /** When each wake reason was last logged, to log it at most every 10 s. */
     private val logged = HashMap<String, Long>()
     private val savers = WeakHashMap<View, Saver>()
@@ -139,8 +153,43 @@ internal object StatusBarSaver {
                     }
                 })
         }
+        if (hideMs >= 0) watchTransient(cl)
         Hooks.log("status bar saver on: move every ${shiftMs / 1000} s by $shiftDp dp, hide " +
             if (hideMs < 0) "never" else "after ${hideMs / 1000} s")
+    }
+
+    /**
+     * The bar brought back over a full-screen app: shown while it is there. After each of
+     * System UI's own transient calls, its repository's value says whether it is shown now
+     * (System UI itself decides which calls are about the status bar of this display).
+     */
+    private fun watchTransient(cl: ClassLoader) {
+        val repository = XposedHelpers.findClassIfExists(CLS_MODE, cl)
+        val listener = XposedHelpers.findClassIfExists(CLS_MODE_LISTENER, cl)
+        if (repository == null || listener == null) {
+            Hooks.log("status bar saver: no transient bar state; full-screen swipes left as is")
+            return
+        }
+        val after = object : XC_MethodHook() {
+            override fun afterHookedMethod(param: MethodHookParam) {
+                guarded {
+                    val repo = if (repository.isInstance(param.thisObject)) param.thisObject
+                    else XposedHelpers.getSurroundingThis(param.thisObject)
+                    val flow = XposedHelpers.getObjectField(repo, "_isTransientShown")
+                    val shown = XposedHelpers.callMethod(flow, "getValue") == true
+                    if (shown != transientShown) {
+                        transientShown = shown
+                        if (shown) logWake("full-screen swipe")
+                        savers.values.toList().forEach { if (shown) it.hold() else it.wake() }
+                    }
+                }
+            }
+        }
+        val hooked = XposedBridge.hookAllMethods(listener, "showTransient", after).size +
+            XposedBridge.hookAllMethods(listener, "abortTransient", after).size +
+            XposedBridge.hookAllMethods(repository, "showTransient", after).size +
+            XposedBridge.hookAllMethods(repository, "clearTransient", after).size
+        Hooks.log("status bar saver: full-screen swipes watched ($hooked hooks)")
     }
 
     private inline fun guarded(block: () -> Unit) {
@@ -232,17 +281,23 @@ internal object StatusBarSaver {
          */
         fun wake(showMs: Long = -1) {
             if (hideMs < 0) return
-            main.removeCallbacks(hide)
-            if (hidden) {
-                hidden = false
-                contents.animate().alpha(1f).setDuration(FADE_MS).start()
-            }
+            hold()
+            if (transientShown) return // Over a full-screen app: stays until it goes.
             val delay = when {
                 showMs >= 0 -> showMs
                 hideMs == 0L -> INSTANT_MS
                 else -> hideMs
             }
             main.postDelayed(hide, delay)
+        }
+
+        /** Shows the bar (if hidden) and keeps it until [wake] starts the set time again. */
+        fun hold() {
+            main.removeCallbacks(hide)
+            if (hidden) {
+                hidden = false
+                contents.animate().alpha(1f).setDuration(FADE_MS).start()
+            }
         }
 
         /** The next position on the ring, as far as the room inside the bar allows. */

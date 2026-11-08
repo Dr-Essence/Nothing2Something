@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.54.6, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.54.7, what is pending, what still needs testing</summary>
 
-**Current build: 0.54.6** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver, and Restart System UI in the module.
+**Current build: 0.54.7** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver (now shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module. Pending: the lock screen, always-on display and home screen turns, which still show a moment of the wrong layout (being traced in DebuG23).
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -64,6 +64,14 @@ Each section below opens when tapped.
   it (log: "move every 60 s by 2 dp").
 
 **Not tested on a phone yet**
+- **0.54.7, OLED saver over full-screen apps:** with Hide the status bar on, a swipe from the
+  top over a full-screen app (a game, a video) brought back an empty strip, and a tap was
+  needed on top. The saver now shows the bar for as long as Android shows it after that swipe
+  (System UI's `showTransient`, until `abortTransient` / `clearTransient`), then starts the
+  set time again. Apps that keep their status bar keep the set time as before. Needs on the
+  phone: a swipe over a full-screen app with the bar hidden (the bar shows at once, LSPosed
+  log "status bar saver: shown again (full-screen swipe)"), and the start-up line "full-screen
+  swipes watched (4 hooks)".
 - **0.54.3, dual status bar: Notifications at the end and Date at the end**, two switches
   that work in every combination. Notifications at the end puts the notification icons at
   the bar's right end, under the Wi-Fi/signal/battery icons, in both orientations: the
