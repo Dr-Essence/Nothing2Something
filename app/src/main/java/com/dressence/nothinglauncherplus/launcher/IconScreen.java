@@ -335,7 +335,6 @@ final class IconScreen {
                 r += ((c >> 16) & 0xFF) * ca;
                 g += ((c >> 8) & 0xFF) * ca;
                 b += (c & 0xFF) * ca;
-                n++;
             }
         }
         if (n < 0.5f || a == 0) {
