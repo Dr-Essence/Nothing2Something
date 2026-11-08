@@ -44,6 +44,14 @@ final class IconScreen {
     /** The bezel's width, in icon widths: round screens, and screens in their own shape. */
     private static final float BEZEL_ROUND = 0.06f;
     private static final float BEZEL_OWN = 0.05f;
+    /**
+     * How far, in dot spacings, the bezel reaches in over the dot grid. The grid runs out to the
+     * glass's edge and the bezel covers the dots there, so the dots end in the glass's own
+     * outline, whatever its shape. (A square grid that stops at the last whole dot ends in
+     * steps that do not follow a curved bezel, seen on the phone; Dr.Essence picked this over
+     * rings and a plain thicker bezel, for every shape.)
+     */
+    private static final float EDGE_COVER = 0.35f;
     /** The dark glass and its unlit dots, for every shape. */
     private static final int GLASS = 0xFF050605;
     private static final int UNLIT = 0xFF1A1B1A;
@@ -57,6 +65,8 @@ final class IconScreen {
     Bitmap plate;
     /** The light the lit dots throw on the glass. */
     Bitmap glow;
+    /** The glass's shape (alpha): the dots are cut to it, also while they power on. */
+    Bitmap mask;
     /** The lit dots alone, for the scan line to tint. */
     Bitmap lit;
     float[] x;
@@ -99,11 +109,6 @@ final class IconScreen {
         float[] glass;
         float[] depth;
         int[] art;
-        /** A round screen: its centre and the glass's radius (the dots go in rings). */
-        boolean round;
-        float cx;
-        float cy;
-        float inner;
     }
 
     /** The launcher's circle: dark glass in a bezel ring, the artwork scaled into the glass. */
@@ -113,17 +118,13 @@ final class IconScreen {
         float cx = box.exactCenterX();
         float cy = box.exactCenterY();
         float r = Math.max(box.width(), box.height()) / 2f;
-        float bezel = w * BEZEL_ROUND;
+        float bezel = w * BEZEL_ROUND + EDGE_COVER * w / GRID;
         float inner = r - bezel;
         Layout l = new Layout();
         int n = w * h;
         l.body = new float[n];
         l.glass = new float[n];
         l.depth = new float[n];
-        l.round = true;
-        l.cx = cx;
-        l.cy = cy;
-        l.inner = inner;
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
                 float d = (float) Math.hypot(x + 0.5f - cx, y + 0.5f - cy);
@@ -147,7 +148,7 @@ final class IconScreen {
     private static Layout ownShape(Bitmap icon, int w, int h) {
         int[] px = pixels(icon);
         Rect box = opaqueBounds(px, w, h);
-        float bezel = w * BEZEL_OWN;
+        float bezel = w * BEZEL_OWN + EDGE_COVER * w / GRID;
         float scale = Math.max(0.5f, 1 - 2 * bezel / Math.max(1, Math.max(box.width(),
                 box.height())));
         Matrix m = new Matrix();
@@ -200,18 +201,22 @@ final class IconScreen {
         plate = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         plate.setPixels(platePx, 0, w, 0, 0, w, h);
 
-        // The dots. A round screen: rings round its centre, the outer one following the bezel.
-        // (Until 0.55.4 a round screen had the square grid too, and a square grid inside a
-        // circle ends in steps, flat at the top, bottom and sides: the dots did not follow the
-        // bezel, seen on the phone. Dr.Essence picked rings over a grid with a round edge.)
-        // Any other shape: the square grid, where a whole dot fits on the glass with half a dot
-        // to spare.
-        List<float[]> spots = l.round ? rings(l, pitch) : grid(l, w, h, pitch);
+        // The glass's shape: the dots and their glow are cut to it.
+        int[] glassPx = new int[n];
+        for (int i = 0; i < n; i++) {
+            glassPx[i] = Math.round(255 * l.glass[i] * l.body[i]) << 24;
+        }
+        Bitmap glassMask = Bitmap.createBitmap(glassPx, w, h, Bitmap.Config.ARGB_8888);
+        Paint keep = new Paint(Paint.FILTER_BITMAP_FLAG);
+        keep.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+
+        // The dots: the square grid out to the glass's edge, the bezel covering the edge ones.
+        List<float[]> spots = grid(l, w, h, pitch);
         int[] cells = new int[spots.size()];
         int count = 0;
         for (int i = 0; i < cells.length; i++) {
             float[] spot = spots.get(i);
-            cells[i] = colourAt(l.art, w, h, spot[0], spot[1], pitch);
+            cells[i] = colourAt(l.art, l.glass, w, h, spot[0], spot[1], pitch);
             if (cells[i] != 0) {
                 count++;
             }
@@ -219,7 +224,8 @@ final class IconScreen {
         x = new float[count];
         y = new float[count];
         color = new int[count];
-        Canvas plateCanvas = new Canvas(plate);
+        Bitmap unlitBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas unlitCanvas = new Canvas(unlitBitmap);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setColor(UNLIT);
         int k = 0;
@@ -231,8 +237,11 @@ final class IconScreen {
                 color[k] = cells[i];
                 k++;
             }
-            plateCanvas.drawCircle(spot[0], spot[1], radius, paint); // every dot, lit or not
+            unlitCanvas.drawCircle(spot[0], spot[1], radius, paint); // every dot, lit or not
         }
+        unlitCanvas.drawBitmap(glassMask, 0, 0, keep);
+        new Canvas(plate).drawBitmap(unlitBitmap, 0, 0, null);
+        unlitBitmap.recycle();
 
         // The glow: each lit dot's light falling dimly on the glass round it, and a faint wide
         // bloom where many lit dots are together; only on the glass.
@@ -257,16 +266,8 @@ final class IconScreen {
         glowCanvas.drawBitmap(wide, null, new Rect(0, 0, glowBitmap.getWidth(),
                 glowBitmap.getHeight()), add);
         wide.recycle();
-        int[] glassPx = new int[n];
-        for (int i = 0; i < n; i++) {
-            glassPx[i] = Math.round(255 * l.glass[i] * l.body[i]) << 24;
-        }
-        Bitmap glassMask = Bitmap.createBitmap(glassPx, w, h, Bitmap.Config.ARGB_8888);
-        Paint keep = new Paint(Paint.FILTER_BITMAP_FLAG);
-        keep.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
         glowCanvas.drawBitmap(glassMask, null, new Rect(0, 0, glowBitmap.getWidth(),
                 glowBitmap.getHeight()), keep);
-        glassMask.recycle();
 
         Bitmap litBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas litCanvas = new Canvas(litBitmap);
@@ -277,20 +278,19 @@ final class IconScreen {
                 new Paint(Paint.FILTER_BITMAP_FLAG));
         for (int i = 0; i < x.length; i++) {
             paint.setColor(color[i]);
-            fullCanvas.drawCircle(x[i], y[i], radius, paint);
             litCanvas.drawCircle(x[i], y[i], radius, paint);
         }
+        litCanvas.drawBitmap(glassMask, 0, 0, keep);
+        fullCanvas.drawBitmap(litBitmap, 0, 0, null);
         // Kept on the GPU: no upload when drawn, and off the app's Java heap.
+        mask = toHardware(glassMask);
         full = toHardware(fullBitmap);
         plate = toHardware(plate);
         lit = toHardware(litBitmap);
         glow = toHardware(glowBitmap);
     }
 
-    /**
-     * The square grid's dot centres where a whole dot fits on the glass with half a dot to
-     * spare (shapes of their own).
-     */
+    /** The square grid's dot centres where any of the dot shows on the glass. */
     private static List<float[]> grid(Layout l, int w, int h, float pitch) {
         List<float[]> spots = new ArrayList<>();
         int rows = Math.max(1, Math.round(h / pitch));
@@ -300,7 +300,7 @@ final class IconScreen {
                 float dy = (gy + 0.5f) * pitch;
                 int cx = Math.min(w - 1, (int) dx);
                 int cy = Math.min(h - 1, (int) dy);
-                if (l.depth[cy * w + cx] >= pitch * 0.55f) {
+                if (l.depth[cy * w + cx] > -radiusFor(pitch) * 0.8f) {
                     spots.add(new float[] {dx, dy});
                 }
             }
@@ -308,42 +308,27 @@ final class IconScreen {
         return spots;
     }
 
-    /**
-     * A round screen's dot centres: one in the middle and rings round it, evenly spaced, the
-     * outermost with half a dot to spare inside the glass (as the grid's edge dots were), each
-     * ring with as many dots as fit at the grid's spacing.
-     */
-    private static List<float[]> rings(Layout l, float pitch) {
-        List<float[]> spots = new ArrayList<>();
-        spots.add(new float[] {l.cx, l.cy});
-        float outer = l.inner - pitch * 0.55f;
-        int count = (int) (outer / pitch);
-        for (int ring = 1; ring <= count; ring++) {
-            float r = outer * ring / count;
-            int dots = Math.max(6, Math.round((float) (2 * Math.PI * r / pitch)));
-            for (int d = 0; d < dots; d++) {
-                double t = 2 * Math.PI * d / dots;
-                spots.add(new float[] {l.cx + r * (float) Math.cos(t),
-                        l.cy + r * (float) Math.sin(t)});
-            }
-        }
-        return spots;
+    private static float radiusFor(float pitch) {
+        return pitch * DOT / 2;
     }
 
     /**
      * The colour of the dot centred at ({@code cx}, {@code cy}): the artwork's average colour
      * over a dot spacing round it, at one of a few LED levels by how much of that it covers;
-     * 0 for a dark dot.
+     * 0 for a dark dot. Coverage counts only the glass there, so a dot half under the bezel is
+     * lit as fully as the artwork beside it.
      */
-    private static int colourAt(int[] art, int w, int h, float cx, float cy, float pitch) {
+    private static int colourAt(int[] art, float[] glass, int w, int h, float cx, float cy,
+            float pitch) {
         int x0 = Math.max(0, Math.round(cx - pitch / 2));
         int x1 = Math.min(w, Math.round(cx + pitch / 2));
         int y0 = Math.max(0, Math.round(cy - pitch / 2));
         int y1 = Math.min(h, Math.round(cy + pitch / 2));
         long a = 0, r = 0, g = 0, b = 0;
-        int n = 0;
+        float n = 0;
         for (int y = y0; y < y1; y++) {
             for (int x = x0; x < x1; x++) {
+                n += glass[y * w + x];
                 int c = art[y * w + x];
                 int ca = c >>> 24;
                 a += ca;
@@ -353,10 +338,10 @@ final class IconScreen {
                 n++;
             }
         }
-        if (n == 0 || a == 0) {
+        if (n < 0.5f || a == 0) {
             return 0;
         }
-        float coverage = a / (255f * n);
+        float coverage = Math.min(1, a / (255f * n));
         if (coverage < OFF_BELOW) {
             return 0;
         }

@@ -131,6 +131,12 @@ final class DotIcons {
     private static Bitmap lowRes;
     private static final Paint DOT_PAINT = new Paint(Paint.ANTI_ALIAS_FLAG);
     private static final Paint GLOW_PAINT = new Paint(Paint.FILTER_BITMAP_FLAG);
+    /** Keeps what is under the glass's shape: the powering-on dots are cut to it. */
+    private static final Paint CUT_PAINT = new Paint(Paint.FILTER_BITMAP_FLAG);
+
+    static {
+        CUT_PAINT.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+    }
     private static WeakReference<Activity> launcher = new WeakReference<>(null);
 
     private DotIcons() {
@@ -399,6 +405,8 @@ final class DotIcons {
         GLOW_PAINT.setAlpha(Math.round(alpha * ease(t)));
         canvas.drawBitmap(dots.glow, null, bounds, GLOW_PAINT);
         float half = dots.size / 2;
+        // The edge dots run under the bezel: drawn in a layer, then cut to the glass.
+        int layer = canvas.saveLayer(bounds.left, bounds.top, bounds.right, bounds.bottom, null);
         for (int i = 0; i < dots.x.length; i++) {
             float dx = dots.x[i] - half;
             float dy = dots.y[i] - half;
@@ -416,6 +424,8 @@ final class DotIcons {
             canvas.drawCircle(bounds.left + dots.x[i] * k, bounds.top + dots.y[i] * k,
                     dots.radius * k * (0.35f + 0.65f * Math.min(1.08f, s)), DOT_PAINT);
         }
+        canvas.drawBitmap(dots.mask, null, bounds, CUT_PAINT);
+        canvas.restoreToCount(layer);
     }
 
     /** A declared field of {@code cls} or a superclass, made accessible. */
