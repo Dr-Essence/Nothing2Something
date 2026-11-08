@@ -92,6 +92,8 @@ internal object DualStatusBar {
     private val saved = WeakHashMap<View, Saved>()
     /** The date shown for each bar, by its row container. */
     private val dates = WeakHashMap<View, DateRow>()
+    /** Notification areas measured across the whole bar (Notifications at the end): their bar. */
+    private val wide = WeakHashMap<View, ViewGroup>()
 
     @JvmStatic
     fun install(cl: ClassLoader, store: ConfigStore) {
@@ -136,6 +138,16 @@ internal object DualStatusBar {
         }
         val bar = XposedHelpers.findClass(CLS_BAR, cl)
         XposedBridge.hookAllMethods(bar, "onFinishInflate", arrange)
+        // Notifications at the end: the notification area measures as wide as the whole bar.
+        XposedHelpers.findAndHookMethod(FrameLayout::class.java, "onMeasure",
+            Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, object : XC_MethodHook() {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    val bar = wide[param.thisObject] ?: return
+                    runCatching { fullWidth(bar) }.getOrNull()?.let {
+                        param.args[0] = View.MeasureSpec.makeMeasureSpec(it, View.MeasureSpec.EXACTLY)
+                    }
+                }
+            })
         XposedBridge.hookAllMethods(bar, "onConfigurationChanged", arrange)
 
         // 3. The date follows the clock: its minute, its colour (light or dark over an app).
@@ -223,12 +235,11 @@ internal object DualStatusBar {
     /** Lays the bar out on one row or two, for the orientation it is in now. */
     private fun arrange(bar: ViewGroup) {
         val start = find(bar, "status_bar_start_side_except_heads_up") as? LinearLayout
-        val startContent = find(bar, "status_bar_start_side_content")
         val endSide = find(bar, "status_bar_end_side_container")
         val end = find(bar, "status_bar_end_side_content")
         val area = find(bar, "notification_icon_area")
         val clock = find(bar, "clock") as? TextView
-        if (start == null || startContent == null || endSide == null || end == null || area == null || clock == null
+        if (start == null || endSide == null || end == null || area == null || clock == null
             || clock.layoutParams !is LinearLayout.LayoutParams
             || area.layoutParams !is LinearLayout.LayoutParams
         ) {
@@ -236,14 +247,13 @@ internal object DualStatusBar {
             return
         }
         clockFace = clock.typeface
-        val keep = saved.getOrPut(start) { Saved(start, startContent, clock, area, end) }
+        val keep = saved.getOrPut(start) { Saved(start, clock, area, end) }
         // The two rows' measures, or null when this orientation keeps one row.
         val rows = baseHeight(bar.context)?.let { rows(bar.context, it) }
             ?.takeIf { landscape || !isLandscape(bar.context) }
 
         val clockLp = clock.layoutParams as LinearLayout.LayoutParams
         val areaLp = area.layoutParams as LinearLayout.LayoutParams
-        val contentLp = startContent.layoutParams
         if (rows != null) {
             start.orientation = LinearLayout.VERTICAL
             // The clock takes what the row leaves: the original bar height.
@@ -256,16 +266,6 @@ internal object DualStatusBar {
             // The end side's icons stay level with the clock: its box ends where the bar did.
             end.setPadding(end.paddingLeft, end.paddingTop, end.paddingRight,
                 keep.endBottom + rows.growth)
-            if (notificationsAtEnd) {
-                // The left half's content fills its half (Nothing already gives the half its
-                // width), so the icons can go to its end. The date is either before them (at
-                // the area's start) or on the end side: the two options never overlap.
-                contentLp.width = ViewGroup.LayoutParams.MATCH_PARENT
-                areaLp.width = ViewGroup.LayoutParams.MATCH_PARENT
-            } else {
-                contentLp.width = keep.contentWidth
-                areaLp.width = keep.areaWidth
-            }
         } else {
             start.orientation = keep.orientation
             clockLp.height = keep.clockHeight
@@ -274,19 +274,38 @@ internal object DualStatusBar {
             areaLp.weight = keep.areaWeight
             areaLp.topMargin = keep.areaTop
             end.setPadding(end.paddingLeft, end.paddingTop, end.paddingRight, keep.endBottom)
-            contentLp.width = keep.contentWidth
-            areaLp.width = keep.areaWidth
         }
         clock.layoutParams = clockLp
         area.layoutParams = areaLp
-        startContent.layoutParams = contentLp
-        alignIcons(area, rows != null && notificationsAtEnd)
+        // Notifications at the end: the area spans the whole bar's width (its containers
+        // draw outside their bounds: clipChildren is off on all of them in Nothing's layout),
+        // so its icons reach the bar's end, under the end side's icons, where the second row
+        // is empty. Nothing's split of the bar between the two halves is untouched. Seen on
+        // the phone before: at the end of the left half, the icons stopped short of the end in
+        // landscape, and in portrait (the half ends at the camera) only the overflow dot fit.
+        val atEnd = rows != null && notificationsAtEnd
+        if (atEnd) wide[area] = bar else wide.remove(area)
+        alignIcons(area, atEnd)
         // The date: before the notifications, or (Date at the end) on the end side's second
         // row, under its icons, where the bar is empty, leaving the notifications the whole
         // left half (in portrait the camera gap ends that half, and the full date left the
         // icons no room: seen on the phone, only System UI's overflow dot showed).
         val host = if (dateAtEnd) endSide else area
-        DateRow.attach(start, host, clock, keep, rows?.takeIf { showDate })
+        DateRow.attach(start, host, area, clock, keep, rows?.takeIf { showDate })
+    }
+
+    /**
+     * The width of the bar's content (the status bar's width less its own and its content
+     * view's paddings): the notification area's width with Notifications at the end. The
+     * area starts at the content's start (the left half starts there), so it ends at the
+     * content's end. Read from the display's width, which is current when System UI lays the
+     * bar out after a rotation.
+     */
+    private fun fullWidth(bar: ViewGroup): Int? {
+        val contents = find(bar, "status_bar_contents") ?: return null
+        val w = bar.resources.displayMetrics.widthPixels - bar.paddingLeft - bar.paddingRight -
+            contents.paddingLeft - contents.paddingRight
+        return w.takeIf { it > 0 }
     }
 
     /** The icon container at the end of its area (or back at its start). */
@@ -301,15 +320,13 @@ internal object DualStatusBar {
     }
 
     /** What [arrange] changes, as Nothing set it: put back for one row. */
-    private class Saved(start: LinearLayout, content: View, clock: View, area: View, end: View) {
+    private class Saved(start: LinearLayout, clock: View, area: View, end: View) {
         val orientation = start.orientation
         val clockHeight: Int
         val clockWeight: Float
         val areaHeight: Int
         val areaWeight: Float
         val areaTop: Int
-        val areaWidth: Int
-        val contentWidth = content.layoutParams.width
         val endBottom = end.paddingBottom
         val areaStart = area.paddingStart
         val areaEnd = area.paddingEnd
@@ -322,7 +339,6 @@ internal object DualStatusBar {
             areaHeight = a.height
             areaWeight = a.weight
             areaTop = a.topMargin
-            areaWidth = a.width
         }
     }
 
@@ -343,10 +359,11 @@ internal object DualStatusBar {
      * the full year.
      */
     private class DateRow(
-        host: View, clock: TextView, private val keep: Saved, val rows: Rows,
+        host: View, area: View, clock: TextView, private val keep: Saved, val rows: Rows,
     ) : Drawable(), View.OnLayoutChangeListener {
 
         private val host = WeakReference(host)
+        private val area = WeakReference(area)
         private val clock = WeakReference(clock)
         private val atEnd = dateAtEnd
         private val paint = TextPaint(Paint.ANTI_ALIAS_FLAG)
@@ -360,7 +377,8 @@ internal object DualStatusBar {
 
         companion object {
             /** Shows the date for the bar of [start] on [host] (or removes it: [rows] null). */
-            fun attach(start: View, host: View, clock: TextView, keep: Saved, rows: Rows?) {
+            fun attach(start: View, host: View, area: View, clock: TextView, keep: Saved,
+                       rows: Rows?) {
                 val old = dates[start]
                 if (old != null && (rows == null || !old.hostIs(host) || old.rows.row != rows.row
                         || old.rows.overlap != rows.overlap)) {
@@ -368,7 +386,7 @@ internal object DualStatusBar {
                     dates.remove(start)
                 }
                 if (rows != null && dates[start] == null) {
-                    val made = DateRow(host, clock, keep, rows)
+                    val made = DateRow(host, area, clock, keep, rows)
                     dates[start] = made
                     host.overlay.add(made)
                     host.addOnLayoutChangeListener(made)
@@ -378,11 +396,12 @@ internal object DualStatusBar {
         }
 
         fun detach() {
-            val h = host.get() ?: return
-            h.overlay.remove(this)
-            h.removeOnLayoutChangeListener(this)
-            if (!atEnd) {
-                h.setPaddingRelative(keep.areaStart, h.paddingTop, keep.areaEnd, h.paddingBottom)
+            host.get()?.let {
+                it.overlay.remove(this)
+                it.removeOnLayoutChangeListener(this)
+            }
+            area.get()?.let {
+                it.setPaddingRelative(keep.areaStart, it.paddingTop, keep.areaEnd, it.paddingBottom)
             }
         }
 
@@ -410,10 +429,15 @@ internal object DualStatusBar {
             val w = paint.measureText(text).roundToInt() + gap
             if (w != width) {
                 width = w
-                // At the start, room for the date so the icons begin after it.
-                if (!atEnd) {
-                    h.setPaddingRelative(keep.areaStart + w, h.paddingTop, keep.areaEnd,
-                        h.paddingBottom)
+                // Room for the date in the notification area, so the icons never run under it:
+                // at its start, or (date and notifications both at the end) at its end.
+                area.get()?.let {
+                    when {
+                        !atEnd -> it.setPaddingRelative(keep.areaStart + w, it.paddingTop,
+                            keep.areaEnd, it.paddingBottom)
+                        notificationsAtEnd -> it.setPaddingRelative(keep.areaStart, it.paddingTop,
+                            keep.areaEnd + w, it.paddingBottom)
+                    }
                 }
                 place(h)
             }

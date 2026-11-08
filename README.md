@@ -47,9 +47,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.54.2, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.54.3, what is pending, what still needs testing</summary>
 
-**Current build: 0.54.2** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver, and Restart System UI in the module.
+**Current build: 0.54.3** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver, and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -61,14 +61,16 @@ Each section below opens when tapped.
   it (log: "move every 60 s by 2 dp").
 
 **Not tested on a phone yet**
-- **0.54.2, dual status bar: Date at the end and Notifications at the end**, two switches
-  that work in every combination: the notifications always stay in the left half (at its
-  start, or with Notifications at the end at its end: before the camera gap in portrait),
-  the date either before them or, with Date at the end, on the end side's second row, under
-  the Wi-Fi/signal/battery icons, where the bar is empty (drawn on that side's overlay;
-  nothing moves there), so the two never overlap. In portrait the camera gap ends the
-  left half, and the full date with the notifications after it left room only for System
-  UI's overflow dot (seen on the phone); with the date at the end the icons have the half.
+- **0.54.3, dual status bar: Notifications at the end and Date at the end**, two switches
+  that work in every combination. Notifications at the end puts the notification icons at
+  the bar's right end, under the Wi-Fi/signal/battery icons, in both orientations: the
+  notification area (still in the left half, nothing moves) measures as wide as the whole
+  bar's content, and since every container on its path has clipChildren off in Nothing's
+  layout, it draws past the left half into the empty second row of the right half; Nothing's
+  split of the bar is untouched. (0.54.2 put them at the end of the left half: in landscape
+  they stopped well short of the end, in portrait the half ends at the camera and only the
+  overflow dot fit; seen on the phone.) Date at the end draws the date at the right end of
+  the second row (on the end side's overlay); with both on, the icons stop just before it.
   Month as a number and Year in the date as before (the year now in full, see Fixed). Needs
   on the phone: both orientations with each of the four combinations, with notifications; still
   from 0.53: the bar over a light app (dark text and date), during a call or screen recording
