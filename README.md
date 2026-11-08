@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/Dr-Essence/Nothing2Something/claude/nothing-os-xposed-module-65lsca/docs/images/banner.png" alt="Nothing2Something: the three-eyed dot-matrix face and the name in Nothing's NDot" width="100%"></p>
+
 # Nothing2Something
 
 An LSPosed module for **Nothing and CMF phones** that adds to Nothing Launcher and Nothing OS:
