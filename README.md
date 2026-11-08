@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.59.2, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.60.0, what is pending, what still needs testing</summary>
 
-**Current build: 0.59.2** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing Gaming Space, the module's own gaming launcher in dot-matrix style, with one dot screen on top and a cross menu below (new, first part), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.60.0** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing Gaming Space, the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes for the apps and an animation for each category (new, second part), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.59.0, Nothing Gaming Space opens, plays the intro and lists the categories and apps
@@ -100,6 +100,22 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.60.0, Nothing Gaming Space, second part: 3D boxes and category animations.** Each app
+  in the column is a small box turning slowly, its dot icon (the launcher's dot icons) on a
+  dark plate on each of its four sides; the selected one turns faster and is fully lit
+  (`DotCubeView`: the corners turned in 3D and projected with perspective, each side facing
+  the viewer drawn with `Matrix.setPolyToPoly`, far sides first, darker as they turn away).
+  When a category is selected, a short animation plays over the whole big screen, at the
+  screen's own dot size (`DotAnimationView`: one pixel per dot, shown through a mask of round
+  dots over the unlit dots, as the folders' engine does): a Pong rally (Games), marching
+  invaders (Emulators), a turning globe (Browser), equaliser bars (Music), a running film
+  strip with a play sign (Video), static rolling into colour bars (TV), a wave of lit squares
+  (Apps); then the category's emoji and name, then the selected app. Checked here: it
+  compiles, and the cube's projection and every animation were rendered off the phone from the
+  same formulas: the cube's sides turn the right way round with their pictures upright; the
+  first renders showed the lean the wrong way (the box's bottom, fixed: 24 degrees, top
+  showing), an oval globe (its width doubled on square dots, fixed) and too few meridians,
+  and a tiny Pong ball and paddles (made bigger). Needs: how both look and run on the phone.
 - **0.59.1, Nothing Gaming Space: one dot screen and the cross menu.** The top part is one
   dot screen edge to edge (the drawer folders' dot engine, `AnimatedEmojiView` with a panel
   the page's width): the selected category's emoji or the selected app's icon on the left,

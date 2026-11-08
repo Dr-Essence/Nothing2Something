@@ -22,7 +22,6 @@ import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.widget.FrameLayout
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.dressence.nothinglauncherplus.anim.AnimatedEmojiView
@@ -71,10 +70,10 @@ class GamingSpaceActivity : Activity() {
         private const val CARD_CORNER = 0.085f
         /** An app's row in the column (dp). */
         private const val ITEM_H = 60f
-        private const val ITEM_ICON = 48f
+        private const val ITEM_ICON = 54f
         private const val MOVE_MS = 180L
-        /** How long a new category's emoji plays on the screen before its app comes up. */
-        private const val CATEGORY_SHOW_MS = 1400L
+        /** How long a category's emoji stays after its animation, before its app comes up. */
+        private const val CATEGORY_SHOW_MS = 900L
         private const val INTRO_IN_MS = 1200L
         private const val INTRO_HOLD_MS = 1400L
         private const val INTRO_OUT_MS = 600L
@@ -94,7 +93,8 @@ class GamingSpaceActivity : Activity() {
     private lateinit var store: SettingsStore
     private val main = Handler(Looper.getMainLooper())
     private val worker: ExecutorService = Executors.newSingleThreadExecutor()
-    private val dotIcons = LruCache<String, Bitmap>(64)
+    /** Box sides by package (see [boxFace]). */
+    private val faces = LruCache<String, Bitmap>(64)
     private var ndot: Typeface? = null
     private var phase = Phase.INTRO
     private var skip: (() -> Unit)? = null
@@ -102,6 +102,8 @@ class GamingSpaceActivity : Activity() {
     private lateinit var root: FrameLayout
     /** The top part: one dot screen, edge to edge. */
     private lateinit var screen: AnimatedEmojiView
+    /** A category's animation, played over the whole screen when it is selected. */
+    private lateinit var animation: DotAnimationView
     private var screenHeight = 0
     private val screenLabel = Rect()
     private var shownTitle: String? = null
@@ -265,6 +267,9 @@ class GamingSpaceActivity : Activity() {
         screen = AnimatedEmojiView(this)
         screen.setDotMatrix(true)
         page.addView(screen, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
+        animation = DotAnimationView(this)
+        animation.visibility = View.GONE
+        page.addView(animation, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
         bar = FrameLayout(this)
         bar.clipChildren = false
         page.addView(bar, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -289,6 +294,7 @@ class GamingSpaceActivity : Activity() {
     private fun place(width: Int, height: Int) {
         screenHeight = (height * SCREEN_SHARE).toInt()
         screen.layoutParams = FrameLayout.LayoutParams(width, screenHeight)
+        animation.layoutParams = FrameLayout.LayoutParams(width, screenHeight)
         // As on a folder's card (DotMatrix.layout): the name's strip across the top, and the
         // picture's screen filling the face below it, the picture in the middle.
         val inset = dp(16f).toInt()
@@ -300,6 +306,9 @@ class GamingSpaceActivity : Activity() {
         screen.setDotPanel(Rect(left, top, left + side, top + side),
             Rect(0, 0, width, screenHeight), dp(24f))
         screenLabel.set(inset * 2, inset, width - inset * 2, inset + labelH)
+        // The animations use the screen's own dot size (the folders' engine: 32 dots across
+        // the picture's square), over the whole screen.
+        animation.setGeometry(side / 32f, dp(24f))
         shownTitle = null
         layoutCross()
         showSelection(false)
@@ -365,11 +374,11 @@ class GamingSpaceActivity : Activity() {
         list.forEachIndexed { j, app ->
             val item = LinearLayout(this)
             item.gravity = Gravity.CENTER_VERTICAL
-            val icon = ImageView(this)
-            icon.tag = app.packageName
-            dotIcon(app.packageName) { if (icon.tag == app.packageName) icon.setImageBitmap(it) }
+            val cube = DotCubeView(this)
+            cube.tag = app.packageName
+            boxFace(app.packageName) { if (cube.tag == app.packageName) cube.setFace(it) }
             val size = dp(ITEM_ICON).toInt()
-            item.addView(icon, LinearLayout.LayoutParams(size, size))
+            item.addView(cube, LinearLayout.LayoutParams(size, size))
             val name = text(app.label, 18f, Color.WHITE)
             name.maxLines = 1
             name.ellipsize = android.text.TextUtils.TruncateAt.END
@@ -414,6 +423,7 @@ class GamingSpaceActivity : Activity() {
                 .setDuration(MOVE_MS).start()
             ((item as? ViewGroup)?.getChildAt(1) as? TextView)?.setTextColor(
                 if (on) GREEN else Color.WHITE)
+            ((item as? ViewGroup)?.getChildAt(0) as? DotCubeView)?.lit = on
         }
     }
 
@@ -443,11 +453,20 @@ class GamingSpaceActivity : Activity() {
         main.removeCallbacks(showApp)
         val cat = GamingLibrary.order[category]
         val app = appsOf(category).getOrNull(appFocus[category])
-        if (categoryFirst || app == null) {
+        if (categoryFirst) {
+            // Its animation over the whole screen; under it the emoji and name wait, and stay
+            // a moment once it fades, before the selected app comes up.
             setCover(screen, cat.emoji, cat.ordinal * 31L)
             title(cat.title)
-            if (app != null) main.postDelayed(showApp, CATEGORY_SHOW_MS)
+            animation.play(cat) {
+                if (appsOf(category).isNotEmpty()) main.postDelayed(showApp, CATEGORY_SHOW_MS)
+            }
+        } else if (app == null) {
+            animation.stop()
+            setCover(screen, cat.emoji, cat.ordinal * 31L)
+            title(cat.title)
         } else {
+            animation.stop()
             showApp.run()
         }
     }
@@ -483,19 +502,22 @@ class GamingSpaceActivity : Activity() {
             DotEffect.anchor(spec), seed)
     }
 
-    /** An app's icon as a dot screen (made once, off the main thread). */
-    private fun dotIcon(pkg: String, done: (Bitmap) -> Unit) {
-        dotIcons.get(pkg)?.let { done(it); return }
+    /**
+     * The side of an app's box: its icon as a dot screen (the launcher's dot icons) on a dark
+     * plate; made once, off the main thread.
+     */
+    private fun boxFace(pkg: String, done: (Bitmap) -> Unit) {
+        faces.get(pkg)?.let { done(it); return }
         worker.execute {
             val raw = rawIcon(pkg) ?: return@execute
-            val bitmap = try {
-                IconScreen.dots(raw) ?: raw
+            val face = try {
+                plate(IconScreen.dots(raw) ?: raw)
             } catch (t: Throwable) {
-                raw
+                plate(raw)
             }
             main.post {
-                dotIcons.put(pkg, bitmap)
-                done(bitmap)
+                faces.put(pkg, face)
+                done(face)
             }
         }
     }
