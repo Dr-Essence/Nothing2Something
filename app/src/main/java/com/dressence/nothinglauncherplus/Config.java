@@ -48,7 +48,7 @@ public final class Config {
     public static final String KEY_DUAL_STATUS_LAND = "dual_status_bar_landscape";
     public static final String KEY_DUAL_MONTH_NUMBER = "dual_status_bar_month_number";
     public static final String KEY_DUAL_YEAR = "dual_status_bar_year";
-    public static final String KEY_DUAL_NOTIF_END = "dual_status_bar_notifications_end";
+    public static final String KEY_DUAL_DATE_END = "dual_status_bar_date_end";
     public static final String KEY_SB_SHIFT_SECONDS = "status_bar_shift_seconds";
     public static final String KEY_SB_SHIFT_DP = "status_bar_shift_dp";
     public static final String KEY_SB_HIDE_MINUTES = "status_bar_hide_minutes";
@@ -171,8 +171,8 @@ public final class Config {
     public boolean dualStatusBarMonthNumber = false;
     /** The second row's date with the year. */
     public boolean dualStatusBarYear = false;
-    /** The second row's notifications at the end of the left half, the date at its start. */
-    public boolean dualStatusBarNotificationsAtEnd = false;
+    /** The second row's date at the end of the left half, opposite the notifications. */
+    public boolean dualStatusBarDateAtEnd = false;
     /** OLED saver: how often the status bar's content moves, in seconds (0: never). */
     public int statusBarShiftSeconds = 0;
     /** OLED saver: how far it moves at most, in dp. */
@@ -377,7 +377,7 @@ public final class Config {
         dualStatusBarLandscape = in.bool(KEY_DUAL_STATUS_LAND, false);
         dualStatusBarMonthNumber = in.bool(KEY_DUAL_MONTH_NUMBER, false);
         dualStatusBarYear = in.bool(KEY_DUAL_YEAR, false);
-        dualStatusBarNotificationsAtEnd = in.bool(KEY_DUAL_NOTIF_END, false);
+        dualStatusBarDateAtEnd = in.bool(KEY_DUAL_DATE_END, false);
         statusBarShiftSeconds = in.number(KEY_SB_SHIFT_SECONDS, 0);
         statusBarShiftDp = in.number(KEY_SB_SHIFT_DP, 2);
         statusBarHideMinutes = in.number(KEY_SB_HIDE_MINUTES, -1);
@@ -435,7 +435,7 @@ public final class Config {
         out.bool(KEY_DUAL_STATUS_LAND, dualStatusBarLandscape);
         out.bool(KEY_DUAL_MONTH_NUMBER, dualStatusBarMonthNumber);
         out.bool(KEY_DUAL_YEAR, dualStatusBarYear);
-        out.bool(KEY_DUAL_NOTIF_END, dualStatusBarNotificationsAtEnd);
+        out.bool(KEY_DUAL_DATE_END, dualStatusBarDateAtEnd);
         out.number(KEY_SB_SHIFT_SECONDS, statusBarShiftSeconds);
         out.number(KEY_SB_SHIFT_DP, statusBarShiftDp);
         out.number(KEY_SB_HIDE_MINUTES, statusBarHideMinutes);

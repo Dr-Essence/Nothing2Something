@@ -10,11 +10,9 @@ import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.text.TextPaint
 import android.text.format.DateFormat
-import android.view.Gravity
 import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.dressence.nothinglauncherplus.Config
@@ -76,7 +74,7 @@ internal object DualStatusBar {
     @Volatile private var showDate = false
     @Volatile private var monthNumber = false
     @Volatile private var withYear = false
-    @Volatile private var notificationsAtEnd = false
+    @Volatile private var dateAtEnd = false
     @Volatile private var ndot = false
 
     /** SystemBarUtils.getStatusBarHeight, to ask its original answer (without our row). */
@@ -102,7 +100,7 @@ internal object DualStatusBar {
         showDate = config.statusBarDate
         monthNumber = config.dualStatusBarMonthNumber
         withYear = config.dualStatusBarYear
-        notificationsAtEnd = config.dualStatusBarNotificationsAtEnd
+        dateAtEnd = config.dualStatusBarDateAtEnd
         ndot = config.ndotStatusBar
         on = true
 
@@ -253,8 +251,9 @@ internal object DualStatusBar {
             // The end side's icons stay level with the clock: its box ends where the bar did.
             end.setPadding(end.paddingLeft, end.paddingTop, end.paddingRight,
                 keep.endBottom + rows.growth)
-            if (notificationsAtEnd) {
-                // The left half's content fills its half, so the icons can go to its end.
+            if (dateAtEnd && showDate) {
+                // The left half's content fills its half (Nothing already gives the half its
+                // width), so the date can go at its end, opposite the notifications.
                 contentLp.width = ViewGroup.LayoutParams.MATCH_PARENT
                 areaLp.width = ViewGroup.LayoutParams.MATCH_PARENT
             }
@@ -272,19 +271,7 @@ internal object DualStatusBar {
         clock.layoutParams = clockLp
         area.layoutParams = areaLp
         startContent.layoutParams = contentLp
-        alignIcons(area, rows != null && notificationsAtEnd)
         DateRow.attach(area as ViewGroup, clock, keep, rows != null && showDate)
-    }
-
-    /** The icon container at the end of its area (or back at its start). */
-    private fun alignIcons(area: View, atEnd: Boolean) {
-        val icons = find(area, "notificationIcons") ?: return
-        val lp = icons.layoutParams as? FrameLayout.LayoutParams ?: return
-        val gravity = if (atEnd) Gravity.END or Gravity.CENTER_VERTICAL else Gravity.NO_GRAVITY
-        if (lp.gravity != gravity) {
-            lp.gravity = gravity
-            icons.layoutParams = lp
-        }
     }
 
     /** What [arrange] changes, as Nothing set it: put back for one row. */
@@ -317,9 +304,10 @@ internal object DualStatusBar {
 
     /**
      * The date ("Sunday, 8 November", in the language's own order; the month as a number
-     * and the year as set) drawn at the start of the notification area, in the room its
-     * start padding makes, in the clock's own paint (font, colour, glow). A drawable on the
-     * area's overlay: nothing is added inside System UI's views.
+     * and the year as set) drawn in the notification area: at its start, before the icons,
+     * or with Date at the end at its end, opposite them; in the room a padding makes on that
+     * side, in the clock's own paint (font, colour, glow). A drawable on the area's overlay:
+     * nothing is added inside System UI's views.
      */
     private class DateRow(area: View, clock: TextView, private val keep: Saved) :
         Drawable(), View.OnLayoutChangeListener {
@@ -331,6 +319,7 @@ internal object DualStatusBar {
         private var pattern = ""
         private var text = ""
         private var width = -1
+        private var gap = 0
 
         companion object {
             fun attach(area: ViewGroup, clock: TextView, keep: Saved, show: Boolean) {
@@ -370,20 +359,29 @@ internal object DualStatusBar {
             text = DateFormat.format(pattern(), Date()).toString()
             paint.set(c.paint)
             paint.color = c.currentTextColor
-            val w = paint.measureText(text).roundToInt() + (c.textSize * 0.6f).roundToInt()
+            gap = (c.textSize * 0.6f).roundToInt()
+            val w = paint.measureText(text).roundToInt() + gap
             if (w != width) {
                 width = w
-                a.setPaddingRelative(keep.areaStart + w, a.paddingTop, keep.areaEnd,
-                    a.paddingBottom)
+                // Room for the date on its side, so the icons never run under it.
+                if (dateAtEnd) {
+                    a.setPaddingRelative(keep.areaStart, a.paddingTop, keep.areaEnd + w,
+                        a.paddingBottom)
+                } else {
+                    a.setPaddingRelative(keep.areaStart + w, a.paddingTop, keep.areaEnd,
+                        a.paddingBottom)
+                }
                 place(a)
             }
             invalidateSelf()
         }
 
+        /** The date's box: [width] wide, at the area's start or (Date at the end) its end. */
         private fun place(v: View) {
             val w = maxOf(width, 0)
             val rtl = v.layoutDirection == View.LAYOUT_DIRECTION_RTL
-            setBounds(if (rtl) v.width - w else 0, 0, if (rtl) v.width else w, v.height)
+            val atRight = dateAtEnd != rtl
+            setBounds(if (atRight) v.width - w else 0, 0, if (atRight) v.width else w, v.height)
         }
 
         override fun onLayoutChange(v: View, l: Int, t: Int, r: Int, b: Int, ol: Int, ot: Int,
@@ -393,7 +391,9 @@ internal object DualStatusBar {
             if (text.isEmpty()) return
             val b = bounds
             val m = paint.fontMetrics
-            canvas.drawText(text, b.left.toFloat(), b.exactCenterY() - (m.ascent + m.descent) / 2f,
+            // The gap is on the icons' side: after the date at the start, before it at the end.
+            val x = if (dateAtEnd) b.left + gap else b.left
+            canvas.drawText(text, x.toFloat(), b.exactCenterY() - (m.ascent + m.descent) / 2f,
                 paint)
         }
 

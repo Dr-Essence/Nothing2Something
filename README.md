@@ -56,13 +56,22 @@ Each section below opens when tapped.
   the other icons, the date in full ("SUNDAY, 8 NOVEMBER") and the notifications under it,
   apps under the taller bar (screenshots). The gap between the rows was too large; see 0.54.0.
 
+**In progress (on the branch, not a build to test)**
+- Dual status bar: "Notifications at the end" becomes **Date at the end** (the notifications
+  at the start of the second row, the date opposite them at the end of the left half), as
+  asked; waiting for portrait and landscape screenshots of 0.54.0, where the notifications
+  sat on the left in landscape only, before it is built. Still to come in the same build:
+  the OLED saver waking only for new notifications and the start of a shade pull (0.54.0
+  woke the bar on every progress update, about every 2 s on the home screen while a download
+  ran), and a Restart System UI row that the crash guards do not count.
+
 **Not tested on a phone yet**
 - **0.54.0, dual status bar options and tighter rows** (now Kotlin, `DualStatusBar.kt`):
   Month as a number ("Sunday, 8/11", the language's order), Year in the date, and
   Notifications at the end (the date at the start of the second row, the notifications at
   the end of the left half: before the camera gap in portrait, up to the right icons in
   landscape; the right half belongs to the Wi-Fi/signal/battery icons, and moving the
-  icons into it is what crashes other mods). The second row now starts in the room the bar
+  icons into it is what crashes other mods; being replaced, see In progress). The second row now starts in the room the bar
   already has under the clock's text (worked out from the bar's real height, the clock's
   text height in its font and the row height), leaving a gap of 0.3 text heights, and the
   bar grows only by the rest; the top row stays where it was. Needs on the phone: the gap,

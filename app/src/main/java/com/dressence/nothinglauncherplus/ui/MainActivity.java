@@ -488,11 +488,12 @@ public class MainActivity extends Activity {
                     config.dualStatusBarYear = checked;
                     store.save(this);
                 });
-        ui.switchRow("Notifications at the end",
-                "On the second row, the notifications at the end of the left half (before the"
-                        + " camera in portrait), the date at its start · restart System UI",
-                config.dualStatusBarNotificationsAtEnd, checked -> {
-                    config.dualStatusBarNotificationsAtEnd = checked;
+        ui.switchRow("Date at the end",
+                "On the second row, the notifications at the start and the date opposite them,"
+                        + " at the end of the left half (before the camera in portrait)"
+                        + " · restart System UI",
+                config.dualStatusBarDateAtEnd, checked -> {
+                    config.dualStatusBarDateAtEnd = checked;
                     store.save(this);
                 });
 
