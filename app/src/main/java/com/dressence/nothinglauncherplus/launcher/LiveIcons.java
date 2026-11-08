@@ -39,7 +39,10 @@ import de.robv.android.xposed.XposedHelpers;
  * icon is the app's own (a speaker and two waves of white dots on black, with a red dot); this
  * class finds its dots in the launcher's bitmap of it, once and off the main thread, so it
  * follows whatever size and mask the launcher gives the icon. A bitmap that does not look like
- * that icon (themed icons, a future redesign) is drawn as the launcher draws it.
+ * that icon (a future redesign) is drawn as the launcher draws it. A themed icon (Nothing's
+ * "Nothing" icon style, {@code ThemedIconDrawable}) is left alone too: its bitmap is still the
+ * coloured one, but the launcher draws the app's monochrome layer, smaller and elsewhere, so
+ * waves found in the coloured bitmap landed beside it (seen on the phone, 0.55.2).
  *
  * <p>An icon is tagged when {@code BubbleTextView.setNonPendingIcon} gives a view its drawable
  * (home screen, drawer, search). Each frame is the launcher's own draw of the icon, then the
@@ -84,6 +87,7 @@ final class LiveIcons {
     private static Field fIcon;
     private static Field fPaint;
     private static Field fScale;
+    private static java.lang.reflect.Method mIsThemed;
 
     private LiveIcons() {
     }
@@ -95,6 +99,7 @@ final class LiveIcons {
         fPaint = field(fast, "mPaint");
         fScale = field(fast, "mScale");
         fIcon = field(bitmapInfo, "icon");
+        mIsThemed = XposedHelpers.findMethodExactIfExists(fast, "isThemed");
         ERASE.setColor(Color.BLACK);
         DOT.setColor(Color.WHITE);
 
@@ -141,6 +146,10 @@ final class LiveIcons {
     /** Draws {@code d} with its waves at this instant; false to leave it to the launcher. */
     private static boolean draw(XC_MethodHook.MethodHookParam param, Drawable d, Canvas canvas)
             throws Throwable {
+        // Themed: the launcher draws the monochrome layer, not the bitmap analysed below.
+        if (mIsThemed != null && Boolean.TRUE.equals(mIsThemed.invoke(d))) {
+            return false;
+        }
         Object info = fBitmapInfo.get(d);
         Bitmap icon = info != null ? (Bitmap) fIcon.get(info) : null;
         if (icon == null || icon.isRecycled()) {
@@ -192,15 +201,18 @@ final class LiveIcons {
     }
 
     /**
-     * A wave's brightness at phase {@code t}: dim at rest, swelling to full and back as the
-     * pulse passes (a smooth bell, no edges), so the two waves read as sound moving outwards.
+     * A wave's brightness at phase {@code t}: full white at rest, as in the app's own icon,
+     * dipping and coming back as the pulse passes (a smooth bell, no edges), first the inner
+     * wave, then the outer, so the two read as sound moving outwards. (Until 0.55.2 the waves
+     * rested at 0.28 and swelled to full, so the icon looked grey most of the time; seen on the
+     * phone and asked to be white.)
      */
     private static float glow(float t, float centre) {
         float d = t - centre;
         if (d > 0.5f) d -= 1f;
         if (d < -0.5f) d += 1f;
         float bell = (float) Math.exp(-(d * d) / (2 * 0.085f * 0.085f));
-        return 0.28f + 0.72f * bell;
+        return 1f - 0.7f * bell;
     }
 
     /** One more frame for {@code d}, on the next vsync, if it is on screen. */

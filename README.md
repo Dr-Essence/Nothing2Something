@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.55.2, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.55.3, what is pending, what still needs testing</summary>
 
-**Current build: 0.55.2** (CMF Phone 1, Nothing OS 4.1, Android 16): an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.55.3** (CMF Phone 1, Nothing OS 4.1, Android 16): CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -71,6 +71,17 @@ Each section below opens when tapped.
   the phone was held (Dr.Essence: "seems to work"; the LSPosed log not checked yet).
 
 **Not tested on a phone yet**
+- **0.55.3, CMF Stereo's live icon.** Seen on the phone (screenshots, both CMF Stereo
+  editions): with the Default icon style the two sound waves rested grey (at 0.28 of white)
+  and only lit up as the pulse passed, so the icon looked grey; Dr.Essence asked for white
+  waves. They now rest at full white, like the app's own icon, and the pulse is a dip to 0.3
+  passing the inner wave, then the outer. With Nothing's "Nothing" icon style, the module drew
+  its waves, found in the coloured bitmap, over the launcher's themed drawing of the app's
+  monochrome layer, which is smaller: bigger dots beside the real ones. A themed drawable
+  (`FastBitmapDrawable.isThemed()`, true for `ThemedIconDrawable`) is now drawn as the
+  launcher draws it. Checked here: the class compiles against Android 36 with stand-ins for
+  the Xposed calls. Needs on the phone: the waves white with a dip passing through, in Default;
+  in the Nothing style, the icon as the launcher draws it (no extra dots).
 - **0.55.0, Launcher only** (main page, Mode; off by default). With it on, the module changes
   only Nothing Launcher and Nothing's widget apps (Nothing Widgets, NothingCardService), and in
   the system only home screen rotation's part (`CardOrientation`: the home screen and widget
