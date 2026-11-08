@@ -70,29 +70,11 @@ Each section below opens when tapped.
 - 0.54.9, Check orientation on wake and unlock: the screen came on and unlocked in the way
   the phone was held (Dr.Essence: "seems to work"; the LSPosed log not checked yet).
 
+- 0.56.0, the module's settings in Settings search: searching in Nothing's Settings lists the
+  module's settings, its folders too (they are rows of the App drawer page, which the list is
+  made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
+  reported separately.
 **Not tested on a phone yet**
-- **0.56.0, the module's settings in Settings search** (asked by Dr.Essence). Typing a
-  setting's name in Nothing's Settings search lists it ("Nothing2Something › Home screen"
-  under it); a tap opens the module on that page, scrolled to the row, which flashes. Found in
-  Nothing's Settings Intelligence (the app behind Settings search; its classes are not
-  obfuscated): it reads every provider answering `SEARCH_INDEXABLES_PROVIDER` that is protected
-  by `READ_SEARCH_INDEXABLES`, but only from system apps
-  (`PreIndexDataCollector.isWellKnownProvider`, `ApplicationInfo.FLAG_SYSTEM`), and reads them
-  again only when the string from `IndexDatabaseHelper.buildProviderVersionedNames` (each
-  provider's package and version) changes. The module has such a provider
-  (`search/SearchIndexProvider.kt`); in Settings Intelligence (`settings/SearchHook.kt`) the
-  check is answered true for this provider only, and the module's list stamp is added to that
-  string, so a changed list is read again. The list is not written by hand: each time the
-  settings app opens, all its pages are laid out once more off screen in a recording mode of
-  `Ui` (`MainActivity.buildSearchIndex`), noting every row's title, summary, section and page;
-  pages the menu leaves out ("Launcher only", other phones) are left out, and the recording
-  starts no services or threads (two guards) and loads no covers. Checked here: everything
-  compiles; the real provider row run on the computer puts title, summary, keywords, screen
-  title and the intent where Settings Intelligence reads them; a key comes back to its page and
-  title. Needs: Settings Intelligence (`com.android.settings.intelligence`) ticked in the
-  module's LSPosed scope and force-stopped once; the module's app opened once after updating;
-  then a search for a setting (e.g. "dot matrix") showing it, and a tap opening its page at the
-  row; LSPosed log "settings search: module settings searchable (2 hooks)".
 - **0.55.10, finer dot icons.** Asked by Dr.Essence: more and smaller dots. The grid is 34
   dots across instead of 22 (about 2.4 times the dots, each two thirds the size); the bezel's
   reach over the grid, the glow and the power-on all follow the dot spacing. Checked here:
