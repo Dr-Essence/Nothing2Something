@@ -44,10 +44,27 @@ final class Ui {
     private final Activity activity;
     final int accent;
     final LinearLayout content;
+    /**
+     * Recording for Settings search ({@link #collector}): every row's title and summary go
+     * here, under its page and section. Null when the page is shown.
+     */
+    private final java.util.List<com.dressence.nothinglauncherplus.search.SearchIndex.Entry> found;
+    private final String pageKey;
+    private final String pageTitle;
+    private String sectionLabel;
 
     private Ui(Activity activity, LinearLayout content) {
+        this(activity, content, null, null, null);
+    }
+
+    private Ui(Activity activity, LinearLayout content,
+            java.util.List<com.dressence.nothinglauncherplus.search.SearchIndex.Entry> found,
+            String pageKey, String pageTitle) {
         this.activity = activity;
         this.content = content;
+        this.found = found;
+        this.pageKey = pageKey;
+        this.pageTitle = pageTitle;
         TypedArray a = activity.obtainStyledAttributes(new int[]{android.R.attr.colorAccent});
         accent = a.getColor(0, 0xFFD71921);
         a.recycle();
@@ -93,6 +110,22 @@ final class Ui {
         return ui;
     }
 
+    /**
+     * A page laid out off screen only to note its rows for Settings search: nothing is shown,
+     * and the page code skips what it would start when shown (see {@link #collecting}).
+     */
+    static Ui collector(Activity activity, String pageKey, String pageTitle,
+            java.util.List<com.dressence.nothinglauncherplus.search.SearchIndex.Entry> found) {
+        LinearLayout content = new LinearLayout(activity);
+        content.setOrientation(LinearLayout.VERTICAL);
+        return new Ui(activity, content, found, pageKey, pageTitle);
+    }
+
+    /** True while recording for search: the page must not start services or threads. */
+    boolean collecting() {
+        return found != null;
+    }
+
     Context context() {
         return activity;
     }
@@ -108,6 +141,7 @@ final class Ui {
 
     /** Small accent-coloured section label, like "Drawer layout". */
     TextView section(String label) {
+        sectionLabel = label;
         TextView view = new TextView(activity);
         view.setText(label);
         view.setTextColor(accent);
@@ -138,6 +172,10 @@ final class Ui {
     /** {@link #row} without adding it to the page (e.g. for a {@link ReorderList}). */
     LinearLayout detachedRow(String title, String summary, View leading, View trailing,
             View.OnClickListener onClick) {
+        if (found != null && title != null && !title.isEmpty()) {
+            found.add(new com.dressence.nothinglauncherplus.search.SearchIndex.Entry(
+                    pageKey, pageTitle, sectionLabel, title, summary));
+        }
         LinearLayout row = new LinearLayout(activity);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -252,6 +290,12 @@ final class Ui {
      */
     View coverPreview(Config.Folder folder, int sizeDp, boolean animate, boolean dotMatrix) {
         int size = dp(sizeDp);
+        if (found != null) {
+            // Recording for search: no cover to load or animate on a page nobody sees.
+            View blank = new View(activity);
+            blank.setLayoutParams(new ViewGroup.LayoutParams(size, size));
+            return blank;
+        }
         FrameLayout badge = new FrameLayout(activity);
         // Its size, for the row that shows it.
         badge.setLayoutParams(new ViewGroup.LayoutParams(size, size));

@@ -8,6 +8,7 @@ import com.dressence.nothinglauncherplus.perf.GameBar;
 import com.dressence.nothinglauncherplus.perf.GameUnlock;
 import com.dressence.nothinglauncherplus.system.OrientationProbe;
 import com.dressence.nothinglauncherplus.system.WakeOrientation;
+import com.dressence.nothinglauncherplus.settings.SearchHook;
 import com.dressence.nothinglauncherplus.settings.SettingsTile;
 import com.dressence.nothinglauncherplus.settings.TaskManager;
 import com.dressence.nothinglauncherplus.system.ControllerHome;
@@ -72,6 +73,10 @@ public final class ModuleEntry implements IXposedHookLoadPackage {
             if (!launcherOnly(new ConfigStore())) {
                 Hooks.install("task manager", () -> TaskManager.install(cl, new ConfigStore()));
             }
+        } else if ("com.android.settings.intelligence".equals(pkg)) {
+            // Settings search finds the module's settings (also in "Launcher only": it only
+            // lets search read the module's own list).
+            Hooks.install("settings search", () -> SearchHook.install(cl));
         } else if (launcherOnly(new ConfigStore())) {
             return; // "Launcher only": every other app is left as it is.
         } else if (Config.SYSTEMUI_PKG.equals(pkg)) {

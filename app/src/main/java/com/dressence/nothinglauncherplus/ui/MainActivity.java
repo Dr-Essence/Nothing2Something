@@ -15,6 +15,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.os.Looper;
+import android.view.View;
 import android.widget.Toast;
 
 import com.dressence.nothinglauncherplus.Config;
@@ -42,10 +44,17 @@ public class MainActivity extends Activity {
 
     private SettingsStore store;
 
+    /** Opened from a Settings search result: the page and the row to show. */
+    public static final String ACTION_SEARCH_RESULT =
+            "com.dressence.nothinglauncherplus.SEARCH_RESULT";
+    /** The row a search result asked for, shown once the page is laid out. */
+    private String highlightTitle;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         store = new SettingsStore(this);
+        openSearchResult(getIntent());
         if (RunningServices.shortcutsOn(this)) {
             RunningServices.setShortcuts(this, true); // The icon's long-press shortcut.
         }
@@ -57,6 +66,11 @@ public class MainActivity extends Activity {
         store.reload();
         assignMissingMotions();
         render();
+        // Once the page is up and the app idle: the settings as Settings search will see them.
+        Looper.myQueue().addIdleHandler(() -> {
+            buildSearchIndex();
+            return false;
+        });
     }
 
     /** Pages this screen shows (its {@link Config#EXTRA_SETTINGS_PAGE}); none: the menu. */
@@ -72,44 +86,149 @@ public class MainActivity extends Activity {
     private void render() {
         String page = getIntent().getStringExtra(Config.EXTRA_SETTINGS_PAGE);
         if (page == null) {
-            renderMenu();
-            return;
+            renderMenu(Ui.page(this, "Nothing2Something", false));
+        } else {
+            renderPage(page, Ui.page(this, pageTitle(page), true));
         }
+        showSearchResult();
+    }
+
+    private static String pageTitle(String page) {
+        switch (page) {
+            case PAGE_DRAWER: return "App drawer";
+            case PAGE_HOME: return "Home screen";
+            case PAGE_SYSTEM_UI: return "Status bar & quick settings";
+            case PAGE_LOCK: return "Lock screen";
+            case PAGE_SOUND: return "Sound";
+            case PAGE_PERFORMANCE: return "Performance";
+            case PAGE_BACKUP: return "Backup";
+            default: return "Diagnostics";
+        }
+    }
+
+    private void renderPage(String page, Ui ui) {
         Config config = store.config;
         switch (page) {
             case PAGE_DRAWER:
-                renderDrawer(Ui.page(this, "App drawer", true), config);
+                renderDrawer(ui, config);
                 break;
             case PAGE_HOME:
-                renderHome(Ui.page(this, "Home screen", true), config);
+                renderHome(ui, config);
                 break;
             case PAGE_SYSTEM_UI:
-                renderSystemUi(Ui.page(this, "Status bar & quick settings", true), config);
+                renderSystemUi(ui, config);
                 break;
             case PAGE_LOCK:
-                renderLock(Ui.page(this, "Lock screen", true), config);
+                renderLock(ui, config);
                 break;
             case PAGE_SOUND:
-                addSoundSection(Ui.page(this, "Sound", true), config);
+                addSoundSection(ui, config);
                 break;
             case PAGE_PERFORMANCE:
-                renderPerformance(Ui.page(this, "Performance", true), config);
+                renderPerformance(ui, config);
                 break;
             case PAGE_BACKUP:
-                renderBackup(Ui.page(this, "Backup", true));
+                renderBackup(ui);
                 break;
             default:
-                renderDiagnostics(Ui.page(this, "Diagnostics", true), config);
+                renderDiagnostics(ui, config);
                 break;
         }
+    }
+
+    /**
+     * Every page this screen offers now, laid out off screen in the recording mode of
+     * {@link Ui#collector}, saved for Settings search (search/SearchIndex.kt). Only the pages
+     * the menu offers: "Launcher only" and other phones leave theirs out, as the menu does.
+     * Never lets a failure reach the page on screen.
+     */
+    private void buildSearchIndex() {
+        try {
+            java.util.List<com.dressence.nothinglauncherplus.search.SearchIndex.Entry> found =
+                    new java.util.ArrayList<>();
+            renderMenu(Ui.collector(this, null, "Nothing2Something", found));
+            java.util.List<String> pages = new java.util.ArrayList<>(java.util.Arrays.asList(
+                    PAGE_DRAWER, PAGE_HOME, PAGE_SOUND));
+            if (!store.config.launcherOnly) {
+                pages.add(PAGE_SYSTEM_UI);
+                pages.add(PAGE_LOCK);
+                if (com.dressence.nothinglauncherplus.perf.Device.isCmfPhone1()) {
+                    pages.add(PAGE_PERFORMANCE);
+                }
+            }
+            pages.add(PAGE_BACKUP);
+            pages.add(PAGE_DIAGNOSTICS);
+            for (String page : pages) {
+                renderPage(page, Ui.collector(this, page, pageTitle(page), found));
+            }
+            com.dressence.nothinglauncherplus.search.SearchIndex.save(this, found);
+        } catch (Throwable t) {
+            android.util.Log.w("Nothing2Something", "search index not built: " + t);
+        }
+    }
+
+    /** A Settings search result: open its page, and remember its row to show. */
+    private void openSearchResult(Intent intent) {
+        if (intent == null || !ACTION_SEARCH_RESULT.equals(intent.getAction())) {
+            return;
+        }
+        kotlin.Pair<String, String> target = com.dressence.nothinglauncherplus.search.SearchIndex
+                .parseKey(intent.getStringExtra(":settings:fragment_args_key"));
+        if (target == null) {
+            return;
+        }
+        if (target.getFirst() != null) {
+            intent.putExtra(Config.EXTRA_SETTINGS_PAGE, target.getFirst());
+        } else {
+            intent.removeExtra(Config.EXTRA_SETTINGS_PAGE);
+        }
+        highlightTitle = target.getSecond();
+    }
+
+    /** Scrolls to the row a search result asked for and flashes it, once. */
+    private void showSearchResult() {
+        String title = highlightTitle;
+        highlightTitle = null;
+        if (title == null) {
+            return;
+        }
+        View row = findRow(getWindow().getDecorView(), title);
+        if (row == null) {
+            return;
+        }
+        row.post(() -> {
+            android.graphics.Rect r = new android.graphics.Rect(0, 0, row.getWidth(),
+                    row.getHeight());
+            row.requestRectangleOnScreen(r, false);
+            row.setPressed(true);
+            row.postDelayed(() -> row.setPressed(false), 900);
+        });
+    }
+
+    /** The row whose title is {@code title}: the title's TextView, two levels up. */
+    private static View findRow(View view, String title) {
+        if (view instanceof TextView && title.contentEquals(((TextView) view).getText())
+                && view.getParent() instanceof View
+                && ((View) view.getParent()).getParent() instanceof View) {
+            return (View) ((View) view.getParent()).getParent();
+        }
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View row = findRow(group.getChildAt(i), title);
+                if (row != null) {
+                    return row;
+                }
+            }
+        }
+        return null;
     }
 
     private void openPage(String page) {
         startActivity(new Intent(this, MainActivity.class).putExtra(Config.EXTRA_SETTINGS_PAGE, page));
     }
 
-    private void renderMenu() {
-        Ui ui = Ui.page(this, "Nothing2Something", false);
+    private void renderMenu(Ui ui) {
         if (com.dressence.nothinglauncherplus.UpdateReceiver.externalForced(this)) {
             ui.note("Developer options → \"Force allow apps on external\" is on: Android then"
                     + " installs updates of this module on the memory card, which LSPosed cannot"
@@ -124,8 +243,10 @@ public class MainActivity extends Activity {
                     + " the phone's storage now (root; this page closes). Without root, run: pm"
                     + " move-package " + getPackageName() + " internal");
             String pkg = getPackageName();
-            new Thread(() -> com.dressence.nothinglauncherplus.UpdateReceiver
-                    .moveToInternalStorage(pkg)).start();
+            if (!ui.collecting()) {
+                new Thread(() -> com.dressence.nothinglauncherplus.UpdateReceiver
+                        .moveToInternalStorage(pkg)).start();
+            }
         }
         if (!isModuleActive() || !store.shared) {
             ui.note("Module not active. Enable it in LSPosed with Nothing Launcher in scope, then"
@@ -627,7 +748,7 @@ public class MainActivity extends Activity {
 
     private void renderPerformance(Ui ui, Config config) {
         ui.note("Experimental, CMF Phone 1 only, needs root.");
-        if (config.perfOverlay) {
+        if (config.perfOverlay && !ui.collecting()) {
             // After a reboot the overlay comes back when this page is opened.
             com.dressence.nothinglauncherplus.perf.OverlayService.start(this);
         }

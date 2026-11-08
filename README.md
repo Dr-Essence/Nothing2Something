@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.55.11, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.56.0, what is pending, what still needs testing</summary>
 
-**Current build: 0.55.11** (CMF Phone 1, Nothing OS 4.1, Android 16): finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.56.0** (CMF Phone 1, Nothing OS 4.1, Android 16): every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -71,6 +71,28 @@ Each section below opens when tapped.
   the phone was held (Dr.Essence: "seems to work"; the LSPosed log not checked yet).
 
 **Not tested on a phone yet**
+- **0.56.0, the module's settings in Settings search** (asked by Dr.Essence). Typing a
+  setting's name in Nothing's Settings search lists it ("Nothing2Something › Home screen"
+  under it); a tap opens the module on that page, scrolled to the row, which flashes. Found in
+  Nothing's Settings Intelligence (the app behind Settings search; its classes are not
+  obfuscated): it reads every provider answering `SEARCH_INDEXABLES_PROVIDER` that is protected
+  by `READ_SEARCH_INDEXABLES`, but only from system apps
+  (`PreIndexDataCollector.isWellKnownProvider`, `ApplicationInfo.FLAG_SYSTEM`), and reads them
+  again only when the string from `IndexDatabaseHelper.buildProviderVersionedNames` (each
+  provider's package and version) changes. The module has such a provider
+  (`search/SearchIndexProvider.kt`); in Settings Intelligence (`settings/SearchHook.kt`) the
+  check is answered true for this provider only, and the module's list stamp is added to that
+  string, so a changed list is read again. The list is not written by hand: each time the
+  settings app opens, all its pages are laid out once more off screen in a recording mode of
+  `Ui` (`MainActivity.buildSearchIndex`), noting every row's title, summary, section and page;
+  pages the menu leaves out ("Launcher only", other phones) are left out, and the recording
+  starts no services or threads (two guards) and loads no covers. Checked here: everything
+  compiles; the real provider row run on the computer puts title, summary, keywords, screen
+  title and the intent where Settings Intelligence reads them; a key comes back to its page and
+  title. Needs: Settings Intelligence (`com.android.settings.intelligence`) ticked in the
+  module's LSPosed scope and force-stopped once; the module's app opened once after updating;
+  then a search for a setting (e.g. "dot matrix") showing it, and a tap opening its page at the
+  row; LSPosed log "settings search: module settings searchable (2 hooks)".
 - **0.55.10, finer dot icons.** Asked by Dr.Essence: more and smaller dots. The grid is 34
   dots across instead of 22 (about 2.4 times the dots, each two thirds the size); the bezel's
   reach over the grid, the glow and the power-on all follow the dot spacing. Checked here:

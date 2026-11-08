@@ -163,5 +163,20 @@
             android:name=".CoverProvider"
             android:authorities="com.dressence.nothinglauncherplus.covers"
             android:exported="true" />
+
+        <!-- The module's settings for Nothing's Settings search (search/SearchIndexProvider):
+             Settings Intelligence reads every provider answering this action and protected by
+             READ_SEARCH_INDEXABLES, which only it holds. -->
+        <provider
+            android:name=".search.SearchIndexProvider"
+            android:authorities="com.dressence.nothinglauncherplus.search"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:multiprocess="false"
+            android:permission="android.permission.READ_SEARCH_INDEXABLES">
+            <intent-filter>
+                <action android:name="android.content.action.SEARCH_INDEXABLES_PROVIDER" />
+            </intent-filter>
+        </provider>
     </application>
 </manifest>
