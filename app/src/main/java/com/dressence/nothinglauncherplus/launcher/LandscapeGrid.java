@@ -166,7 +166,19 @@ final class LandscapeGrid {
     /** The draw hold of a rotation in progress, and where it is; main thread. */
     private View heldRoot;
     private ViewTreeObserver.OnPreDrawListener heldDraw;
-    private final Runnable releaseLater = Hooks.guard("rotation release", this::releaseDrawing);
+    /**
+     * The hold's time limit ran out before the pages were filled: the half-built pages show.
+     * Logged with how long it waited, to tell this apart from a hold that never started.
+     */
+    private final Runnable releaseLater = Hooks.guard("rotation release", () -> {
+        if (heldDraw != null) {
+            Hooks.log("rotation hold: let go after " + HOLD_DRAW_MS
+                    + " ms, the pages were not filled yet");
+        }
+        releaseDrawing();
+    });
+    /** When the current hold started (uptime ms). */
+    private long heldSince;
     /** Depth of bindInflatedItems calls running in landscape; main thread. */
     private int binding;
 
@@ -641,7 +653,13 @@ final class LandscapeGrid {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
                 // After the arrangement, which finishBindingItems also posts.
-                main.post(Hooks.guard("rotation release", () -> releaseDrawing()));
+                main.post(Hooks.guard("rotation release", () -> {
+                    long waited = android.os.SystemClock.uptimeMillis() - heldSince;
+                    if (heldDraw != null && waited > HOLD_DRAW_MS / 2) {
+                        Hooks.log("rotation hold: pages filled after " + waited + " ms");
+                    }
+                    releaseDrawing();
+                }));
             }
         });
     }
@@ -732,7 +750,9 @@ final class LandscapeGrid {
         releaseDrawing();
         if (!launcher.hasWindowFocus()) {
             // Not a turn of the home screen in view (an app opening over it turns it): its
-            // own animation must keep drawing.
+            // own animation must keep drawing. Logged: if the half-built home screen shows on
+            // such a turn (unlocking into it), this line says so.
+            Hooks.log("rotation hold: not held, the launcher had no focus");
             return;
         }
         View root = launcher.getWindow().getDecorView();
@@ -740,6 +760,7 @@ final class LandscapeGrid {
         root.getViewTreeObserver().addOnPreDrawListener(hold);
         heldRoot = root;
         heldDraw = hold;
+        heldSince = android.os.SystemClock.uptimeMillis();
         main.postDelayed(releaseLater, HOLD_DRAW_MS);
     }
 

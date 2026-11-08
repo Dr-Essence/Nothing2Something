@@ -7,6 +7,7 @@ import com.dressence.nothinglauncherplus.perf.Device;
 import com.dressence.nothinglauncherplus.perf.GameBar;
 import com.dressence.nothinglauncherplus.perf.GameUnlock;
 import com.dressence.nothinglauncherplus.system.OrientationProbe;
+import com.dressence.nothinglauncherplus.system.WakeOrientation;
 import com.dressence.nothinglauncherplus.settings.TaskManager;
 import com.dressence.nothinglauncherplus.system.ControllerHome;
 import com.dressence.nothinglauncherplus.wallpaper.LivingWorlds;
@@ -45,6 +46,7 @@ public final class ModuleEntry implements IXposedHookLoadPackage {
             Hooks.install("widget card orientation", () -> CardOrientation.install(cl, store));
             Hooks.install("orientation probe", () -> OrientationProbe.install(cl, store));
             Hooks.install("rotation sensor", () -> RotationSensor.install(cl, store));
+            Hooks.install("wake orientation", () -> WakeOrientation.install(cl, store));
             Hooks.install("controller home", () -> ControllerHome.install(cl, store));
             Hooks.install("system shortcuts", () -> SystemShortcuts.install(cl));
             Hooks.install("saver refresh rate", () -> SaverRefreshRate.install(cl, store));

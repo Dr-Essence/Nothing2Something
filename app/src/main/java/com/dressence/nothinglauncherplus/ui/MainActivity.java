@@ -567,6 +567,14 @@ public class MainActivity extends Activity {
                     config.aodRotation = checked;
                     store.save(this);
                 });
+        ui.switchRow("Check orientation on wake and unlock",
+                "As the screen comes on, and again on unlock, the screen turns at once to how"
+                        + " the phone is held, without waiting for it to be moved (auto-rotate"
+                        + " still decides)",
+                config.wakeOrientation, checked -> {
+                    config.wakeOrientation = checked;
+                    store.save(this);
+                });
     }
 
     private void renderBackup(Ui ui) {

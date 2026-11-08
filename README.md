@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.54.8, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.54.9, what is pending, what still needs testing</summary>
 
-**Current build: 0.54.8** (CMF Phone 1, Nothing OS 4.1, Android 16): the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.54.9** (CMF Phone 1, Nothing OS 4.1, Android 16): Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -64,6 +64,27 @@ Each section below opens when tapped.
   it (log: "move every 60 s by 2 dp").
 
 **Not tested on a phone yet**
+- **0.54.9, Check orientation on wake and unlock** (Lock screen → Landscape, off by default;
+  `WakeOrientation.kt`). The rotation sensor here (MediaTek `dev_orient`) reports only
+  changes, though Android's rules have an on-change sensor report its current value when it is
+  switched on; so as the screen came on, the window manager learned how the phone was held only
+  once it moved (DebuG23: woken at 55.97 s, landscape kept until the sensor's first report at
+  57.27 s). With the setting on, as the window manager switches the sensor on
+  (`WindowOrientationListener.enable`) and again on unlock (`KeyguardController
+  .setKeyguardShown`, the lock screen gone), the accelerometer is read for three samples and,
+  if the phone is held still and clearly upright or on a side (not flat, not between two
+  sides), that rotation goes to Android's own judge as a `dev_orient` report would; auto-rotate
+  and apps' orientation still decide. Needs on the phone: waking and unlocking with the phone
+  held each way, the screen in that orientation at once; the LSPosed log ("wake orientation
+  (screen on|unlock): held at angle …", the first three always, all with diagnostic logging).
+- **0.54.9, home screen turns under load: logged, not yet changed.** Not in DebuG23 (every
+  home turn there went straight to its layout); seen after a reboot, under load and on battery
+  saving: the dock, folders and icons squeezed together and too big before the turn finishes.
+  That is the new grid with the old icon sizes, which the module's draw hold hides only while it
+  lasts: at most 1 s, and only while the launcher has focus. The log now says which happened:
+  "rotation hold: let go after 1000 ms, the pages were not filled yet", "rotation hold: not
+  held, the launcher had no focus", or "rotation hold: pages filled after … ms" (over 0.5 s).
+  Needs: an LSPosed log (or debug report) taken right after it shows.
 - **0.54.8, the lock screen turns straight into its layout.** DebuG23 (a recording on
   perfmtk battery saving, with the log beside it, looked at frame by frame): after each turn
   the landscape lock screen was first drawn with the portrait layout (weather pills across the
