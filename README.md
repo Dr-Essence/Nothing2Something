@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.56.0, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.56.1, what is pending, what still needs testing</summary>
 
-**Current build: 0.56.0** (CMF Phone 1, Nothing OS 4.1, Android 16): every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.56.1** (CMF Phone 1, Nothing OS 4.1, Android 16): every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -273,6 +273,9 @@ Each section below opens when tapped.
   will be retaken for the public release.
 
 **Fixed recently**
+- 0.56.1: the Launcher only switch's description, and the README, present it as the way to keep
+  the launcher's features if the others are buggy on a phone, not as a mode for other phones
+  (Dr.Essence).
 - 0.55.11: at 34 dots across, a rounded-square icon's left edge ended in a dark strip before
   the bezel while its right edge ran under it (Dr.Essence spotted it in the render sent with
   0.55.10; I had not). The grid started at the bitmap's corner, so the columns met the bezel
@@ -341,13 +344,12 @@ Each section below opens when tapped.
   phones and is not meant for them.
 - **Tested on one phone so far:** a CMF Phone 1 on Nothing OS 4.1 (Android 16). Other Nothing
   devices and Nothing OS versions are untested.
-- **Launcher only** (the main page's first switch): the module then changes only Nothing
-  Launcher and Nothing's widget apps, with home screen rotation (its part in the system stays);
-  System UI, the lock screen, the system font, Settings and every other app are left as Nothing
-  made them. Nothing Launcher is much the same app on every Nothing phone, while System UI and
-  the system are built for each phone, so on another Nothing phone this is the safer way to
-  start. In LSPosed, Nothing Launcher (with System framework for rotation, and Nothing Widgets
-  / NothingCardService for their cards) is then all the scope it needs.
+- **Launcher only mode** is there if the other features are buggy on your Nothing phone (the
+  main page's first switch): the module then changes only Nothing Launcher and Nothing's widget
+  apps, with home screen rotation, and leaves System UI, the lock screen, the system font,
+  Settings and every other app as Nothing made them. In LSPosed, Nothing Launcher (with System
+  framework for rotation, and Nothing Widgets / NothingCardService for their cards) is then all
+  the scope it needs.
 - **Why it exists:** it started as a project for my own CMF Phone 1, which I don't use as my main
   phone but as an Android "iPod" (an *Andropod*): music, games with a controller, the home
   screen in landscape. Much of what it does comes from that.

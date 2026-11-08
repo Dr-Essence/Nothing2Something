@@ -256,8 +256,9 @@ public class MainActivity extends Activity {
         ui.section("Mode");
         ui.switchRow("Launcher only", "Change only Nothing Launcher and Nothing's widget apps,"
                 + " with home screen rotation; System UI, the lock screen, fonts and other apps are"
-                + " left as Nothing made them. For other Nothing phones, or to keep the system"
-                + " stock · the system's part follows after a reboot", store.config.launcherOnly,
+                + " left as Nothing made them. If other features are buggy on your phone, or to"
+                + " keep the system stock · the system's part follows after a reboot",
+                store.config.launcherOnly,
                 checked -> {
                     store.config.launcherOnly = checked;
                     store.save(this);
