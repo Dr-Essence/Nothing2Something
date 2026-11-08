@@ -5,7 +5,6 @@ import android.graphics.Insets
 import android.inputmethodservice.InputMethodService
 import android.os.Build
 import android.view.View
-import android.view.ViewTreeObserver
 import android.view.WindowInsets
 import android.view.WindowManager
 import com.dressence.nothinglauncherplus.xposed.ConfigStore
@@ -41,8 +40,7 @@ import de.robv.android.xposed.XposedHelpers
  * a view in the keyboard window that fits system windows padded itself by the camera's strip.
  * Now, while the setting is on, the insets given to the keyboard window's views leave the
  * cutout out (the window root's own insets listener; nothing else in the window changes).
- * A diagnostic line logs the views from the keyboard to the window root (left, width, left
- * padding) once per layout change, to confirm on the phone which view it was.
+ * Verified on the phone in 0.58.1: the keys run edge to edge (Dr.Essence: "heliboard fixed").
  */
 internal object HeliBoardFullWidth {
 
@@ -105,7 +103,6 @@ internal object HeliBoardFullWidth {
                 decor.setOnApplyWindowInsetsListener(if (full) STRIP_CUTOUT else null)
                 decor.requestApplyInsets()
             }
-            if (full) watchLayout(service, decor)
         } catch (t: Throwable) {
             Hooks.log("heliboard full width: window: $t")
         }
@@ -123,33 +120,6 @@ internal object HeliBoardFullWidth {
             .setDisplayCutout(null)
             .build()
         view.onApplyWindowInsets(stripped)
-    }
-
-    /** Diagnostic: the views from the keyboard to the window root, once per layout change. */
-    private fun watchLayout(service: InputMethodService, decor: View) {
-        if (decor.getTag(TAG_STRIPPING + 1) != null) return
-        var last = ""
-        val listener = ViewTreeObserver.OnGlobalLayoutListener {
-            try {
-                val id = service.resources.getIdentifier("keyboard_view", "id", service.packageName)
-                var v: View? = if (id == 0) null else decor.findViewById(id)
-                val chain = StringBuilder()
-                while (v != null) {
-                    chain.append(v.javaClass.simpleName).append('[').append(v.left).append('+')
-                        .append(v.width).append(" pl").append(v.paddingLeft).append("] ")
-                    v = v.parent as? View
-                }
-                val line = chain.toString().trim()
-                if (line != last) {
-                    last = line
-                    Hooks.log("heliboard full width: views (left+width padLeft): $line")
-                }
-            } catch (t: Throwable) {
-                Hooks.log("heliboard full width: views: $t")
-            }
-        }
-        decor.setTag(TAG_STRIPPING + 1, listener)
-        decor.viewTreeObserver.addOnGlobalLayoutListener(listener)
     }
 
     private fun hookWidth(cl: ClassLoader, store: ConfigStore): Boolean {

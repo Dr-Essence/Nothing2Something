@@ -52,11 +52,22 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.58.1, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.58.2, what is pending, what still needs testing</summary>
 
-**Current build: 0.58.1** (CMF Phone 1, Nothing OS 4.1, Android 16): HeliBoard across the whole width without the keys cut off on the right (fixed), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), HeliBoard across the whole width in landscape, also beside the camera (new, a switch), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.58.2** (CMF Phone 1, Nothing OS 4.1, Android 16): HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
+- 0.58.1, HeliBoard across the whole width (switch in Landscape & controllers): the keyboard
+  runs edge to edge in landscape (Dr.Essence: "heliboard fixed"). How it was found: Android
+  keeps a window out of the camera's strip unless it asks for cutout mode ALWAYS
+  (`WindowLayout.computeFrames`; the keyboard window asked for nothing, dump
+  `frame=[106,103][2400,1080]`); HeliBoard sized its keys to the screen minus the cutout
+  (`getDefaultKeyboardWidth`, moved by R8 into `KtxKt` in the 4.3-beta1 APK); and in 0.57.0,
+  with both changed, the keys were still 106 px in and cut off on the right, because the
+  phone's `InsetsState` counts the cutout in the views' legacy system window insets. The
+  keyboard window now asks for ALWAYS, HeliBoard's width leaves out only the bars, and the
+  window root hands its views the insets without the cutout. The diagnostic line of 0.58.1
+  is removed.
 - 0.58.0, Full-screen apps: a picked app goes full screen once it is also ticked in the
   module's LSPosed scope (Dr.Essence: "if i tick the app i want in lsposed it works"); before
   ticking, nothing happened, as expected. Asked next: no ticking. Checked and left out: LSPosed
@@ -84,26 +95,6 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
-- **0.57.0, HeliBoard across the whole width.** Asked by Dr.Essence: in landscape the keyboard
-  left a strip empty on the camera's side. Found in the phone's framework: Android lays a window
-  out of the camera's strip (`WindowLayout.computeFrames`) unless it asks for cutout mode
-  ALWAYS; the keyboard window asks for nothing (`InputMethodService.onCreate`), so its frame
-  started 106 px in (window dump: `frame=[106,103][2400,1080]`), and HeliBoard sizes its keys to
-  the screen minus the bars and the cutout. With the switch on (Landscape & controllers; HeliBoard in
-  the scope), the keyboard window asks for ALWAYS and HeliBoard's width leaves out only the
-  bars. **0.58.1:** on the phone (0.57.0) the window covered the whole width (dump:
-  `frame=[0,103][2400,1080]`), but the keys started 106 px in and `p` was cut off on the
-  right: the phone's `InsetsState.calculateInsets` counts the cutout in the views' legacy
-  "system window" insets, so a view in the keyboard window padded itself by the camera's strip.
-  Now the keyboard window's root hands its views the insets without the cutout (switch on
-  only). A diagnostic line, "heliboard full width: views (left+width padLeft): …", logs the
-  views from the keyboard up, to confirm which view it was; it is removed once confirmed.
-  HeliBoard's width function is looked up in `ResourceUtils` (the source) and `KtxKt`
-  (where R8 moved it in the 4.3-beta1 APK, checked in the release); if neither exists, nothing
-  changes. Checked here: it compiles and the APK holds it. Needs: a landscape screenshot with
-  the camera on the left and one turned the other way (keys to the edge, nothing under the
-  camera hole), the LSPosed line "heliboard full width: width in …", and the keyboard as before
-  in portrait and with the switch off.
 - Found while checking HeliBoard (not the module): HeliBoard 4.2 never splits the keyboard
   (its split flag is never passed to the keyboard builder); fixed in HeliBoard 4.3-beta1
   (commit e1a981b). Taking HeliBoard out of the scope did not change it, and 4.3-beta1 splits.
