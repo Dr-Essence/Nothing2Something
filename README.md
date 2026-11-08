@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.55.5, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.55.6, what is pending, what still needs testing</summary>
 
-**Current build: 0.55.5** (CMF Phone 1, Nothing OS 4.1, Android 16): round dot icons with their dots in rings that follow the bezel, the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.55.6** (CMF Phone 1, Nothing OS 4.1, Android 16): dot icons on dark glass in every shape (no green edge), round dot icons with their dots in rings that follow the bezel, the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -71,6 +71,13 @@ Each section below opens when tapped.
   the phone was held (Dr.Essence: "seems to work"; the LSPosed log not checked yet).
 
 **Not tested on a phone yet**
+- **0.55.6, no green edge on dot icons.** Seen on the phone: icons in a shape of their own
+  showed a green outline, which Dr.Essence found did not look good. Their glass was lit green
+  (`GLASS_GREEN`) with green unlit dots, and the glass between the outermost dots and the bezel
+  read as a green edge. Every shape now has the round icons' dark glass and unlit dots (the
+  green colours and the per-shape choice removed). The faint green scan line that now and
+  then rolls down an icon stays. Checked here: the class compiles against Android 36. Needs on
+  the phone: icons of every shape with no green, the rim and bezel as before.
 - **0.55.5, round dot icons in rings.** Seen on the phone: on a round dot icon the dots
   ended in a squarish outline that did not follow the bezel. The dots sat on a square 22 x 22
   grid, kept where a whole dot fit on the glass, and a square grid inside a circle ends in
@@ -614,8 +621,8 @@ based on Unicode CLDR.
   the drawer, in folders and in search, is a little dot-matrix screen of its own: a bezel
   round a pane of glass with a hairline rim, and on it round dots lit in the icon's own
   colours, each casting a dim halo on the glass. An icon in the launcher's circle is a round
-  screen of dark glass, its dots in rings round the centre, the outermost following the bezel; an icon with a shape of its own keeps it, its glass lit
-  green from behind and the bezel following its outline. Nothing is cut to a circle, and an
+  screen of dark glass, its dots in rings round the centre, the outermost following the bezel; an icon with a shape of its own keeps it, on the same
+  dark glass, the bezel following its outline. Nothing is cut to a circle, and an
   old icon the launcher put on a white plate is shown off the plate, in its own shape. Now and
   then, each icon on its own timing, a faint green scan line rolls down its dots. When icons
   come into view each powers on like a little screen: dots light from the centre outwards on

@@ -23,8 +23,9 @@ import java.util.List;
  *
  * <p>The screen keeps the icon's shape. An icon in the launcher's shape (a circle) is a round
  * screen: dark glass inside a bezel ring, the artwork filling the glass. An icon with a shape
- * of its own keeps it: the glass is its outline, lit green from behind, with the bezel
- * following the outline round it. An old-style icon the launcher put on a white plate is taken
+ * of its own keeps it: the glass is its outline, dark as the round one's, with the bezel
+ * following the outline round it. (Until 0.55.5 that glass and its unlit dots were green,
+ * which showed as a green edge round the dots; Dr.Essence found it did not look good.) An old-style icon the launcher put on a white plate is taken
  * off the plate first and shown in its own shape, filling the space.
  *
  * <p>Made once per icon bitmap, off the main thread (see DotIcons).
@@ -43,11 +44,9 @@ final class IconScreen {
     /** The bezel's width, in icon widths: round screens, and screens in their own shape. */
     private static final float BEZEL_ROUND = 0.06f;
     private static final float BEZEL_OWN = 0.05f;
-    /** Dark glass and its unlit dots; green-lit glass and its unlit dots. */
-    private static final int GLASS_DARK = 0xFF050605;
-    private static final int UNLIT_DARK = 0xFF1A1B1A;
-    private static final int GLASS_GREEN = 0xFF0D3F1F;
-    private static final int UNLIT_GREEN = 0xFF1C6034;
+    /** The dark glass and its unlit dots, for every shape. */
+    private static final int GLASS = 0xFF050605;
+    private static final int UNLIT = 0xFF1A1B1A;
     /** The hairline rim where glass meets bezel: what makes a dot grid read as a screen. */
     private static final float RIM_ALPHA = 0.18f;
     private static final int GLOW_SCALE = 4;
@@ -86,7 +85,7 @@ final class IconScreen {
         screen.size = w;
         Layout layout = ownShape ? ownShape(art != icon ? art : icon, w, h)
                 : round(icon, w, h);
-        screen.build(layout, ownShape, w, h);
+        screen.build(layout, w, h);
         return screen;
     }
 
@@ -178,12 +177,10 @@ final class IconScreen {
     }
 
     /** Draws the screen: bezel, glass and rim, the dots on the grid, and their glow. */
-    private void build(Layout l, boolean green, int w, int h) {
+    private void build(Layout l, int w, int h) {
         int n = w * h;
         float pitch = w / (float) GRID;
         radius = pitch * DOT / 2;
-        int glassColour = green ? GLASS_GREEN : GLASS_DARK;
-        int unlitColour = green ? UNLIT_GREEN : UNLIT_DARK;
         int[] platePx = new int[n];
         for (int y = 0; y < h; y++) {
             // The bezel lit a little from above, like a device's frame.
@@ -194,7 +191,7 @@ final class IconScreen {
                 if (l.body[i] <= 0) {
                     continue;
                 }
-                int c = mix(bezel, glassColour, l.glass[i]);
+                int c = mix(bezel, GLASS, l.glass[i]);
                 float rim = clamp(1 - Math.abs(l.depth[i] - 0.5f) / 1.2f) * RIM_ALPHA;
                 c = mix(c, Color.WHITE, rim);
                 platePx[i] = (Math.round(255 * l.body[i]) << 24) | (c & 0xFFFFFF);
@@ -224,7 +221,7 @@ final class IconScreen {
         color = new int[count];
         Canvas plateCanvas = new Canvas(plate);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setColor(unlitColour);
+        paint.setColor(UNLIT);
         int k = 0;
         for (int i = 0; i < cells.length; i++) {
             float[] spot = spots.get(i);
