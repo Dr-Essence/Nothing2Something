@@ -1,6 +1,7 @@
 package com.dressence.nothinglauncherplus.xposed;
 
 import com.dressence.nothinglauncherplus.Config;
+import com.dressence.nothinglauncherplus.keyboard.HeliBoardFullWidth;
 import com.dressence.nothinglauncherplus.keyboard.HeliBoardGamepad;
 import com.dressence.nothinglauncherplus.launcher.Launcher;
 import com.dressence.nothinglauncherplus.perf.Device;
@@ -89,6 +90,8 @@ public final class ModuleEntry implements IXposedHookLoadPackage {
         } else if (HeliBoardGamepad.PKG.equals(pkg)) {
             Hooks.install("heliboard gamepad",
                     () -> HeliBoardGamepad.install(cl, new ConfigStore()));
+            Hooks.install("heliboard full width",
+                    () -> HeliBoardFullWidth.INSTANCE.install(cl, new ConfigStore()));
         } else if (GameBar.PKG.equals(pkg) && Device.isCmfPhone1()) {
             Hooks.install("game bar", () -> GameBar.install(cl, new ConfigStore()));
         } else if (Device.isCmfPhone1()) {

@@ -445,6 +445,13 @@ public class MainActivity extends Activity {
                     config.heliboardController = checked;
                     store.save(this);
                 });
+        ui.switchRow("HeliBoard across the whole width", "In landscape the keyboard also covers"
+                + " the strip beside the camera that Android keeps it out of; from the next"
+                + " keyboard · HeliBoard in the module's LSPosed scope",
+                config.heliboardFullWidth, checked -> {
+                    config.heliboardFullWidth = checked;
+                    store.save(this);
+                });
 
         ui.section("Recents");
         ui.switchRow("Memory in recents", "Free and total memory beside Screenshot; tap it for"

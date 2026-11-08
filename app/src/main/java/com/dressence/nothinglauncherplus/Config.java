@@ -75,6 +75,7 @@ public final class Config {
     public static final String KEY_WAKE_ORIENTATION = "wake_orientation";
     public static final String KEY_LAUNCHER_ONLY = "launcher_only";
     public static final String KEY_HELIBOARD_CONTROLLER = "heliboard_controller";
+    public static final String KEY_HELIBOARD_FULL_WIDTH = "heliboard_full_width";
     public static final String KEY_DIAGNOSTIC_LOGGING = "diagnostic_logging";
     public static final String KEY_SYSTEM_SCREENS = "system_screens";
     public static final String KEY_PERF_OVERLAY = "perf_overlay";
@@ -232,6 +233,8 @@ public final class Config {
     public boolean launcherOnly = false;
     /** Type in HeliBoard with a game controller. */
     public boolean heliboardController = true;
+    /** HeliBoard across the whole width in landscape, also beside the camera. */
+    public boolean heliboardFullWidth = false;
     /** Write the diagnostic lines (orientation, lock screen layout, fingerprint) to the log. */
     public boolean diagnosticLogging = false;
     /** Nothing's portrait-only system screens that work in landscape follow auto-rotate. */
@@ -416,6 +419,7 @@ public final class Config {
         wakeOrientation = in.bool(KEY_WAKE_ORIENTATION, false);
         launcherOnly = in.bool(KEY_LAUNCHER_ONLY, false);
         heliboardController = in.bool(KEY_HELIBOARD_CONTROLLER, true);
+        heliboardFullWidth = in.bool(KEY_HELIBOARD_FULL_WIDTH, false);
         diagnosticLogging = in.bool(KEY_DIAGNOSTIC_LOGGING, false);
         // Before this switch, system screens followed Home screen rotation.
         systemScreens = in.bool(KEY_SYSTEM_SCREENS, allowRotation);
@@ -474,6 +478,7 @@ public final class Config {
         out.bool(KEY_WAKE_ORIENTATION, wakeOrientation);
         out.bool(KEY_LAUNCHER_ONLY, launcherOnly);
         out.bool(KEY_HELIBOARD_CONTROLLER, heliboardController);
+        out.bool(KEY_HELIBOARD_FULL_WIDTH, heliboardFullWidth);
         out.bool(KEY_DIAGNOSTIC_LOGGING, diagnosticLogging);
         out.bool(KEY_SYSTEM_SCREENS, systemScreens);
         out.bool(KEY_PERF_OVERLAY, perfOverlay);
