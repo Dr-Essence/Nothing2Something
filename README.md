@@ -75,18 +75,16 @@ Each section below opens when tapped.
   portrait lock screen with nothing at the top edge; the date back with the clock once
   unlocked. The debug report also copies the module's settings again (LSPosed keeps them in
   its own folder; the copy came out empty in DebuG23 and DebuG24).
-- **Fingerprint on the turned always-on display: worked in a later test, failed in DebuG24.**
-  On the turned lock screen it has worked every time since the landscape fingerprint fix
-  (reported on the phone). On the always-on display in landscape it failed throughout
-  DebuG24 and worked in a later test, so the failure comes and goes. DebuG24's log: in
-  landscape the touch panel's firmware reported no finger on the sensor (`KEY_GESTURE_FOD`)
-  during eleven turns (04:22:18 to 04:22:47); every reading came in portrait. The suspect,
-  unconfirmed: Nothing's window manager (`NtWindowManagerService.updateRotation`) turns the
-  panel's edge mode on in landscape (`sys.touch.edge_mode.enable` 3 or 2, 0 in portrait), its
-  grip rejection on the USB side, where the sensor is. Needs: a debug report (or LSPosed log)
-  taken when it fails again; to test the suspect, `su -c 'sleep 20; setprop
-  sys.touch.edge_mode.enable 0'`, then the always-on display held still in landscape (each
-  turn sets edge mode again) and a finger on the sensor after 20 s. Nothing changed until then.
+- **Fingerprint on the turned lock screen and always-on display: fails at times, cause not
+  found.** Failing (DebuG24 and the module log, 04:15 to 04:22): in landscape the touch panel's
+  firmware reported no finger on the sensor (`KEY_GESTURE_FOD`), and each session ended
+  cancelled; every unlock then came in portrait. Working (LSPosed log at 04:49 to 04:50): every
+  finger the panel reported unlocked, in both landscape sides, on the always-on display and the
+  lock screen (one took 1.1 s instead of about 0.25 s). Ruled out: Nothing's edge mode
+  (`NtWindowManagerService.updateRotation`, `sys.touch.edge_mode.enable`): it was turned on
+  at every landscape turn in the working period too. Needs: a debug report (or LSPosed log)
+  started within a minute or two of a failure, so the system log still covers it, and what
+  the failure looked like (no reaction, "not recognised", or slow).
 - **0.54.9, Check orientation on wake and unlock** (Lock screen → Landscape, off by default;
   `WakeOrientation.kt`). The rotation sensor here (MediaTek `dev_orient`) reports only
   changes, though Android's rules have an on-change sensor report its current value when it is
