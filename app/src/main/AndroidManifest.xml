@@ -8,6 +8,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- The debug report's buzzes when capturing starts and when it is saved. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Only for Nothing Gaming Space's game artwork from SteamGridDB, which is off unless
+         turned on and given the user's own API key (see SteamGridArt). -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <queries>
         <intent>
@@ -66,7 +69,7 @@
         <activity
             android:name=".ui.GamingSpaceActivity"
             android:exported="true"
-            android:label="Nothing Gaming Space"
+            android:label="Nothing Gaming Space (alpha) (demo)"
             android:launchMode="singleTask"
             android:stateNotNeeded="true"
             android:excludeFromRecents="true"

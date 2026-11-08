@@ -83,6 +83,7 @@ public final class Config {
     public static final String KEY_FULL_SCREEN_APPS = "full_screen_apps";
     public static final String KEY_GAMING_CATEGORIES = "gaming_categories";
     public static final String KEY_GAMING_WARNED = "gaming_warned";
+    public static final String KEY_GAMING_ARTWORK = "gaming_artwork";
     public static final String KEY_FULL_SCREEN_MODE = "full_screen_mode";
 
     /** Full-screen apps: when the picked apps hide the status bar. */
@@ -259,6 +260,8 @@ public final class Config {
     public final java.util.Map<String, String> gamingCategories = new java.util.LinkedHashMap<>();
     /** Nothing Gaming Space showed its epilepsy warning once already. */
     public boolean gamingWarned = false;
+    /** Nothing Gaming Space: game artwork from SteamGridDB (needs the user's own API key). */
+    public boolean gamingArtwork = false;
     /** Apps (packages) that hide the status bar and use its space; see FullScreenApps. */
     public final java.util.Set<String> fullScreenApps = new java.util.LinkedHashSet<>();
     /** When they do: FULL_SCREEN_OFF, _SAVER (while the OLED saver hides the bar), _ALWAYS. */
@@ -468,6 +471,7 @@ public final class Config {
             }
         }
         gamingWarned = in.bool(KEY_GAMING_WARNED, false);
+        gamingArtwork = in.bool(KEY_GAMING_ARTWORK, false);
     }
 
     private void writeSettings(Sink out) {
@@ -532,6 +536,7 @@ public final class Config {
         }
         out.text(KEY_GAMING_CATEGORIES, gaming.toString());
         out.bool(KEY_GAMING_WARNED, gamingWarned);
+        out.bool(KEY_GAMING_ARTWORK, gamingArtwork);
     }
 
     private void readFolders(JSONArray array) throws JSONException {

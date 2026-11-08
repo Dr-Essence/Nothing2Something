@@ -104,6 +104,9 @@ class GamingSpaceActivity : Activity() {
     private lateinit var screen: AnimatedEmojiView
     /** A category's animation, played over the whole screen when it is selected. */
     private lateinit var animation: DotAnimationView
+    /** A game's artwork from SteamGridDB, when that is on (see [SteamGridArt]). */
+    private lateinit var artwork: DotAnimationView
+    private val art by lazy { SteamGridArt(this) }
     private var screenHeight = 0
     private val screenLabel = Rect()
     private var shownTitle: String? = null
@@ -267,6 +270,9 @@ class GamingSpaceActivity : Activity() {
         screen = AnimatedEmojiView(this)
         screen.setDotMatrix(true)
         page.addView(screen, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
+        artwork = DotAnimationView(this)
+        artwork.visibility = View.GONE
+        page.addView(artwork, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
         animation = DotAnimationView(this)
         animation.visibility = View.GONE
         page.addView(animation, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
@@ -309,6 +315,11 @@ class GamingSpaceActivity : Activity() {
         // The animations use the screen's own dot size (the folders' engine: 32 dots across
         // the picture's square), over the whole screen.
         animation.setGeometry(side / 32f, dp(24f))
+        // A game's artwork fills the screen under the name's strip, on the same dots.
+        val artTop = inset * 2 + labelH
+        artwork.layoutParams = FrameLayout.LayoutParams(width, screenHeight - artTop - inset)
+            .also { it.topMargin = artTop }
+        artwork.setGeometry(side / 32f, dp(18f))
         shownTitle = null
         layoutCross()
         showSelection(false)
@@ -451,6 +462,7 @@ class GamingSpaceActivity : Activity() {
      */
     private fun showSelection(categoryFirst: Boolean) {
         main.removeCallbacks(showApp)
+        artwork.showPicture(null)
         val cat = GamingLibrary.order[category]
         val app = appsOf(category).getOrNull(appFocus[category])
         if (categoryFirst) {
@@ -475,6 +487,27 @@ class GamingSpaceActivity : Activity() {
         val app = appsOf(category).getOrNull(appFocus[category]) ?: return@Runnable
         title(app.label)
         rawIcon(app.packageName)?.let { screen.setImage(it, app.packageName.hashCode().toLong()) }
+        showArtwork(app)
+    }
+
+    /**
+     * A game's (or emulator's) artwork over the icon, when artwork is on: from this app's
+     * files, or looked up once on SteamGridDB; shown only if the app is still selected.
+     */
+    private fun showArtwork(app: GamingLibrary.App) {
+        if (!store.config.gamingArtwork) return
+        if (app.category != GamingLibrary.Category.GAMES &&
+            app.category != GamingLibrary.Category.EMULATORS) return
+        worker.execute {
+            val picture = art.fetch(app.packageName, app.label) ?: return@execute
+            main.post {
+                val now = appsOf(category).getOrNull(appFocus[category])
+                if (!isDestroyed && now?.packageName == app.packageName &&
+                    animation.visibility != View.VISIBLE) {
+                    artwork.showPicture(picture)
+                }
+            }
+        }
     }
 
     private fun title(text: String) {

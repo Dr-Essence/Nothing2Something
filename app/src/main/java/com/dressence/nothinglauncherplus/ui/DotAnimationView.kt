@@ -50,6 +50,9 @@ internal class DotAnimationView(context: Context) : View(context) {
     private var frame: Bitmap? = null
     private var pixels = IntArray(0)
     private var mask: Bitmap? = null
+    /** A still picture shown when no animation plays: as given, and fitted to the dots. */
+    private var pictureSource: Bitmap? = null
+    private var picture: Bitmap? = null
     private val random = Random(7)
 
     private val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG).also { it.color = GLASS }
@@ -79,7 +82,7 @@ internal class DotAnimationView(context: Context) : View(context) {
 
     fun stop() {
         category = null
-        visibility = GONE
+        visibility = if (picture != null) VISIBLE else GONE
         onEnd?.let { onEnd = null; it() }
     }
 
@@ -105,12 +108,43 @@ internal class DotAnimationView(context: Context) : View(context) {
             c.drawCircle(left + (x + 0.5f) * pitch, top + (y + 0.5f) * pitch, r, p)
         }
         mask = m
+        fitPicture()
+    }
+
+    /**
+     * Shows a still picture (a game's artwork) on the dots until it is replaced or cleared:
+     * cropped to the screen's shape from the middle and shrunk to one pixel per dot.
+     */
+    fun showPicture(source: Bitmap?) {
+        pictureSource = source
+        fitPicture()
+        visibility = if (picture != null || category != null) VISIBLE else GONE
+        invalidate()
+    }
+
+    private fun fitPicture() {
+        val source = pictureSource
+        if (source == null || cols == 0 || rows == 0) {
+            picture = null
+            return
+        }
+        val want = cols / rows.toFloat()
+        val have = source.width / source.height.toFloat()
+        val w = if (have > want) (source.height * want).toInt() else source.width
+        val h = if (have > want) source.height else (source.width / want).toInt()
+        val crop = Bitmap.createBitmap(source, (source.width - w) / 2, (source.height - h) / 2,
+            maxOf(1, w), maxOf(1, h))
+        picture = Bitmap.createScaledBitmap(crop, cols, rows, true)
     }
 
     override fun onDraw(canvas: Canvas) {
-        val cat = category ?: return
-        val bitmap = frame ?: return
         val dots = mask ?: return
+        val cat = category
+        if (cat == null) {
+            picture?.let { drawDots(canvas, it, dots, 1f) }
+            return
+        }
+        val bitmap = frame ?: return
         val elapsed = SystemClock.uptimeMillis() - start
         if (elapsed >= DURATION_MS) {
             stop()
@@ -131,7 +165,15 @@ internal class DotAnimationView(context: Context) : View(context) {
         // Fade in and out at the ends, so it blends with the screen under it (drawn through a
         // translucent layer: setting the view's own alpha here would redraw it in a loop).
         val edge = 200f
-        val fade = minOf(1f, elapsed / edge, (DURATION_MS - elapsed) / edge)
+        drawDots(canvas, bitmap, dots, minOf(1f, elapsed / edge, (DURATION_MS - elapsed) / edge))
+        postInvalidateOnAnimation()
+    }
+
+    /**
+     * One frame on the dots: the glass, the unlit dots, and [bitmap] (one pixel per dot) seen
+     * only through the round dots; [fade] (0..1) for the whole of it.
+     */
+    private fun drawDots(canvas: Canvas, bitmap: Bitmap, dots: Bitmap, fade: Float) {
         val outer = canvas.saveLayerAlpha(0f, 0f, width.toFloat(), height.toFloat(),
             (fade * 255).toInt())
         canvas.drawRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), corner, corner,
@@ -144,7 +186,6 @@ internal class DotAnimationView(context: Context) : View(context) {
         canvas.drawBitmap(dots, 0f, 0f, maskPaint)
         canvas.restoreToCount(layer)
         canvas.restoreToCount(outer)
-        postInvalidateOnAnimation()
     }
 
     // -------------------------------------------------------------------------------------

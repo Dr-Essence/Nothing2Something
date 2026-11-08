@@ -439,9 +439,23 @@ public class MainActivity extends Activity {
                 });
         ui.row("Gaming launcher", gamingLauncherLabel(config.controllerHomeApp), null,
                 ui.chevron(), v -> chooseGamingLauncher(config));
-        ui.row("Nothing Gaming Space", "The module's own gaming launcher, in dot-matrix style:"
+        ui.row("Nothing Gaming Space (alpha) (demo)", "The module's own gaming launcher, in dot-matrix style:"
                         + " pick it above as the gaming launcher · tap to open it now",
                 null, ui.chevron(), v -> GamingSpaceActivity.Companion.open(this));
+        ui.switchRow("Game artwork (SteamGridDB)", "Games and emulators show their artwork on"
+                        + " the big dot screen, looked up once by name and saved on the phone ·"
+                        + " uses the internet · needs your own SteamGridDB API key",
+                config.gamingArtwork, checked -> {
+                    config.gamingArtwork = checked;
+                    store.save(this);
+                    if (checked && SteamGridArt.Companion.key(this).isEmpty()) {
+                        askSteamGridKey();
+                    }
+                });
+        ui.row("SteamGridDB API key", SteamGridArt.Companion.key(this).isEmpty() ? "Not set ·"
+                        + " make one at steamgriddb.com, Profile, Preferences, API"
+                        : "Set · kept only in this app, never shared", null, ui.chevron(),
+                v -> askSteamGridKey());
         int hiddenGaming = java.util.Collections.frequency(config.gamingCategories.values(),
                 GamingLibrary.HIDDEN);
         if (hiddenGaming > 0) {
@@ -597,6 +611,29 @@ public class MainActivity extends Activity {
                         })
                         .setNegativeButton("Cancel", null)
                         .show());
+    }
+
+    /** The user's own SteamGridDB key, typed in; kept in this app's private storage only. */
+    private void askSteamGridKey() {
+        android.widget.EditText field = new android.widget.EditText(this);
+        field.setSingleLine(true);
+        field.setHint("API key");
+        field.setText(SteamGridArt.Companion.key(this));
+        int pad = Ui.dp(this, 20);
+        android.widget.FrameLayout box = new android.widget.FrameLayout(this);
+        box.setPadding(pad, Ui.dp(this, 8), pad, 0);
+        box.addView(field);
+        Dialogs.builder(this)
+                .setTitle("SteamGridDB API key")
+                .setMessage("Make one at steamgriddb.com: Profile, Preferences, API. It stays in"
+                        + " this app only.")
+                .setView(box)
+                .setPositiveButton("Save", (d, w) -> {
+                    SteamGridArt.Companion.setKey(this, field.getText().toString());
+                    render();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void chooseGamingLauncher(Config config) {
