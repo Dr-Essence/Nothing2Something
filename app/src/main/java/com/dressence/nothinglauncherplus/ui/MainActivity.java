@@ -691,6 +691,21 @@ public class MainActivity extends Activity {
                 new int[]{-1, 0, 1, 2, 5, 10, 15, 20, 30},
                 config.statusBarHideMinutes, value -> config.statusBarHideMinutes = value);
 
+        ui.section("Full-screen apps");
+        choiceRow(ui, "Full screen",
+                "Picked apps hide the status bar and use its space, also beside the camera; a"
+                        + " swipe from the top shows the bar for a moment · from the next time an"
+                        + " app opens",
+                new String[]{"Off", "While the OLED saver hides the bar", "Always"},
+                new int[]{Config.FULL_SCREEN_OFF, Config.FULL_SCREEN_SAVER,
+                        Config.FULL_SCREEN_ALWAYS},
+                config.fullScreenMode, value -> config.fullScreenMode = value);
+        int fullScreen = config.fullScreenApps.size();
+        ui.row("Apps", (fullScreen == 0 ? "No apps" : fullScreen == 1 ? "1 app"
+                        : fullScreen + " apps")
+                        + " · also tick each app in the module's LSPosed scope, then reopen it",
+                null, ui.chevron(), v -> AppPickerActivity.openFullScreen(this));
+
         ui.section("Quick settings");
         ui.switchRow("Green quick settings", "Quick settings icons in glowing green",
                 config.ndotQuickSettings, checked -> {

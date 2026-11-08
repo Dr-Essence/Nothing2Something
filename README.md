@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.57.0, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.58.0, what is pending, what still needs testing</summary>
 
-**Current build: 0.57.0** (CMF Phone 1, Nothing OS 4.1, Android 16): HeliBoard across the whole width in landscape, also beside the camera (new, a switch), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.58.0** (CMF Phone 1, Nothing OS 4.1, Android 16): Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), HeliBoard across the whole width in landscape, also beside the camera (new, a switch), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -77,6 +77,23 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.58.0, Full-screen apps.** Asked by Dr.Essence: picked apps (a searchable list, the
+  folders' app picker) use the status bar's space too, either always or while the OLED saver
+  has faded the bar out; a swipe from the top shows it for a moment. Done the way an app does
+  it itself (`WindowInsetsController.hide(statusBars())`, swipe shows transient bars), inside
+  the app, so each app must also be ticked in the module's LSPosed scope. Hiding the bar from
+  the window manager was checked first (`InsetsPolicy` in the phone's services.jar) and left
+  out: the window controlling the bar must also move its surface, which only the app's side
+  does. In portrait the bar is nearly the camera's strip (113 px against 106 px), and Android
+  keeps a default window out of that strip, so while the bar is hidden a window left at the
+  default cutout mode asks for SHORT_EDGES; an app's own mode is kept; both come back with the
+  bar. The OLED saver (System UI) tells the apps when it fades the bar or brings it back
+  (broadcast accepted only from a sender with the status bar permission; an app that starts
+  asks for the current state). Checked here: it compiles. Needs: an app picked and in the
+  scope, with Always (bar gone, content to the top, a swipe shows the bar and it goes again),
+  with While the OLED saver hides the bar (the app goes full screen when the bar fades, back
+  when a notification or a swipe brings it), and the app as before when unpicked or Off;
+  the LSPosed line "full-screen apps: <package>".
 - **0.57.0, HeliBoard across the whole width.** Asked by Dr.Essence: in landscape the keyboard
   left a strip empty on the camera's side. Found in the phone's framework: Android lays a window
   out of the camera's strip (`WindowLayout.computeFrames`) unless it asks for cutout mode

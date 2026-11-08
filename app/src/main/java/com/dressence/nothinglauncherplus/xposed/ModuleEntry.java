@@ -2,6 +2,7 @@ package com.dressence.nothinglauncherplus.xposed;
 
 import com.dressence.nothinglauncherplus.Config;
 import com.dressence.nothinglauncherplus.keyboard.HeliBoardFullWidth;
+import com.dressence.nothinglauncherplus.systemui.FullScreenApps;
 import com.dressence.nothinglauncherplus.keyboard.HeliBoardGamepad;
 import com.dressence.nothinglauncherplus.launcher.Launcher;
 import com.dressence.nothinglauncherplus.perf.Device;
@@ -94,13 +95,18 @@ public final class ModuleEntry implements IXposedHookLoadPackage {
                     () -> HeliBoardFullWidth.INSTANCE.install(cl, new ConfigStore()));
         } else if (GameBar.PKG.equals(pkg) && Device.isCmfPhone1()) {
             Hooks.install("game bar", () -> GameBar.install(cl, new ConfigStore()));
-        } else if (Device.isCmfPhone1()) {
-            // A game the user added to the scope for the 120 fps unlock.
-            Hooks.install("120 fps unlock", () -> {
-                if (new ConfigStore().get().unlockGames.contains(pkg)) {
-                    GameUnlock.install(pkg);
-                }
-            });
+        } else {
+            // An app the user added to the scope: full screen (picked in Full-screen apps) and,
+            // on the CMF Phone 1, the 120 fps unlock (picked in Games).
+            Hooks.install("full-screen apps",
+                    () -> FullScreenApps.INSTANCE.install(pkg, new ConfigStore()));
+            if (Device.isCmfPhone1()) {
+                Hooks.install("120 fps unlock", () -> {
+                    if (new ConfigStore().get().unlockGames.contains(pkg)) {
+                        GameUnlock.install(pkg);
+                    }
+                });
+            }
         }
     }
 

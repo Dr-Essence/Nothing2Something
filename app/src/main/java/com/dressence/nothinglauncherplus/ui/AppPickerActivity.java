@@ -43,14 +43,24 @@ import java.util.concurrent.Executors;
  * and a dot that fills in the accent for the apps chosen. Apps in another folder say which;
  * choosing one moves it here. Saved into the settings as they are when Save is pressed (the
  * folder is looked up again then), so a folder just made keeps what is chosen.
+ *
+ * The same page picks the Full-screen apps ([#openFullScreen]): there an app is chosen by its
+ * package (all its launcher entries at once) and folders are not mentioned.
  */
 public class AppPickerActivity extends Activity {
 
     private static final String EXTRA_FOLDER = "folder";
+    private static final String EXTRA_FULL_SCREEN = "full_screen";
 
     static void open(Context context, String folderId) {
         context.startActivity(new Intent(context, AppPickerActivity.class)
                 .putExtra(EXTRA_FOLDER, folderId));
+    }
+
+    /** The same picker for the Full-screen apps list (apps by package, no folders). */
+    static void openFullScreen(Context context) {
+        context.startActivity(new Intent(context, AppPickerActivity.class)
+                .putExtra(EXTRA_FULL_SCREEN, true));
     }
 
     private final List<Apps.App> all = new ArrayList<>();
@@ -61,6 +71,8 @@ public class AppPickerActivity extends Activity {
     private final LruCache<String, Drawable> iconCache = new LruCache<>(256);
     private SettingsStore store;
     private String folderId;
+    /** Picking the Full-screen apps list instead of a folder's apps. */
+    private boolean fullScreenList;
     private String query = "";
     private int accent;
     private BaseAdapter adapter;
@@ -70,9 +82,10 @@ public class AppPickerActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         store = new SettingsStore(this);
+        fullScreenList = getIntent().getBooleanExtra(EXTRA_FULL_SCREEN, false);
         folderId = getIntent().getStringExtra(EXTRA_FOLDER);
-        Config.Folder folder = store.config.folderForId(folderId);
-        if (folder == null) {
+        Config.Folder folder = fullScreenList ? null : store.config.folderForId(folderId);
+        if (folder == null && !fullScreenList) {
             finish();
             return;
         }
@@ -81,12 +94,15 @@ public class AppPickerActivity extends Activity {
         a.recycle();
         all.addAll(Apps.all(this));
         for (Apps.App app : all) {
-            if (store.config.folderForComponent(app.component) == folder) {
+            boolean in = fullScreenList
+                    ? store.config.fullScreenApps.contains(packageOf(app.component))
+                    : store.config.folderForComponent(app.component) == folder;
+            if (in) {
                 chosen.add(app.component);
             }
         }
         getWindow().getDecorView().setBackgroundColor(Ui.BACKGROUND);
-        setContentView(build(folder.name));
+        setContentView(build(fullScreenList ? "Full-screen apps" : folder.name));
         filter();
     }
 
@@ -237,6 +253,16 @@ public class AppPickerActivity extends Activity {
     private void save() {
         store.reload();
         Config config = store.config;
+        if (fullScreenList) {
+            // The list is of apps (packages): an app with several launcher entries is one app.
+            config.fullScreenApps.clear();
+            for (String component : chosen) {
+                config.fullScreenApps.add(packageOf(component));
+            }
+            store.save(this);
+            finish();
+            return;
+        }
         Config.Folder folder = config.folderForId(folderId);
         if (folder != null) {
             folder.apps.retainAll(chosen);
@@ -287,7 +313,8 @@ public class AppPickerActivity extends Activity {
             component = app.component;
             name.setText(app.label);
             boolean on = chosen.contains(app.component);
-            Config.Folder owner = store.config.folderForComponent(app.component);
+            Config.Folder owner = fullScreenList ? null
+                    : store.config.folderForComponent(app.component);
             boolean elsewhere = owner != null && !owner.id.equals(folderId);
             where.setText(elsewhere ? (on ? "Moves here from " : "In ") + owner.name : "");
             where.setVisibility(elsewhere ? VISIBLE : GONE);
@@ -306,6 +333,12 @@ public class AppPickerActivity extends Activity {
                 loadIcon(app, this);
             }
         }
+    }
+
+    /** The package of a launcher entry ("package/class"). */
+    private static String packageOf(String component) {
+        int slash = component.indexOf('/');
+        return slash < 0 ? component : component.substring(0, slash);
     }
 
     /** Icons are read off the main thread; a row reused meanwhile keeps its new app's. */

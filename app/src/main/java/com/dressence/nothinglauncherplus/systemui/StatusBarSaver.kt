@@ -208,6 +208,7 @@ internal object StatusBarSaver {
             return
         }
         savers.getOrPut(bar) { Saver(contents) }.start()
+        if (hideMs >= 0) guarded { FullScreenApps.answerQueries(bar.context.applicationContext) }
         if (hideMs >= 0 && screenReceiver == null) {
             val receiver = object : BroadcastReceiver() {
                 override fun onReceive(context: Context, intent: Intent) =
@@ -261,6 +262,7 @@ internal object StatusBarSaver {
             guarded {
                 hidden = true
                 contents.animate().alpha(0f).setDuration(FADE_MS).start()
+                FullScreenApps.barFaded(contents.context, true) // picked apps may now use its space
             }
         }
 
@@ -297,6 +299,7 @@ internal object StatusBarSaver {
             if (hidden) {
                 hidden = false
                 contents.animate().alpha(1f).setDuration(FADE_MS).start()
+                guarded { FullScreenApps.barFaded(contents.context, false) }
             }
         }
 

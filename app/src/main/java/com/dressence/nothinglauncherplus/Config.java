@@ -80,6 +80,13 @@ public final class Config {
     public static final String KEY_SYSTEM_SCREENS = "system_screens";
     public static final String KEY_PERF_OVERLAY = "perf_overlay";
     public static final String KEY_UNLOCK_GAMES = "unlock_games";
+    public static final String KEY_FULL_SCREEN_APPS = "full_screen_apps";
+    public static final String KEY_FULL_SCREEN_MODE = "full_screen_mode";
+
+    /** Full-screen apps: when the picked apps hide the status bar. */
+    public static final int FULL_SCREEN_OFF = 0;
+    public static final int FULL_SCREEN_SAVER = 1;
+    public static final int FULL_SCREEN_ALWAYS = 2;
     public static final String KEY_PERF_PROFILE = "perf_profile";
     public static final String KEY_THERMAL_OFF = "thermal_off";
     public static final String KEY_SAVER_FULL_REFRESH = "saver_full_refresh";
@@ -243,6 +250,10 @@ public final class Config {
     public boolean perfOverlay = false;
     /** Packages of games shown a Galaxy S24 Ultra, to unlock their 120 fps (CMF Phone 1). */
     public final java.util.Set<String> unlockGames = new java.util.LinkedHashSet<>();
+    /** Apps (packages) that hide the status bar and use its space; see FullScreenApps. */
+    public final java.util.Set<String> fullScreenApps = new java.util.LinkedHashSet<>();
+    /** When they do: FULL_SCREEN_OFF, _SAVER (while the OLED saver hides the bar), _ALWAYS. */
+    public int fullScreenMode = FULL_SCREEN_OFF;
     /** The PerfMTK profile last set from the Game Bar or the Performance page ("" none). */
     public String perfProfile = "";
     /** PerfMTK's thermal limits were last switched off. */
@@ -433,6 +444,13 @@ public final class Config {
                 unlockGames.add(pkg);
             }
         }
+        fullScreenApps.clear();
+        for (String pkg : in.text(KEY_FULL_SCREEN_APPS, "").split(",")) {
+            if (!pkg.isEmpty()) {
+                fullScreenApps.add(pkg);
+            }
+        }
+        fullScreenMode = in.number(KEY_FULL_SCREEN_MODE, FULL_SCREEN_OFF);
     }
 
     private void writeSettings(Sink out) {
@@ -486,6 +504,8 @@ public final class Config {
         out.bool(KEY_THERMAL_OFF, thermalOff);
         out.bool(KEY_SAVER_FULL_REFRESH, saverFullRefresh);
         out.text(KEY_UNLOCK_GAMES, String.join(",", unlockGames));
+        out.text(KEY_FULL_SCREEN_APPS, String.join(",", fullScreenApps));
+        out.number(KEY_FULL_SCREEN_MODE, fullScreenMode);
     }
 
     private void readFolders(JSONArray array) throws JSONException {
