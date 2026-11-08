@@ -583,7 +583,7 @@ public class MainActivity extends Activity {
                 v -> startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT)
                         .addCategory(Intent.CATEGORY_OPENABLE)
                         .setType("application/json")
-                        .putExtra(Intent.EXTRA_TITLE, "nothing-launcher-plus-backup.json"),
+                        .putExtra(Intent.EXTRA_TITLE, "nothing2something-backup.json"),
                         REQUEST_EXPORT));
         ui.row("Import", "Replace the current setup with a backup file", null, null,
                 v -> startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT)
