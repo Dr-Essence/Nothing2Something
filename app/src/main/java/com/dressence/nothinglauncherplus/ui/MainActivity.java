@@ -109,7 +109,7 @@ public class MainActivity extends Activity {
     }
 
     private void renderMenu() {
-        Ui ui = Ui.page(this, "Nothing Launcher+", false);
+        Ui ui = Ui.page(this, "Nothing2Something", false);
         if (com.dressence.nothinglauncherplus.UpdateReceiver.externalForced(this)) {
             ui.note("Developer options → \"Force allow apps on external\" is on: Android then"
                     + " installs updates of this module on the memory card, which LSPosed cannot"
@@ -776,7 +776,7 @@ public class MainActivity extends Activity {
         android.content.Context app = getApplicationContext();
         Runnable post = () -> {
             if (!TestNotifications.post(app, count)) {
-                Toast.makeText(app, "Notifications are off for Nothing Launcher+",
+                Toast.makeText(app, "Notifications are off for Nothing2Something",
                         Toast.LENGTH_LONG).show();
             }
         };
@@ -805,7 +805,7 @@ public class MainActivity extends Activity {
                 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
             postTestNotifications(test[0], test[1]);
         } else {
-            Toast.makeText(this, "Allow notifications for Nothing Launcher+ to post test ones",
+            Toast.makeText(this, "Allow notifications for Nothing2Something to post test ones",
                     Toast.LENGTH_LONG).show();
         }
     }

@@ -15,5 +15,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = 'NothingLauncherPlus'
+rootProject.name = 'Nothing2Something'
 include ':app'

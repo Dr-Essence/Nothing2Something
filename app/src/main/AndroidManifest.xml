@@ -25,7 +25,7 @@
 
     <application
         android:allowBackup="false"
-        android:label="Nothing Launcher+"
+        android:label="Nothing2Something"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
 
         <meta-data android:name="xposedmodule" android:value="true" />

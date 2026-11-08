@@ -173,8 +173,8 @@ final class SystemFont {
             String file = FONTS_MODULE + addedPath(choice);
             String script = "M=" + FONTS_MODULE + "\n"
                     + "mkdir -p $M/system/fonts\n"
-                    + "printf 'id=nlplus_fonts\\nname=Nothing Launcher+ fonts\\nversion=1\\n"
-                    + "versionCode=1\\nauthor=Nothing Launcher+\\ndescription=Nothing fonts"
+                    + "printf 'id=nlplus_fonts\\nname=Nothing2Something fonts\\nversion=1\\n"
+                    + "versionCode=1\\nauthor=Nothing2Something\\ndescription=Nothing fonts"
                     + " from the widgets app, added to the system fonts\\n' > $M/module.prop\n"
                     + "base64 -d > '" + file + "' <<'NLPLUS_FONT'\n"
                     + android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)

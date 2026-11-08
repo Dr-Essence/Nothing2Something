@@ -27,14 +27,14 @@ public final class UpdateReceiver extends BroadcastReceiver {
             try {
                 restartLauncher();
                 if (onMemoryCard(context)) {
-                    android.util.Log.i("NothingLauncher+", "updated onto the memory card ("
+                    android.util.Log.i("Nothing2Something", "updated onto the memory card ("
                             + context.getApplicationInfo().sourceDir + "): moving to internal");
                     // Last: the move stops this app.
                     boolean asked = moveToInternalStorage(context.getPackageName());
-                    android.util.Log.i("NothingLauncher+", "move to internal: "
+                    android.util.Log.i("Nothing2Something", "move to internal: "
                             + (asked ? "done" : "failed (no root?)"));
                 } else {
-                    android.util.Log.i("NothingLauncher+", "updated on internal storage");
+                    android.util.Log.i("Nothing2Something", "updated on internal storage");
                 }
             } finally {
                 result.finish();

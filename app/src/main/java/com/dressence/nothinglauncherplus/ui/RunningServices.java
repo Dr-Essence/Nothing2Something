@@ -79,7 +79,7 @@ public final class RunningServices extends Activity {
             } else {
                 shortcuts.removeAllDynamicShortcuts();
                 shortcuts.disableShortcuts(Collections.singletonList(SHORTCUT_ID),
-                        "Turned off in Nothing Launcher+");
+                        "Turned off in Nothing2Something");
             }
         }
         context.getPackageManager().setComponentEnabledSetting(

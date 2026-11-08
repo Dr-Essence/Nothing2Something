@@ -57,7 +57,7 @@ public final class SoundEngine {
 
     private final Beds beds;
     private final ExecutorService bedLoader = Executors.newSingleThreadExecutor(
-            r -> new Thread(r, "NothingLauncher+ music bed"));
+            r -> new Thread(r, "Nothing2Something music bed"));
     private volatile Style style = Style.CALM;
     private volatile float volume = 0.5f;
     private volatile boolean wanted;
@@ -119,7 +119,7 @@ public final class SoundEngine {
         synchronized (lock) {
             wanted = true;
             if (thread == null) {
-                thread = new Thread(this::musicLoop, "NothingLauncher+ music");
+                thread = new Thread(this::musicLoop, "Nothing2Something music");
                 thread.start();
             }
         }
@@ -246,7 +246,7 @@ public final class SoundEngine {
         // Asked to play again while we were finishing: start a fresh thread.
         synchronized (lock) {
             if (wanted && thread == null) {
-                thread = new Thread(this::musicLoop, "NothingLauncher+ music");
+                thread = new Thread(this::musicLoop, "Nothing2Something music");
                 thread.start();
             }
         }
@@ -279,7 +279,7 @@ public final class SoundEngine {
             }
             sfxLoading = true;
         }
-        new Thread(this::loadSfx, "NothingLauncher+ sfx").start();
+        new Thread(this::loadSfx, "Nothing2Something sfx").start();
     }
 
     private void loadSfx() {

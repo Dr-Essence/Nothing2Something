@@ -1,4 +1,4 @@
-# Nothing Launcher+
+# Nothing2Something
 
 An LSPosed module for **Nothing and CMF phones** that adds to Nothing Launcher and Nothing OS:
 custom app drawer folders with animated dot-matrix covers, a landscape home screen and lock
@@ -6,6 +6,9 @@ screen, game controller support, live wallpaper sounds and more.
 
 > **Heavily experimental alpha.** Expect bugs, and expect things to change from build to build.
 > Tested on one phone so far (CMF Phone 1, Nothing OS 4.1, Android 16).
+>
+> An unofficial community module, not affiliated with or endorsed by Nothing. Formerly
+> Nothing Launcher+; it grew beyond the launcher, hence the name: from Nothing, to something.
 
 **What it adds**
 
@@ -47,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.54.3, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.54.4, what is pending, what still needs testing</summary>
 
-**Current build: 0.54.3** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver, and Restart System UI in the module.
+**Current build: 0.54.4** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver, and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -127,6 +130,10 @@ Each section below opens when tapped.
   will be retaken for the public release.
 
 **Fixed recently**
+- Renamed **Nothing2Something** (was Nothing Launcher+): the app's name, its pages and
+  notifications, the LSPosed log's tag (`Nothing2Something: …`) and the build's artifact. The
+  package stays `com.dressence.nothinglauncherplus`, so it installs as an update: settings,
+  LSPosed scope and signing key carry over.
 - 0.54.1: the dual status bar's year showed as "26" (android.text.format.DateFormat writes a
   lone "y" as two digits); the date is made with ICU's formatter, which writes it in full.
 - 0.54.1: the OLED saver's hidden bar came back every 2 s on the home screen (seen on the
@@ -312,7 +319,7 @@ adds your own folders next to them. Apps you put in a custom folder leave their 
 - **Drawer background opacity** slider, so the wallpaper shows through behind the folders.
 - Show custom folders before or after Nothing's categories, or hide the automatic categories.
 - A **Custom folders** row in *Nothing Launcher settings → App drawer & Search → Drawer layout*
-  opens the module's App drawer page. A **Nothing Launcher+** row at the end of *Nothing
+  opens the module's App drawer page. A **Nothing2Something** row at the end of *Nothing
   Launcher settings* opens the module's main menu.
 - Long-press a drawer folder for the launcher's own popup: **Add to home screen** creates a real
   home-screen folder with the same name and apps; **Edit** (custom folders) opens the folder editor.
@@ -613,7 +620,7 @@ The launcher deletes any item it binds onto a cell that is already taken ("Colli
 binding workspace item"). Turned cells can overlap until the page is arranged, so in landscape
 this deleted widgets for good, in portrait too. While a landscape page is bound no cell counts
 as taken, and a collision delete in landscape is refused and logged
-(`NothingLauncher+: landscape grid: kept …`).
+(`Nothing2Something: landscape grid: kept …`).
 
 A rotation relays the launcher out and rebinds its pages, which are filled a moment later: the
 first frames on the turned screen were the old pages stretched to it, then empty pages. Android
@@ -702,7 +709,7 @@ handle and hides it when "Hide navigation bar" is on, and the settings previews 
 profiles Nothing made them for (given landscape ones, the hidden handle came back in
 landscape).
 
-Each landscape profile is logged (`NothingLauncher+: landscape profile …`) with its geometry, so
+Each landscape profile is logged (`Nothing2Something: landscape profile …`) with its geometry, so
 LSPosed logs show exactly what was laid out. Portrait is untouched.
 
 #### Restore missing home items

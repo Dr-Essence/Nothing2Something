@@ -16,7 +16,7 @@ import de.robv.android.xposed.XposedBridge;
  */
 public final class Hooks {
 
-    private static final String TAG = "NothingLauncher+: ";
+    private static final String TAG = "Nothing2Something: ";
 
     public interface Installer {
         void run() throws Throwable;
@@ -30,7 +30,7 @@ public final class Hooks {
             XposedBridge.log(TAG + message);
         } catch (Throwable notHooked) {
             // In the module's own app (the overlay) there is no Xposed: Android's log.
-            android.util.Log.i("NothingLauncher+", message);
+            android.util.Log.i("Nothing2Something", message);
         }
     }
 

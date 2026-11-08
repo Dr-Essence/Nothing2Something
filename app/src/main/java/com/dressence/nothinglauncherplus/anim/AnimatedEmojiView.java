@@ -33,7 +33,7 @@ import java.util.Random;
 @SuppressLint("ViewConstructor")
 public class AnimatedEmojiView extends TextView {
 
-    private static final String TAG = "NothingLauncher+";
+    private static final String TAG = "Nothing2Something";
     private static final int EFFECT_FPS = 24;
     private static final long EFFECT_FRAME_NANOS = 1_000_000_000L / EFFECT_FPS;
     private static final long REACT_NANOS = 1_400_000_000L;

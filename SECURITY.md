@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Only the latest release of **Nothing Launcher Plus** gets fixes. Please update and check the
+Only the latest release of **Nothing2Something** gets fixes. Please update and check the
 problem still happens before reporting.
 
 ## Reporting a vulnerability

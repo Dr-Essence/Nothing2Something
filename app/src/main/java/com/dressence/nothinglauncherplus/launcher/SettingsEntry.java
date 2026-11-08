@@ -83,7 +83,7 @@ final class SettingsEntry {
                         XposedHelpers.callMethod(pref, "setPersistent", false);
                         XposedHelpers.callMethod(pref, "setIconSpaceReserved", false);
                         XposedHelpers.callMethod(pref, "setTitle",
-                                (CharSequence) "Nothing Launcher+");
+                                (CharSequence) "Nothing2Something");
                         XposedHelpers.callMethod(pref, "setSummary", (CharSequence)
                                 "Folders, home screen, sound, status bar, lock screen and more");
                         XposedHelpers.callMethod(pref, "setIntent", new Intent()

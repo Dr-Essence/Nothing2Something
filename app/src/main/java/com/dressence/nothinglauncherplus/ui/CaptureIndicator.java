@@ -131,7 +131,7 @@ public final class CaptureIndicator extends Service {
                 NotificationManager.IMPORTANCE_LOW));
         Notification.Builder builder = new Notification.Builder(this, CHANNEL)
                 .setSmallIcon(android.R.drawable.presence_video_online)
-                .setContentTitle("Nothing Launcher+ debug report")
+                .setContentTitle("Nothing2Something debug report")
                 .setContentText(text)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setOngoing(true);

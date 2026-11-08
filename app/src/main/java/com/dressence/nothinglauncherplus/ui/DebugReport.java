@@ -228,7 +228,7 @@ final class DebugReport {
             + "rm -f $STOP\n"
             + "cd /sdcard/Download && tar -czf $N.tar.gz $N && rm -rf $N && N=$N.tar.gz\n"
             + "touch " + DONE_FILE + "\n"
-            + "cmd notification post -S bigtext -t 'Nothing Launcher+' nlplus_report"
+            + "cmd notification post -S bigtext -t 'Nothing2Something' nlplus_report"
             + " \"Debug report saved: Download/$N\" >/dev/null 2>&1\n";
 
     private DebugReport() {

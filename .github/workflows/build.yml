@@ -26,7 +26,7 @@ jobs:
             echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
             echo "SIGNING_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
             echo "signed with the release key"
-          elif [ "${{ github.repository }}" = "Dr-Essence/Nothing-Launcher-Plus" ] && [ "${{ github.event_name }}" != "pull_request" ]; then
+          elif { [ "${{ github.repository }}" = "Dr-Essence/Nothing-Launcher-Plus" ] || [ "${{ github.repository }}" = "Dr-Essence/Nothing2Something" ]; } && [ "${{ github.event_name }}" != "pull_request" ]; then
             echo "::error::SIGNING_KEYSTORE_B64 is not set - add the release key secrets (README, Updates and signing)"
             exit 1
           else
@@ -42,5 +42,5 @@ jobs:
 
       - uses: actions/upload-artifact@v5
         with:
-          name: NothingLauncherPlus
+          name: Nothing2Something
           path: app/build/outputs/apk/release/*.apk

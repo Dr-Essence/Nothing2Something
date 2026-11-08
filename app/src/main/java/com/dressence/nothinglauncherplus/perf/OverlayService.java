@@ -163,7 +163,7 @@ public final class OverlayService extends Service {
         return new Notification.Builder(this, CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_menu_info_details)
                 .setContentTitle("Performance overlay")
-                .setContentText("Turn it off in Nothing Launcher+ → Performance")
+                .setContentText("Turn it off in Nothing2Something → Performance")
                 .setOngoing(true)
                 .build();
     }

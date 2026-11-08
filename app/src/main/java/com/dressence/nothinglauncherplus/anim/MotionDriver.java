@@ -88,7 +88,7 @@ public final class MotionDriver implements Choreographer.FrameCallback {
             try {
                 reactShown();
             } catch (RuntimeException e) {
-                Log.w("NothingLauncher+", "emoji greeting failed", e);
+                Log.w("Nothing2Something", "emoji greeting failed", e);
             }
         }, delayMs);
     }
