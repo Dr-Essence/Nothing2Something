@@ -9,6 +9,7 @@ import android.os.Looper
 import android.app.Notification
 import android.os.SystemClock
 import android.service.notification.StatusBarNotification
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import com.dressence.nothinglauncherplus.xposed.ConfigStore
@@ -34,7 +35,10 @@ import java.util.WeakHashMap
  *
  * Back on screen (after hiding): a new notification (System UI's NotificationListener), the
  * shade starting to be pulled (ShadeExpansionStateManager) or the screen turning on; then it
- * hides again after the set time ("instant": after [INSTANT_MS]).
+ * hides again after the set time ("instant": after [INSTANT_MS]). A tap on the bar shows it for
+ * [TAP_MS], whatever the set time (PhoneStatusBarView.onInterceptTouchEvent, which Android
+ * calls for every finger down on the bar, also while its content is faded out: the saver only
+ * watches it; System UI handles the touch as always).
  *
  * Mistake recorded (0.54.0): every notification *update* woke the bar too. System UI's
  * listener hears a download's progress as "posted" every second or two, so the bar came back
@@ -54,6 +58,8 @@ internal object StatusBarSaver {
 
     /** How long "instant" leaves the bar on after it comes back. */
     private const val INSTANT_MS = 5_000L
+    /** How long a tap on the bar shows it, whatever the hide setting. */
+    private const val TAP_MS = 10_000L
     private const val FADE_MS = 400L
     private const val MOVE_MS = 800L
 
@@ -100,6 +106,16 @@ internal object StatusBarSaver {
             }
         })
         if (hideMs >= 0) {
+            XposedBridge.hookAllMethods(bar, "onInterceptTouchEvent", object : XC_MethodHook() {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    val event = param.args.firstOrNull() as? MotionEvent ?: return
+                    if (event.actionMasked != MotionEvent.ACTION_DOWN) return
+                    guarded {
+                        savers[param.thisObject as View]?.wake(TAP_MS)
+                        logWake("tap")
+                    }
+                }
+            })
             // New notifications arrive on System UI's listener thread: back to the main one.
             XposedBridge.hookAllMethods(XposedHelpers.findClass(CLS_LISTENER, cl),
                 "onNotificationPosted", object : XC_MethodHook() {
@@ -166,12 +182,17 @@ internal object StatusBarSaver {
     }
 
     private fun wakeAll(reason: String) {
+        logWake(reason)
+        savers.values.toList().forEach { it.wake() }
+    }
+
+    /** Logs why the bar was shown, each reason at most every 10 s. */
+    private fun logWake(reason: String) {
         val now = SystemClock.elapsedRealtime()
         if (now - (logged[reason] ?: -60_000L) >= 10_000L) {
             logged[reason] = now
             Hooks.log("status bar saver: shown again ($reason)")
         }
-        savers.values.toList().forEach { it.wake() }
     }
 
     /** The saver of one status bar. Main thread only. */
@@ -205,15 +226,23 @@ internal object StatusBarSaver {
             main.removeCallbacks(hide)
         }
 
-        /** Shows the bar (if hidden) and starts the time until it hides again. */
-        fun wake() {
+        /**
+         * Shows the bar (if hidden) and starts the time until it hides again: [showMs] if
+         * given (a tap), otherwise the set time.
+         */
+        fun wake(showMs: Long = -1) {
             if (hideMs < 0) return
             main.removeCallbacks(hide)
             if (hidden) {
                 hidden = false
                 contents.animate().alpha(1f).setDuration(FADE_MS).start()
             }
-            main.postDelayed(hide, if (hideMs == 0L) INSTANT_MS else hideMs)
+            val delay = when {
+                showMs >= 0 -> showMs
+                hideMs == 0L -> INSTANT_MS
+                else -> hideMs
+            }
+            main.postDelayed(hide, delay)
         }
 
         /** The next position on the ring, as far as the room inside the bar allows. */

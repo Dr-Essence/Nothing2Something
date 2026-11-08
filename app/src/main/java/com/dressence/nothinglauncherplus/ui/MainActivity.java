@@ -520,7 +520,8 @@ public class MainActivity extends Activity {
                 config.statusBarShiftDp, value -> config.statusBarShiftDp = value);
         choiceRow(ui, "Hide the status bar",
                 "Fades out after this time; back on a new notification, when the shade is"
-                        + " pulled or the screen turns on · restart System UI",
+                        + " pulled or the screen turns on; a tap on the bar shows it for 10 s"
+                        + " · restart System UI",
                 new String[]{"Never", "Instantly (shown 5 s)", "After 1 minute",
                         "After 2 minutes", "After 5 minutes", "After 10 minutes",
                         "After 15 minutes", "After 20 minutes", "After 30 minutes"},

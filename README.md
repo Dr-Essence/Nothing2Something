@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.54.5, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.54.6, what is pending, what still needs testing</summary>
 
-**Current build: 0.54.5** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver, and Restart System UI in the module.
+**Current build: 0.54.6** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver, and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -84,10 +84,12 @@ Each section below opens when tapped.
   `status_bar_contents`, which neither System UI nor Nothing moves or fades themselves;
   before each move it measures the room the visible content has inside the bar and stays
   within it. Back on screen for a notification not seen before (or an update that alerts
-  again, like a new message), a shade pull starting, or the screen turning on; each such
+  again, like a new message), a shade pull starting, or the screen turning on; a tap on the
+  bar (0.54.6) shows it for 10 s whatever the set time (PhoneStatusBarView's
+  onInterceptTouchEvent, which sees every finger down on the bar, watched only); each such
   wake is logged ("status bar saver: shown again (…)", at most every 10 s, until confirmed).
   Needs on the phone: hiding that stays hidden while a download runs, coming back on each
-  trigger (LSPosed log), the moves over a few intervals (a recording), nothing cut at the
+  trigger including a tap, for 10 s after a tap (LSPosed log), the moves over a few intervals (a recording), nothing cut at the
   edges.
 - **0.54.1, Restart System UI** (top of Status bar & quick settings and of Lock screen):
   applies the options marked "restart System UI" at once (root). It first leaves a "planned
