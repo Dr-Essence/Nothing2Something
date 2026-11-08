@@ -154,6 +154,27 @@ final class DotMatrix {
     void setText(CharSequence text, int color) {
         glyph = text == null || text.length() == 0 ? null : glyph(text.toString(), color);
         glyphKey = color + "|" + text;
+        rest();
+    }
+
+    /**
+     * A picture instead of text (an app's icon on Nothing Gaming Space's big screen): fitted to
+     * the same square the emoji are drawn in, then shown on the dots exactly as an emoji is.
+     */
+    void setImage(Bitmap image) {
+        if (image == null) {
+            glyph = null;
+        } else {
+            Bitmap source = image.getConfig() == Bitmap.Config.HARDWARE
+                    ? image.copy(Bitmap.Config.ARGB_8888, false) : image; // pixels are read
+            glyph = Bitmap.createScaledBitmap(source, GLYPH, GLYPH, true);
+        }
+        glyphKey = "image|" + System.identityHashCode(image);
+        rest();
+    }
+
+    /** After the glyph changed: the resting frame, its box, and a forced redraw. */
+    private void rest() {
         sphere = null;
         sphereFrame = null;
         // The resting frame, once: what effects find their regions in and paint over.

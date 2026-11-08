@@ -6,8 +6,8 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Rect
 import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
 import android.hardware.input.InputManager
 import android.os.Bundle
 import android.os.Handler
@@ -22,13 +22,14 @@ import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.widget.FrameLayout
-import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.dressence.nothinglauncherplus.anim.AnimatedEmojiView
 import com.dressence.nothinglauncherplus.anim.DotEffect
+import com.dressence.nothinglauncherplus.Palette
 import com.dressence.nothinglauncherplus.launcher.IconScreen
+import com.dressence.nothinglauncherplus.xposed.NdotFont
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -60,7 +61,20 @@ class GamingSpaceActivity : Activity() {
         private const val GREEN = 0xFF4CFF7A.toInt()
         private const val GLOW = 0xFF2BE86A.toInt()
         private const val DIM = 0xFF8A8A8A.toInt()
-        private const val PANEL = 0xFF0B0C0B.toInt()
+        private const val LED_GREEN = Palette.LED_GREEN
+        /** The dot screen's share of the page's height; the cross gets the rest. */
+        private const val SCREEN_SHARE = 0.46f
+        /** A category's card, as a drawer folder's: size (dp), emoji share, corner. */
+        private const val CARD_W = 104f
+        private const val CARD_H = 112f
+        private const val COVER_SCALE = 0.86f
+        private const val CARD_CORNER = 0.085f
+        /** An app's row in the column (dp). */
+        private const val ITEM_H = 60f
+        private const val ITEM_ICON = 48f
+        private const val MOVE_MS = 180L
+        /** How long a new category's emoji plays on the screen before its app comes up. */
+        private const val CATEGORY_SHOW_MS = 1400L
         private const val INTRO_IN_MS = 1200L
         private const val INTRO_HOLD_MS = 1400L
         private const val INTRO_OUT_MS = 600L
@@ -86,20 +100,21 @@ class GamingSpaceActivity : Activity() {
     private var skip: (() -> Unit)? = null
 
     private lateinit var root: FrameLayout
-    private lateinit var bigEmoji: AnimatedEmojiView
-    private lateinit var bigIcon: ImageView
-    private lateinit var bigTitle: TextView
-    private lateinit var bigInfo: TextView
-    private lateinit var header: TextView
-    private lateinit var scroller: HorizontalScrollView
-    private lateinit var row: LinearLayout
+    /** The top part: one dot screen, edge to edge. */
+    private lateinit var screen: AnimatedEmojiView
+    private var screenHeight = 0
+    private val screenLabel = Rect()
+    private var shownTitle: String? = null
+    /** The categories' cards across, and the open category's apps down. */
+    private lateinit var bar: FrameLayout
+    private lateinit var column: FrameLayout
+    private val cards = ArrayList<View>()
+    private val items = ArrayList<View>()
 
     private var apps: List<GamingLibrary.App> = emptyList()
-    /** 0: the categories row; 1: the apps of [category]. */
-    private var level = 0
     private var category = 0
-    private var focus = 0
-    private val tiles = ArrayList<View>()
+    /** The selected app in each category, kept while moving between them. */
+    private val appFocus = IntArray(GamingLibrary.order.size)
 
     private var inputManager: InputManager? = null
     private val controllers = object : InputManager.InputDeviceListener {
@@ -134,7 +149,7 @@ class GamingSpaceActivity : Activity() {
     override fun onResume() {
         super.onResume()
         hideSystemBars()
-        if (phase == Phase.MAIN) {
+        if (phase == Phase.MAIN && screenHeight > 0) {
             store.reload()
             reloadApps() // an app installed or removed while away
         }
@@ -234,71 +249,35 @@ class GamingSpaceActivity : Activity() {
     }
 
     // -------------------------------------------------------------------------------------
-    // The main screen: the big dot screen on top, the row below
+    // The main screen: one dot screen on top, the cross of categories and apps below
     // -------------------------------------------------------------------------------------
 
+    /**
+     * Lays out the top half as one dot screen (the drawer folders' engine, edge to edge) and,
+     * below, the categories as folder-style dot cards across, and under the selected one its
+     * apps down, as on the PlayStation's cross menu: the selected category stays in one place
+     * and the bar moves under it.
+     */
     private fun showMain() {
         phase = Phase.MAIN
         skip = null
-        val page = LinearLayout(this)
-        page.orientation = LinearLayout.VERTICAL
-        val pad = dp(24f).toInt()
-        page.setPadding(pad, pad, pad, dp(12f).toInt())
-
-        // Top half: the big screen and what is selected.
-        val top = LinearLayout(this)
-        top.gravity = Gravity.CENTER_VERTICAL
-        val display = FrameLayout(this)
-        display.background = rounded(PANEL, dp(28f))
-        bigEmoji = AnimatedEmojiView(this)
-        bigEmoji.setDotMatrix(true)
-        display.addView(bigEmoji, FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        bigIcon = ImageView(this)
-        bigIcon.scaleType = ImageView.ScaleType.FIT_CENTER
-        val inset = dp(24f).toInt()
-        display.addView(bigIcon, FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT).also {
-            it.setMargins(inset, inset, inset, inset)
-        })
-        top.addView(display, LinearLayout.LayoutParams(0, 0)) // sized once laid out
-        val texts = LinearLayout(this)
-        texts.orientation = LinearLayout.VERTICAL
-        texts.setPadding(dp(32f).toInt(), 0, 0, 0)
-        bigTitle = text("", 40f, GREEN)
-        bigTitle.setShadowLayer(dp(12f), 0f, 0f, GLOW)
-        bigTitle.maxLines = 2
-        texts.addView(bigTitle)
-        bigInfo = text("", 16f, DIM)
-        bigInfo.setPadding(0, dp(8f).toInt(), 0, 0)
-        texts.addView(bigInfo)
-        top.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        page.addView(top, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-        top.addOnLayoutChangeListener { _, _, t, _, b, _, ot, _, ob ->
-            if (b - t != ob - ot) {
-                val side = b - t
-                display.layoutParams = LinearLayout.LayoutParams(side, side)
-                bigEmoji.setTextSize(TypedValue.COMPLEX_UNIT_PX, side * 0.6f)
-            }
-        }
-
-        // Bottom half: where we are, then the row.
-        header = text("", 14f, DIM)
-        header.setPadding(0, dp(16f).toInt(), 0, dp(8f).toInt())
-        page.addView(header)
-        scroller = HorizontalScrollView(this)
-        scroller.isHorizontalScrollBarEnabled = false
-        scroller.clipChildren = false
-        row = LinearLayout(this)
-        row.gravity = Gravity.CENTER_VERTICAL
-        row.clipChildren = false
-        val side = dp(24f).toInt()
-        row.setPadding(side, 0, side, 0)
-        scroller.addView(row, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+        val page = FrameLayout(this)
+        screen = AnimatedEmojiView(this)
+        screen.setDotMatrix(true)
+        page.addView(screen, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
+        bar = FrameLayout(this)
+        bar.clipChildren = false
+        page.addView(bar, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT))
-        page.addView(scroller, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-            0, 1f))
-
+        column = FrameLayout(this)
+        column.clipChildren = false
+        page.addView(column, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT))
+        page.clipChildren = false
+        page.addOnLayoutChangeListener { _, l, t, r, b, ol, ot, or, ob ->
+            // Sized after this layout pass, not inside it.
+            if (r - l != or - ol || b - t != ob - ot) page.post { place(r - l, b - t) }
+        }
         page.alpha = 0f
         root.addView(page, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT))
@@ -306,15 +285,36 @@ class GamingSpaceActivity : Activity() {
         reloadApps()
     }
 
+    /** Sizes the dot screen to the top part of the page; the cross is placed below it. */
+    private fun place(width: Int, height: Int) {
+        screenHeight = (height * SCREEN_SHARE).toInt()
+        screen.layoutParams = FrameLayout.LayoutParams(width, screenHeight)
+        val inset = dp(16f).toInt()
+        val side = screenHeight - inset * 2
+        screen.setTextSize(TypedValue.COMPLEX_UNIT_PX, side * 0.6f)
+        screen.setDotPanel(Rect(inset * 2, inset, inset * 2 + side, inset + side),
+            Rect(0, 0, width, screenHeight), dp(24f))
+        // The name lights on the screen's right part, like a folder's name on its card.
+        val labelLeft = inset * 4 + side
+        val labelSize = dp(30f)
+        val mid = screenHeight / 2
+        screenLabel.set(labelLeft, (mid - labelSize).toInt(), width - inset * 2,
+            (mid + labelSize).toInt())
+        shownTitle = null
+        layoutCross()
+        showSelection(false)
+    }
+
     private fun reloadApps() {
         val config = store.config
         worker.execute {
             val loaded = GamingLibrary.load(this, config)
             main.post {
-                if (isDestroyed) return@post
+                if (isDestroyed || phase != Phase.MAIN) return@post
                 apps = loaded
-                if (level == 1 && appsOf(category).isEmpty()) level = 0
-                buildRow()
+                buildCards()
+                buildColumn()
+                showSelection(false)
             }
         }
     }
@@ -324,122 +324,155 @@ class GamingSpaceActivity : Activity() {
         return apps.filter { it.category == cat }
     }
 
-    /** Fills the row: the categories, or the apps of the open category. */
-    private fun buildRow() {
-        row.removeAllViews()
-        tiles.clear()
-        if (level == 0) {
-            GamingLibrary.order.forEachIndexed { i, cat ->
-                val tile = categoryTile(cat)
-                tile.setOnClickListener { focus = i; select() }
-                add(tile)
-            }
-            focus = focus.coerceIn(0, tiles.size - 1)
-        } else {
-            appsOf(category).forEachIndexed { i, app ->
-                val tile = appTile(app)
-                tile.setOnClickListener { if (focus == i) select() else { focus = i; refresh() } }
-                tile.setOnLongClickListener { focus = i; refresh(); menu(); true }
-                add(tile)
-            }
-            focus = focus.coerceIn(0, maxOf(0, tiles.size - 1))
+    /** The categories, each a dot card like a drawer folder: its emoji and name on the dots. */
+    private fun buildCards() {
+        bar.removeAllViews()
+        cards.clear()
+        val w = dp(CARD_W).toInt()
+        val h = dp(CARD_H).toInt()
+        val labelH = dp(30f).toInt()
+        val side = ((h - labelH) * COVER_SCALE).toInt()
+        GamingLibrary.order.forEachIndexed { i, cat ->
+            val card = AnimatedEmojiView(this)
+            card.setDotMatrix(true)
+            card.setTextSize(TypedValue.COMPLEX_UNIT_PX, side * 0.6f)
+            setCover(card, cat.emoji, cat.ordinal.toLong())
+            val left = (w - side) / 2
+            val top = (h - labelH - side) / 2
+            card.setDotPanel(Rect(left, top, left + side, top + side), Rect(0, 0, w, h),
+                minOf(w, h) * CARD_CORNER)
+            card.setDotLabel(cat.title, LED_GREEN, Rect(0, h - labelH, w, h - dp(4f).toInt()),
+                NdotFont.get(this), dp(13f))
+            card.setOnClickListener { setCategory(i) }
+            bar.addView(card, FrameLayout.LayoutParams(w, h))
+            cards += card
         }
-        refresh()
+        layoutCross()
     }
 
-    private fun add(tile: View) {
-        val lp = LinearLayout.LayoutParams(dp(150f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
-        lp.setMargins(dp(10f).toInt(), 0, dp(10f).toInt(), 0)
-        row.addView(tile, lp)
-        tiles += tile
+    /** The open category's apps, top to bottom: a dot icon and the name beside it. */
+    private fun buildColumn() {
+        column.removeAllViews()
+        items.clear()
+        val list = appsOf(category)
+        if (list.isEmpty()) {
+            val none = text("NO APPS HERE  ·  Y ON AN APP MOVES IT", 14f, DIM)
+            column.addView(none, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT))
+            items += none
+        }
+        list.forEachIndexed { j, app ->
+            val item = LinearLayout(this)
+            item.gravity = Gravity.CENTER_VERTICAL
+            val icon = ImageView(this)
+            icon.tag = app.packageName
+            dotIcon(app.packageName) { if (icon.tag == app.packageName) icon.setImageBitmap(it) }
+            val size = dp(ITEM_ICON).toInt()
+            item.addView(icon, LinearLayout.LayoutParams(size, size))
+            val name = text(app.label, 18f, Color.WHITE)
+            name.maxLines = 1
+            name.ellipsize = android.text.TextUtils.TruncateAt.END
+            name.setPadding(dp(16f).toInt(), 0, 0, 0)
+            item.addView(name, LinearLayout.LayoutParams(dp(420f).toInt(),
+                ViewGroup.LayoutParams.WRAP_CONTENT))
+            item.setOnClickListener { if (appFocus[category] == j) launch() else setApp(j) }
+            item.setOnLongClickListener { setApp(j); menu(); true }
+            column.addView(item, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                dp(ITEM_H).toInt()))
+            items += item
+        }
+        layoutCross()
     }
 
-    private fun categoryTile(cat: GamingLibrary.Category): View {
-        val tile = LinearLayout(this)
-        tile.orientation = LinearLayout.VERTICAL
-        tile.gravity = Gravity.CENTER_HORIZONTAL
-        val cover = AnimatedEmojiView(this)
-        cover.setDotMatrix(true)
-        val size = dp(120f)
-        cover.setTextSize(TypedValue.COMPLEX_UNIT_PX, size * 0.6f)
-        setCover(cover, cat.emoji, cat.ordinal.toLong())
-        cover.background = rounded(PANEL, dp(20f))
-        tile.addView(cover, LinearLayout.LayoutParams(size.toInt(), size.toInt()))
-        tile.addView(label(cat.title))
-        return tile
-    }
-
-    private fun appTile(app: GamingLibrary.App): View {
-        val tile = LinearLayout(this)
-        tile.orientation = LinearLayout.VERTICAL
-        tile.gravity = Gravity.CENTER_HORIZONTAL
-        val icon = ImageView(this)
-        val size = dp(110f).toInt()
-        icon.tag = app.packageName
-        dotIcon(app.packageName) { if (icon.tag == app.packageName) icon.setImageBitmap(it) }
-        tile.addView(icon, LinearLayout.LayoutParams(size, size))
-        tile.addView(label(app.label))
-        return tile
-    }
-
-    private fun label(name: String): TextView {
-        val label = text(name, 14f, Color.WHITE)
-        label.gravity = Gravity.CENTER
-        label.maxLines = 1
-        label.ellipsize = android.text.TextUtils.TruncateAt.END
-        label.setPadding(0, dp(10f).toInt(), 0, 0)
-        return label
-    }
-
-    /** Lights the selected tile, dims the rest, and shows the selection on the big screen. */
-    private fun refresh() {
-        tiles.forEachIndexed { i, tile ->
-            val on = i == focus
-            tile.animate().scaleX(if (on) 1.12f else 1f).scaleY(if (on) 1.12f else 1f)
-                .alpha(if (on) 1f else 0.55f).setDuration(150).start()
-            ((tile as ViewGroup).getChildAt(1) as TextView).setTextColor(
+    /**
+     * The cross: the selected category's card in its fixed place, the others along the bar
+     * beside it; under it, the selected app first and the next ones below, the earlier ones
+     * gone above (out of sight), as on the cross menu.
+     */
+    private fun layoutCross() {
+        if (screenHeight == 0) return
+        val slot = dp(40f)
+        val barY = screenHeight + dp(14f)
+        val step = dp(CARD_W + 18f)
+        cards.forEachIndexed { i, card ->
+            val on = i == category
+            card.animate().translationX(slot + (i - category) * step).translationY(barY)
+                .scaleX(if (on) 1f else 0.82f).scaleY(if (on) 1f else 0.82f)
+                .alpha(if (on) 1f else 0.45f).setDuration(MOVE_MS).start()
+        }
+        val focus = appFocus[category]
+        val top = barY + dp(CARD_H + 8f)
+        val x = slot + dp(CARD_W + 28f)
+        items.forEachIndexed { j, item ->
+            val off = j - focus
+            val on = off == 0
+            item.pivotX = 0f
+            item.animate().translationX(x).translationY(top + maxOf(off, 0) * dp(ITEM_H))
+                .alpha(if (off < 0) 0f else if (on) 1f else 0.5f)
+                .scaleX(if (on) 1f else 0.85f).scaleY(if (on) 1f else 0.85f)
+                .setDuration(MOVE_MS).start()
+            ((item as? ViewGroup)?.getChildAt(1) as? TextView)?.setTextColor(
                 if (on) GREEN else Color.WHITE)
         }
-        tiles.getOrNull(focus)?.let { tile ->
-            tile.post {
-                val target = tile.left + tile.width / 2 - scroller.width / 2
-                scroller.smoothScrollTo(maxOf(0, target), 0)
-            }
-        }
-        if (level == 0) {
-            val cat = GamingLibrary.order[focus]
-            val count = appsOf(focus).size
-            showOnScreen(cat.emoji, null, cat.title.uppercase(),
-                if (count == 1) "1 APP" else "$count APPS")
-            header.text = "CATEGORIES   ·   A OPEN"
+    }
+
+    private fun setCategory(index: Int) {
+        val next = index.coerceIn(0, GamingLibrary.order.size - 1)
+        if (next == category && column.childCount > 0) return
+        category = next
+        buildColumn()
+        showSelection(true)
+    }
+
+    private fun setApp(index: Int) {
+        val list = appsOf(category)
+        if (list.isEmpty()) return
+        val next = index.coerceIn(0, list.size - 1)
+        if (next == appFocus[category]) return
+        appFocus[category] = next
+        layoutCross()
+        showSelection(false)
+    }
+
+    /**
+     * The big screen: on a new category, its emoji plays first, then the selected app's icon
+     * comes up; moving between apps shows the app at once.
+     */
+    private fun showSelection(categoryFirst: Boolean) {
+        main.removeCallbacks(showApp)
+        val cat = GamingLibrary.order[category]
+        val app = appsOf(category).getOrNull(appFocus[category])
+        if (categoryFirst || app == null) {
+            setCover(screen, cat.emoji, cat.ordinal * 31L)
+            title(cat.title)
+            if (app != null) main.postDelayed(showApp, CATEGORY_SHOW_MS)
         } else {
-            val cat = GamingLibrary.order[category]
-            val app = appsOf(category).getOrNull(focus)
-            header.text = "${cat.title.uppercase()}   ·   A PLAY   B BACK   L1 R1 CATEGORY" +
-                "   Y MOVE"
-            if (app == null) {
-                showOnScreen(cat.emoji, null, cat.title.uppercase(), "NO APPS")
-            } else {
-                showOnScreen(null, app.packageName, app.label, cat.title.uppercase())
-            }
+            showApp.run()
         }
     }
 
-    /** The big screen: an animated emoji, or an app's icon as a dot screen. */
-    private fun showOnScreen(emoji: String?, pkg: String?, title: String, info: String) {
-        bigTitle.text = title
-        bigInfo.text = info
-        if (emoji != null) {
-            bigIcon.visibility = View.GONE
-            bigEmoji.visibility = View.VISIBLE
-            setCover(bigEmoji, emoji, emoji.hashCode().toLong())
-        } else if (pkg != null) {
-            bigEmoji.visibility = View.GONE
-            bigIcon.visibility = View.VISIBLE
-            bigIcon.tag = pkg
-            bigIcon.setImageBitmap(dotIcons.get(pkg))
-            dotIcon(pkg) { if (bigIcon.tag == pkg) bigIcon.setImageBitmap(it) }
-        }
+    private val showApp = Runnable {
+        val app = appsOf(category).getOrNull(appFocus[category]) ?: return@Runnable
+        title(app.label)
+        rawIcon(app.packageName)?.let { screen.setImage(it, app.packageName.hashCode().toLong()) }
+    }
+
+    private fun title(text: String) {
+        if (text == shownTitle) return
+        shownTitle = text
+        screen.setDotLabel(text, LED_GREEN, screenLabel, NdotFont.get(this), dp(30f))
+    }
+
+    /** The icon as it is (for the big screen, which makes its own dots). */
+    private fun rawIcon(pkg: String): Bitmap? = try {
+        val drawable = packageManager.getApplicationIcon(pkg)
+        val size = 256
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        drawable.setBounds(0, 0, size, size)
+        drawable.draw(Canvas(bitmap))
+        bitmap
+    } catch (t: Throwable) {
+        null
     }
 
     private fun setCover(view: AnimatedEmojiView, emoji: String, seed: Long) {
@@ -453,17 +486,13 @@ class GamingSpaceActivity : Activity() {
     private fun dotIcon(pkg: String, done: (Bitmap) -> Unit) {
         dotIcons.get(pkg)?.let { done(it); return }
         worker.execute {
+            val raw = rawIcon(pkg) ?: return@execute
             val bitmap = try {
-                val drawable = packageManager.getApplicationIcon(pkg)
-                val size = 256
-                val raw = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-                drawable.setBounds(0, 0, size, size)
-                drawable.draw(Canvas(raw))
                 IconScreen.dots(raw) ?: raw
             } catch (t: Throwable) {
-                null
+                raw
             }
-            if (bitmap != null) main.post {
+            main.post {
                 dotIcons.put(pkg, bitmap)
                 done(bitmap)
             }
@@ -484,18 +513,17 @@ class GamingSpaceActivity : Activity() {
             return true
         }
         when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_LEFT -> move(-1)
-            KeyEvent.KEYCODE_DPAD_RIGHT -> move(1)
-            KeyEvent.KEYCODE_DPAD_DOWN -> if (level == 0) select()
-            KeyEvent.KEYCODE_DPAD_UP -> if (level == 1) back()
+            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_BUTTON_L1 -> setCategory(category - 1)
+            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_BUTTON_R1 -> setCategory(category + 1)
+            KeyEvent.KEYCODE_DPAD_UP -> setApp(appFocus[category] - 1)
+            KeyEvent.KEYCODE_DPAD_DOWN -> setApp(appFocus[category] + 1)
             KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
             KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_BUTTON_START ->
-                if (event.repeatCount == 0) select()
-            KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BACK -> if (event.repeatCount == 0) back()
-            KeyEvent.KEYCODE_BUTTON_L1 -> switchCategory(-1)
-            KeyEvent.KEYCODE_BUTTON_R1 -> switchCategory(1)
+                if (event.repeatCount == 0) launch()
             KeyEvent.KEYCODE_BUTTON_Y, KeyEvent.KEYCODE_BUTTON_X, KeyEvent.KEYCODE_MENU ->
                 if (event.repeatCount == 0) menu()
+            // Home has nowhere to go back to: B and Back are taken and do nothing.
+            KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BACK -> {}
             else -> return super.onKeyDown(keyCode, event)
         }
         return true
@@ -507,60 +535,24 @@ class GamingSpaceActivity : Activity() {
         else super.onKeyUp(keyCode, event)
     }
 
-    @Deprecated("Back is the controller's B here")
+    @Deprecated("Back does nothing on this home screen")
     override fun onBackPressed() {
-        if (phase == Phase.MAIN) back() else skip?.invoke()
+        if (phase != Phase.MAIN) skip?.invoke()
     }
 
-    private fun move(d: Int) {
-        if (tiles.isEmpty()) return
-        val next = (focus + d).coerceIn(0, tiles.size - 1)
-        if (next != focus) {
-            focus = next
-            refresh()
-        }
-    }
-
-    private fun select() {
-        if (level == 0) {
-            category = focus
-            level = 1
-            focus = 0
-            buildRow()
-            return
-        }
-        val app = appsOf(category).getOrNull(focus) ?: return
-        val launch = packageManager.getLaunchIntentForPackage(app.packageName) ?: return
+    private fun launch() {
+        val app = appsOf(category).getOrNull(appFocus[category]) ?: return
+        val intent = packageManager.getLaunchIntentForPackage(app.packageName) ?: return
         try {
-            startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (t: Throwable) {
-            bigInfo.text = "COULD NOT OPEN"
+            title("COULD NOT OPEN")
         }
-    }
-
-    private fun back() {
-        if (level == 1) {
-            level = 0
-            focus = category
-            buildRow()
-        }
-    }
-
-    private fun switchCategory(d: Int) {
-        if (level == 0) {
-            move(d)
-            return
-        }
-        val count = GamingLibrary.order.size
-        category = (category + d + count) % count
-        focus = 0
-        buildRow()
     }
 
     /** Moves the selected app to another category, or hides it. */
     private fun menu() {
-        if (level != 1) return
-        val app = appsOf(category).getOrNull(focus) ?: return
+        val app = appsOf(category).getOrNull(appFocus[category]) ?: return
         val cats = GamingLibrary.order
         val names = cats.map { it.title } + "Hide from Gaming Space"
         Dialogs.builder(this)
@@ -621,11 +613,6 @@ class GamingSpaceActivity : Activity() {
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
         view.typeface = ndot ?: Typeface.MONOSPACE
         return view
-    }
-
-    private fun rounded(color: Int, radius: Float) = GradientDrawable().also {
-        it.setColor(color)
-        it.cornerRadius = radius
     }
 
     private fun dp(value: Float): Float = value * resources.displayMetrics.density

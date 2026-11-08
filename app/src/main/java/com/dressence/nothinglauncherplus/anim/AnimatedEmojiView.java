@@ -151,6 +151,34 @@ public class AnimatedEmojiView extends TextView {
         MotionDriver.get().wake();
     }
 
+    /**
+     * Shows a picture (an app's icon) on the dot matrix instead of an emoji, still; the seed
+     * places its glow like an emoji's. Dot matrix only: as a plain view it shows nothing.
+     */
+    public void setImage(android.graphics.Bitmap image, long seed) {
+        effect = DotEffect.NONE;
+        effectAnchor = null;
+        effectSeed = (int) (seed ^ (seed >>> 32));
+        effectFrame = -1;
+        reactStart = 0;
+        setText("");
+        if (dots != null) {
+            try {
+                dots.setImage(image);
+                pose.reset();
+                dots.render(pose);
+            } catch (RuntimeException e) {
+                fail(e);
+                return;
+            }
+            invalidate();
+        }
+        motion = Motion.NONE;
+        atRest = false;
+        rest();
+        MotionDriver.get().wake();
+    }
+
     public Motion motion() {
         return motion;
     }
