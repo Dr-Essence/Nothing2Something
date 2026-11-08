@@ -1,4 +1,5 @@
 <p align="center"><img src="https://raw.githubusercontent.com/Dr-Essence/Nothing2Something/claude/nothing-os-xposed-module-65lsca/docs/images/banner.png" alt="Nothing2Something: the three-eyed dot-matrix face and the name in Nothing's NDot" width="100%"></p>
+<p align="center"><sub>© Dr.Essence · NDot fonts are owned by © Nothing</sub></p>
 
 # Nothing2Something
 
