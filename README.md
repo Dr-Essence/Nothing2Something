@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.55.3, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.55.4, what is pending, what still needs testing</summary>
 
-**Current build: 0.55.3** (CMF Phone 1, Nothing OS 4.1, Android 16): CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.55.4** (CMF Phone 1, Nothing OS 4.1, Android 16): the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -71,6 +71,24 @@ Each section below opens when tapped.
   the phone was held (Dr.Essence: "seems to work"; the LSPosed log not checked yet).
 
 **Not tested on a phone yet**
+- **0.55.4, "Dot matrix" in Nothing's Icon Pack picker.** Asked by Dr.Essence: the dot icons
+  as a choice next to Nothing's own packs, not something that takes over every icon. The
+  module's "Dot-matrix app icons" switch is gone (a row on the Home screen page opens
+  Nothing's picker instead, `com.nothing.launcher.icon_pack_picker`); the icons are dot screens
+  only while "Dot matrix" is the picked pack. Found in the launcher's code (this build's short
+  names): the picker lists every entry of the launcher's map of packs besides Default and
+  Nothing (`la.e.w`), filled from apps answering the ADW icon-pack intent (`h7.d.a`); the module
+  adds its own entry there (`k7.b("com.dressence.nothinglauncherplus", "Dot matrix")`), so no
+  other launcher sees a pack. Its preview circle is the module's icon as a dot screen
+  (`d7.h.i`, after). A tap is Nothing's own: `Settings.System nothing_icon_pack` is written and
+  the launcher reloads its icons; for this id it finds no appfilter in the module and loads the
+  Default icons, which the module draws as screens. The module reads and watches that setting.
+  After updating, anyone who had the switch on picks "Dot matrix" once. Checked here: the new
+  Kotlin class and the changed Java compile against Android 36 with stand-ins for the Xposed
+  calls; the hooked methods and the picker's activity checked in the decompiled launcher.
+  Needs on the phone: "Dot matrix" in the picker with a dot preview; picking it turns every
+  icon into a screen at once, picking Default or Nothing turns them back; long names scroll
+  only with it; LSPosed log "dot matrix icon pack: picked / left".
 - **0.55.3, CMF Stereo's live icon.** Seen on the phone (screenshots, both CMF Stereo
   editions): with the Default icon style the two sound waves rested grey (at 0.28 of white)
   and only lit up as the pulse passed, so the icon looked grey; Dr.Essence asked for white
@@ -577,7 +595,10 @@ based on Unicode CLDR.
 <details>
 <summary><b>Dot-matrix app icons</b> · every launcher icon as a little dot screen</summary>
 
-- **Dot-matrix app icons** (option): every app icon the launcher draws, on the home screen, in
+- **Dot-matrix app icons**, an icon pack in Nothing's own picker (Customisation → Icon Pack →
+  **Dot matrix**, beside Default, Nothing and any installed packs; the module's Home screen
+  page opens that picker). While it is the picked pack, every app icon the launcher draws, on
+  the home screen, in
   the drawer, in folders and in search, is a little dot-matrix screen of its own: a bezel
   round a pane of glass with a hairline rim, and on it a 22 x 22 grid of round dots lit in the
   icon's own colours, each casting a dim halo on the glass. An icon in the launcher's circle
@@ -588,7 +609,10 @@ based on Unicode CLDR.
   come into view each powers on like a little screen: dots light from the centre outwards on
   a spring with a brief white LED flash, icons a few milliseconds apart. App names too long
   for their icon scroll like the folder names, a dot at a time. One hook on the launcher's
-  icon drawable covers every surface; each icon is made into a screen once and cached.
+  icon drawable covers every surface; each icon is made into a screen once and cached. The
+  pack is the module's own entry in the launcher's list of packs (`DotIconPack.kt`): picking it
+  is Nothing's own (its setting, its icon reload), the launcher loads the Default icons for it,
+  and the module draws those as screens; any other pack draws as it always does.
 
 </details>
 

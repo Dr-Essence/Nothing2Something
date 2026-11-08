@@ -5,7 +5,6 @@ import android.text.Layout;
 import android.text.TextUtils;
 import android.widget.TextView;
 
-import com.dressence.nothinglauncherplus.xposed.ConfigStore;
 import com.dressence.nothinglauncherplus.xposed.Hooks;
 
 import java.util.Collections;
@@ -36,12 +35,12 @@ final class LabelScroll {
     private LabelScroll() {
     }
 
-    static void install(ClassLoader cl, ConfigStore store) {
+    static void install(ClassLoader cl) {
         XposedHelpers.findAndHookMethod(CLS_BUBBLE, cl, "onDraw", Canvas.class,
                 new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {
-                        update((TextView) param.thisObject, store.get().dotIcons);
+                        update((TextView) param.thisObject, DotIconPack.active());
                     }
                 });
     }

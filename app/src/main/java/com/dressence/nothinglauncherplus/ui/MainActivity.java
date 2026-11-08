@@ -269,14 +269,28 @@ public class MainActivity extends Activity {
                 }));
     }
 
+    /**
+     * Nothing Launcher's Icon Pack picker (its exported activity), where "Dot matrix" is one of
+     * the packs; if this launcher build has no such screen, the reason is shown.
+     */
+    private void openIconPackPicker() {
+        try {
+            startActivity(new Intent("com.nothing.launcher.icon_pack_picker")
+                    .setPackage("com.nothing.launcher")
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (Exception e) {
+            Toast.makeText(this, "Nothing Launcher's Icon Pack picker was not found: open "
+                    + "Customisation > Icon Pack", Toast.LENGTH_LONG).show();
+        }
+    }
+
     private void renderHome(Ui ui, Config config) {
         ui.section("Icons");
-        ui.switchRow("Dot-matrix app icons",
-                "Every app icon a little dot screen in its own shape; long names scroll",
-                config.dotIcons, checked -> {
-                    config.dotIcons = checked;
-                    store.save(this);
-                });
+        // An icon pack in Nothing's own picker now (launcher/DotIconPack.kt), not a switch here.
+        ui.row("Dot-matrix app icons",
+                "Pick \"Dot matrix\" in Nothing's Icon Pack picker: every icon a little dot "
+                        + "screen in its own shape, long names scroll", null, ui.chevron(),
+                v -> openIconPackPicker());
 
         ui.section("Landscape & controllers");
         ui.switchRow("Home screen rotation", "Home and app drawer follow auto-rotate (beta)",

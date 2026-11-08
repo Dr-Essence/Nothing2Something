@@ -41,7 +41,6 @@ public final class Config {
     public static final String KEY_EMOJI_COVERS = "emoji_covers";
     public static final String KEY_COVERS_OFF_IN_SAVER = "covers_off_in_saver";
     public static final String KEY_DOT_MATRIX = "dot_matrix";
-    public static final String KEY_DOT_ICONS = "dot_icons";
     public static final String KEY_NDOT_STATUS = "ndot_status_bar";
     public static final String KEY_STATUS_DATE = "status_bar_date";
     public static final String KEY_DUAL_STATUS = "dual_status_bar";
@@ -160,8 +159,6 @@ public final class Config {
     public boolean coversOffInSaver = false;
     /** Emoji covers drawn as a Nothing-style dot matrix. */
     public boolean dotMatrix = true;
-    /** Every app icon drawn as a glowing Nothing dot matrix. */
-    public boolean dotIcons = false;
     /** Status bar clock and battery in glowing green NDot, like the folder screens. */
     public boolean ndotStatusBar = false;
     /** The date beside the status bar clock. */
@@ -383,7 +380,6 @@ public final class Config {
         emojiCovers = in.bool(KEY_EMOJI_COVERS, true);
         coversOffInSaver = in.bool(KEY_COVERS_OFF_IN_SAVER, false);
         dotMatrix = in.bool(KEY_DOT_MATRIX, true);
-        dotIcons = in.bool(KEY_DOT_ICONS, false);
         ndotStatusBar = in.bool(KEY_NDOT_STATUS, false);
         statusBarDate = in.bool(KEY_STATUS_DATE, false);
         dualStatusBar = in.bool(KEY_DUAL_STATUS, false);
@@ -444,7 +440,6 @@ public final class Config {
         out.bool(KEY_EMOJI_COVERS, emojiCovers);
         out.bool(KEY_COVERS_OFF_IN_SAVER, coversOffInSaver);
         out.bool(KEY_DOT_MATRIX, dotMatrix);
-        out.bool(KEY_DOT_ICONS, dotIcons);
         out.bool(KEY_NDOT_STATUS, ndotStatusBar);
         out.bool(KEY_STATUS_DATE, statusBarDate);
         out.bool(KEY_DUAL_STATUS, dualStatusBar);

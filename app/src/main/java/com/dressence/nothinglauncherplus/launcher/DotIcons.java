@@ -18,7 +18,6 @@ import android.view.Choreographer;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.dressence.nothinglauncherplus.xposed.ConfigStore;
 import com.dressence.nothinglauncherplus.xposed.Hooks;
 
 import java.lang.ref.WeakReference;
@@ -36,7 +35,8 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedHelpers;
 
 /**
- * Optional dot-matrix app icons: every icon the launcher draws (home screen, app drawer, icons
+ * Dot-matrix app icons, while "Dot matrix" is the picked pack in Nothing's Icon Pack picker
+ * ({@link DotIconPack}): every icon the launcher draws (home screen, app drawer, icons
  * in drawer folders and their tile previews, search) is shown as a little dot-matrix screen of
  * its own (IconScreen): round in the launcher's circle, or in the icon's own shape.
  *
@@ -136,7 +136,7 @@ final class DotIcons {
     private DotIcons() {
     }
 
-    static void install(ClassLoader cl, ConfigStore store) {
+    static void install(ClassLoader cl) {
         Class<?> fast = XposedHelpers.findClass(CLS_FAST_BITMAP, cl);
         Class<?> bitmapInfo = XposedHelpers.findClass("com.android.launcher3.icons.BitmapInfo", cl);
         fBitmapInfo = field(fast, "mBitmapInfo");
@@ -152,7 +152,7 @@ final class DotIcons {
                 new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {
-                        if (store.get().dotIcons && draw((Drawable) param.thisObject,
+                        if (DotIconPack.active() && draw((Drawable) param.thisObject,
                                 (Canvas) param.args[0])) {
                             param.setResult(null);
                         }
@@ -165,16 +165,13 @@ final class DotIcons {
                         launcher = new WeakReference<>((Activity) param.thisObject);
                     }
                 });
-        // Switching the option redraws every icon on screen.
-        boolean[] last = {store.get().dotIcons};
-        store.addChangeListener(() -> {
-            boolean now = store.get().dotIcons;
+        // Picking the pack or leaving it redraws every icon on screen at once (the launcher
+        // reloads its icons too, a moment later).
+        DotIconPack.install(cl, () -> {
             Activity activity = launcher.get();
-            if (now == last[0] || activity == null) {
-                return;
+            if (activity != null) {
+                invalidateAll(activity.getWindow().getDecorView());
             }
-            last[0] = now;
-            activity.runOnUiThread(() -> invalidateAll(activity.getWindow().getDecorView()));
         });
     }
 
