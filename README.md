@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.54.11, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.54.12, what is pending, what still needs testing</summary>
 
-**Current build: 0.54.11** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.54.12** (CMF Phone 1, Nothing OS 4.1, Android 16): the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -64,6 +64,18 @@ Each section below opens when tapped.
   it (log: "move every 60 s by 2 dp").
 
 **Not tested on a phone yet**
+- **0.54.12, the crash-loop guard counts crashes only.** Seen on the phone: setting Nothing
+  Tweaks' LSPosed scope put the dual status bar back to one row. The LSPosed log (05:03 to
+  05:07) showed no conflict between the modules: System UI was restarted from outside three
+  times within three minutes (Nothing Tweaks' and the module's own restarts; `am_proc_died`, no
+  exception, no tombstone), and the guard, which counted every start, took that for a crash
+  loop and left the dual status bar and the OLED saver off ("left off: System UI kept
+  restarting"). At each start the guard now reads why the previous System UI ended, as Android
+  recorded it (`ApplicationExitInfo` through `IActivityManager.getHistoricalProcessExitReasons`,
+  System UI asking about its own package), and counts the start only after a crash, native
+  crash, ANR or failed start (or when that cannot be read). Needs on the phone: a few restarts
+  in a row (Nothing Tweaks, LSPosed scope, Restart System UI) keeping both rows; once, after
+  updating, save any setting so the off state from before clears.
 - **0.54.11, the dual status bar's date hides with the clock.** DebuG24 (recording, frame by
   frame): on the landscape lock screen a line of green text, the date ("SUNDAY, 8 NOVEMBER
   2026"), showed cut in half along the screen's top edge (15.0, 23.8 and 26.0 s). System UI

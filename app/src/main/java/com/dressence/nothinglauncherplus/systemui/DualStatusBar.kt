@@ -543,6 +543,8 @@ internal class CrashGuard(private val key: String, private val name: String) {
         } else if (System.currentTimeMillis() - (read(File(dir, PLANNED)).trim().toLongOrNull()
                 ?: 0L) < PLANNED_MS) {
             true // Restarted from the module app on purpose: not a crash.
+        } else if (lastExit()?.let { it !in CRASHES } == true) {
+            true // The last System UI ended without crashing (restarted, stopped): not a loop.
         } else {
             val now = System.currentTimeMillis()
             val recent = read(starts).lines()
@@ -566,6 +568,29 @@ internal class CrashGuard(private val key: String, private val name: String) {
         false
     }
 
+    /**
+     * Why the previous System UI process ended, as Android recorded it (ApplicationExitInfo
+     * .REASON_*), or null when that cannot be read. Mistake recorded (0.54.11, LSPosed log of
+     * 05:03 to 05:07): System UI was restarted from outside three times within three minutes
+     * (setting Nothing Tweaks' LSPosed scope; its restart and ours), none of them a crash
+     * (am_proc_died, no exception, no tombstone), and the guard counted every start, so it
+     * switched the dual status bar and the OLED saver off as if they crashed it. Only a start
+     * after a crash counts now. Read through IActivityManager, as System UI is asking about
+     * its own package (so allowed) before it has a Context.
+     */
+    private fun lastExit(): Int? = runCatching {
+        val am = Class.forName("android.app.ActivityManager").getMethod("getService").invoke(null)
+        val slice = am.javaClass.getMethod("getHistoricalProcessExitReasons", String::class.java,
+            Int::class.javaPrimitiveType, Int::class.javaPrimitiveType,
+            Int::class.javaPrimitiveType).invoke(am, SYSUI, 0, 8, 0)
+        val list = slice.javaClass.getMethod("getList").invoke(slice) as List<*>
+        list.filterIsInstance<android.app.ApplicationExitInfo>()
+            .filter { it.processName == SYSUI }
+            .maxByOrNull { it.timestamp }
+            ?.takeIf { System.currentTimeMillis() - it.timestamp < LOOP_MS }
+            ?.reason
+    }.getOrNull()
+
     private fun read(f: File): String = runCatching { if (f.exists()) f.readText() else "" }
         .getOrDefault("")
 
@@ -580,5 +605,11 @@ internal class CrashGuard(private val key: String, private val name: String) {
         /** The note the module app writes before it restarts System UI (ms since 1970). */
         const val PLANNED = "nlplus_planned_restart"
         private const val PLANNED_MS = 60_000L
+        private const val SYSUI = "com.android.systemui"
+        /** Exits that count towards a loop: crashes, ANRs and a failed start. */
+        private val CRASHES = setOf(android.app.ApplicationExitInfo.REASON_CRASH,
+            android.app.ApplicationExitInfo.REASON_CRASH_NATIVE,
+            android.app.ApplicationExitInfo.REASON_ANR,
+            android.app.ApplicationExitInfo.REASON_INITIALIZATION_FAILURE)
     }
 }
