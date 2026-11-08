@@ -9,9 +9,11 @@ import android.graphics.PixelFormat
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.text.TextPaint
+import android.view.Gravity
 import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.dressence.nothinglauncherplus.Config
@@ -74,6 +76,7 @@ internal object DualStatusBar {
     @Volatile private var monthNumber = false
     @Volatile private var withYear = false
     @Volatile private var dateAtEnd = false
+    @Volatile private var notificationsAtEnd = false
     @Volatile private var ndot = false
 
     /** SystemBarUtils.getStatusBarHeight, to ask its original answer (without our row). */
@@ -101,6 +104,7 @@ internal object DualStatusBar {
         monthNumber = config.dualStatusBarMonthNumber
         withYear = config.dualStatusBarYear
         dateAtEnd = config.dualStatusBarDateAtEnd
+        notificationsAtEnd = config.dualStatusBarNotificationsAtEnd
         ndot = config.ndotStatusBar
         on = true
 
@@ -219,11 +223,12 @@ internal object DualStatusBar {
     /** Lays the bar out on one row or two, for the orientation it is in now. */
     private fun arrange(bar: ViewGroup) {
         val start = find(bar, "status_bar_start_side_except_heads_up") as? LinearLayout
+        val startContent = find(bar, "status_bar_start_side_content")
         val endSide = find(bar, "status_bar_end_side_container")
         val end = find(bar, "status_bar_end_side_content")
         val area = find(bar, "notification_icon_area")
         val clock = find(bar, "clock") as? TextView
-        if (start == null || endSide == null || end == null || area == null || clock == null
+        if (start == null || startContent == null || endSide == null || end == null || area == null || clock == null
             || clock.layoutParams !is LinearLayout.LayoutParams
             || area.layoutParams !is LinearLayout.LayoutParams
         ) {
@@ -231,13 +236,14 @@ internal object DualStatusBar {
             return
         }
         clockFace = clock.typeface
-        val keep = saved.getOrPut(start) { Saved(start, clock, area, end) }
+        val keep = saved.getOrPut(start) { Saved(start, startContent, clock, area, end) }
         // The two rows' measures, or null when this orientation keeps one row.
         val rows = baseHeight(bar.context)?.let { rows(bar.context, it) }
             ?.takeIf { landscape || !isLandscape(bar.context) }
 
         val clockLp = clock.layoutParams as LinearLayout.LayoutParams
         val areaLp = area.layoutParams as LinearLayout.LayoutParams
+        val contentLp = startContent.layoutParams
         if (rows != null) {
             start.orientation = LinearLayout.VERTICAL
             // The clock takes what the row leaves: the original bar height.
@@ -250,6 +256,16 @@ internal object DualStatusBar {
             // The end side's icons stay level with the clock: its box ends where the bar did.
             end.setPadding(end.paddingLeft, end.paddingTop, end.paddingRight,
                 keep.endBottom + rows.growth)
+            if (notificationsAtEnd) {
+                // The left half's content fills its half (Nothing already gives the half its
+                // width), so the icons can go to its end. The date is either before them (at
+                // the area's start) or on the end side: the two options never overlap.
+                contentLp.width = ViewGroup.LayoutParams.MATCH_PARENT
+                areaLp.width = ViewGroup.LayoutParams.MATCH_PARENT
+            } else {
+                contentLp.width = keep.contentWidth
+                areaLp.width = keep.areaWidth
+            }
         } else {
             start.orientation = keep.orientation
             clockLp.height = keep.clockHeight
@@ -258,9 +274,13 @@ internal object DualStatusBar {
             areaLp.weight = keep.areaWeight
             areaLp.topMargin = keep.areaTop
             end.setPadding(end.paddingLeft, end.paddingTop, end.paddingRight, keep.endBottom)
+            contentLp.width = keep.contentWidth
+            areaLp.width = keep.areaWidth
         }
         clock.layoutParams = clockLp
         area.layoutParams = areaLp
+        startContent.layoutParams = contentLp
+        alignIcons(area, rows != null && notificationsAtEnd)
         // The date: before the notifications, or (Date at the end) on the end side's second
         // row, under its icons, where the bar is empty, leaving the notifications the whole
         // left half (in portrait the camera gap ends that half, and the full date left the
@@ -269,14 +289,27 @@ internal object DualStatusBar {
         DateRow.attach(start, host, clock, keep, rows?.takeIf { showDate })
     }
 
+    /** The icon container at the end of its area (or back at its start). */
+    private fun alignIcons(area: View, atEnd: Boolean) {
+        val icons = find(area, "notificationIcons") ?: return
+        val lp = icons.layoutParams as? FrameLayout.LayoutParams ?: return
+        val gravity = if (atEnd) Gravity.END or Gravity.CENTER_VERTICAL else Gravity.NO_GRAVITY
+        if (lp.gravity != gravity) {
+            lp.gravity = gravity
+            icons.layoutParams = lp
+        }
+    }
+
     /** What [arrange] changes, as Nothing set it: put back for one row. */
-    private class Saved(start: LinearLayout, clock: View, area: View, end: View) {
+    private class Saved(start: LinearLayout, content: View, clock: View, area: View, end: View) {
         val orientation = start.orientation
         val clockHeight: Int
         val clockWeight: Float
         val areaHeight: Int
         val areaWeight: Float
         val areaTop: Int
+        val areaWidth: Int
+        val contentWidth = content.layoutParams.width
         val endBottom = end.paddingBottom
         val areaStart = area.paddingStart
         val areaEnd = area.paddingEnd
@@ -289,6 +322,7 @@ internal object DualStatusBar {
             areaHeight = a.height
             areaWeight = a.weight
             areaTop = a.topMargin
+            areaWidth = a.width
         }
     }
 

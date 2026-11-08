@@ -490,11 +490,17 @@ public class MainActivity extends Activity {
                     store.save(this);
                 });
         ui.switchRow("Date at the end",
-                "On the second row, the notifications at the start and the date opposite them,"
-                        + " at the end of the left half (before the camera in portrait)"
-                        + " · restart System UI",
+                "On the second row, the date under the Wi-Fi, signal and battery icons, leaving"
+                        + " the left half to the notifications · restart System UI",
                 config.dualStatusBarDateAtEnd, checked -> {
                     config.dualStatusBarDateAtEnd = checked;
+                    store.save(this);
+                });
+        ui.switchRow("Notifications at the end",
+                "On the second row, the notifications at the end of the left half (before the"
+                        + " camera in portrait); works with Date at the end · restart System UI",
+                config.dualStatusBarNotificationsAtEnd, checked -> {
+                    config.dualStatusBarNotificationsAtEnd = checked;
                     store.save(this);
                 });
 

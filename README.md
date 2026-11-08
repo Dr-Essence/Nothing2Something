@@ -47,9 +47,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.54.1, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.54.2, what is pending, what still needs testing</summary>
 
-**Current build: 0.54.1** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver, and Restart System UI in the module.
+**Current build: 0.54.2** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar with its options and tighter rows, the OLED saver, and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -61,14 +61,16 @@ Each section below opens when tapped.
   it (log: "move every 60 s by 2 dp").
 
 **Not tested on a phone yet**
-- **0.54.1, dual status bar: Date at the end** (replaces Notifications at the end): the
-  notifications keep the start of the second row and the whole left half; the date goes on
-  the end side's second row, under the Wi-Fi/signal/battery icons, where the bar is empty
-  (drawn on that side's overlay; nothing moves there). In portrait the camera gap ends the
+- **0.54.2, dual status bar: Date at the end and Notifications at the end**, two switches
+  that work in every combination: the notifications always stay in the left half (at its
+  start, or with Notifications at the end at its end: before the camera gap in portrait),
+  the date either before them or, with Date at the end, on the end side's second row, under
+  the Wi-Fi/signal/battery icons, where the bar is empty (drawn on that side's overlay;
+  nothing moves there), so the two never overlap. In portrait the camera gap ends the
   left half, and the full date with the notifications after it left room only for System
   UI's overflow dot (seen on the phone); with the date at the end the icons have the half.
   Month as a number and Year in the date as before (the year now in full, see Fixed). Needs
-  on the phone: both orientations with Date at the end on and off, with notifications; still
+  on the phone: both orientations with each of the four combinations, with notifications; still
   from 0.53: the bar over a light app (dark text and date), during a call or screen recording
   (its chip sits between the rows), and the lock screen's status bar and clock.
 - **0.54.1, OLED saver** (Status bar & quick settings → OLED saver; `StatusBarSaver.kt`):
