@@ -47,29 +47,38 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.53.1, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.54.0, what is pending, what still needs testing</summary>
 
-**Current build: 0.53.1** (CMF Phone 1, Nothing OS 4.1, Android 16): 0.52.5 plus a dual status bar (fixed in 0.53.1), and Kotlin in the build.
+**Current build: 0.54.0** (CMF Phone 1, Nothing OS 4.1, Android 16): the dual status bar's options and tighter rows, and an OLED saver for the status bar; the module's first Kotlin code.
+
+**Verified on the phone**
+- 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
+  the other icons, the date in full ("SUNDAY, 8 NOVEMBER") and the notifications under it,
+  apps under the taller bar (screenshots). The gap between the rows was too large; see 0.54.0.
 
 **Not tested on a phone yet**
-- **0.53.1, dual status bar** (Status bar & quick settings → Dual status bar, and Dual status
-  bar in landscape; off by default; restart System UI after changing either). Everything stays
-  on the top row as Nothing lays it out; the notifications go on a second row under the
-  clock, with the date in full ("Friday, 7 November", the language's own order) when Date in
-  status bar is on. Built from Nothing's System UI 16 without moving any of its views to
-  another parent (what makes such mods crash System UI on every notification): one icon row
-  is added where System UI and its window take the bar's height
-  (`SystemBarUtils.getStatusBarHeight` and `…ForRotation`), so apps move down with it; the
-  clock and notification row Nothing already has (`status_bar_start_side_except_heads_up`)
-  is turned vertical, the notification area one icon row high and the clock in the rest;
-  the end side gets one row of bottom padding so its icons stay level with the clock; the
-  date is drawn on the notification area's overlay in the clock's own font, colour and glow.
-  Guard: three System UI starts within three minutes with it on turn it off until a setting
-  is saved again. Compiled here against Android 36 (the new code and what it uses). Needs on
-  the phone: both rows in portrait (and landscape with its switch), apps' content starting
-  under the taller bar, notifications arriving without System UI crashing, the bar over a
-  light app (dark text and date), during a call or screen recording (its chip sits between
-  the rows), and the lock screen's status bar and clock (they use the same height).
+- **0.54.0, dual status bar options and tighter rows** (now Kotlin, `DualStatusBar.kt`):
+  Month as a number ("Sunday, 8/11", the language's order), Year in the date, and
+  Notifications at the end (the date at the start of the second row, the notifications at
+  the end of the left half: before the camera gap in portrait, up to the right icons in
+  landscape; the right half belongs to the Wi-Fi/signal/battery icons, and moving the
+  icons into it is what crashes other mods). The second row now starts in the room the bar
+  already has under the clock's text (worked out from the bar's real height, the clock's
+  text height in its font and the row height), leaving a gap of 0.3 text heights, and the
+  bar grows only by the rest; the top row stays where it was. Needs on the phone: the gap,
+  the three options, the top row unmoved; still from 0.53: the bar over a light app (dark
+  text and date), during a call or screen recording (its chip sits between the rows), and
+  the lock screen's status bar and clock (they use the same height).
+- **0.54.0, OLED saver** (Status bar & quick settings → OLED saver; `StatusBarSaver.kt`):
+  Move the status bar (never, every 30 s … 30 min), How far it moves (1-6 dp) and Hide the
+  status bar (never, instantly with 5 s shown, after 1-30 min; back on a new notification,
+  the shade being pulled or the screen turning on). It moves and fades only
+  `status_bar_contents`, which neither System UI nor Nothing moves or fades themselves;
+  before each move it measures the room the visible content has inside the bar and stays
+  within it, so nothing goes past an edge on any layout. Its own crash-loop guard, like the
+  dual status bar's. Needs on the phone: the moves (a recording over a few intervals, a
+  short interval to see it), hiding and coming back on each trigger, nothing cut at the
+  edges, with and without the dual status bar.
 - **0.52.5, dot-matrix icons powering on in step again:** icons drawn while their view was still
   hidden (the first frames of the drawer or a folder opening, when Android fades and slides the
   page without redrawing icons) waited for a 1 s recheck, so they lit up late and one by one. They
@@ -1383,7 +1392,7 @@ The module's code is grouped by where it runs:
 | --- | --- |
 | `xposed` | The entry point (`ModuleEntry`, named in `assets/xposed_init`), hook helpers (`Hooks`: installing a feature so its failure is its own, guarding code the apps call back into), the settings as hooked apps read them (`ConfigStore`) and Nothing's NDot font (`NdotFont`). |
 | `launcher` | Everything in Nothing Launcher: the Smart drawer's folders and covers, the folder menu, landscape, controllers, sounds, dot-matrix icons (`DotIcons`, `IconScreen`) and scrolling names. |
-| `systemui` | The status bar and quick settings: `Clock`, `Battery`, `GreenIcons`, `GreenTexts`, `QuickSettings`, `NetworkSpeed`, all in the lit look of `Led`, and the second status bar row (`DualStatusBar`). |
+| `systemui` | The status bar and quick settings: `Clock`, `Battery`, `GreenIcons`, `GreenTexts`, `QuickSettings`, `NetworkSpeed`, all in the lit look of `Led`; the second status bar row (`DualStatusBar.kt`) and the OLED saver (`StatusBarSaver.kt`), with their shared System UI crash-loop guard (`CrashGuard`). |
 | `perf` | CMF Phone 1 only: the device check and root helper (`Device`), the Ndot performance overlay (`OverlayService` reads, `PerfHud` draws) and the per-game 120 fps unlock (`GameUnlock`), the Game Bar's buttons (`GameBar`, in the Game Bar; `GameBarReceiver`, in the module app). |
 | `system` | The system font, set in the font map system_server gives every app (`SystemFonts`), the gaming launcher while a controller is connected (`ControllerHome`), Settings screens opened on a feature's behalf (`SystemShortcuts`) and a probe writing to the LSPosed log which window decides the screen's orientation each time it changes (`OrientationProbe`, `orientation: requested … by …`, naming the activity or window at the end of the chain). |
 | `widgets` | Nothing's widget apps in landscape. |

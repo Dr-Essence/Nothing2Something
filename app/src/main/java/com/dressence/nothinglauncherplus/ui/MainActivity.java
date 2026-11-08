@@ -392,6 +392,37 @@ public class MainActivity extends Activity {
         return label != null ? label : pkg + " (not installed)";
     }
 
+    /** Sets one setting from a list of choices; the row shows the current one. */
+    private interface IntSetter {
+        void set(int value);
+    }
+
+    /**
+     * A row that opens a list of {@code labels}; picking one stores its {@code values}
+     * entry through {@code setter} and saves.
+     */
+    private void choiceRow(Ui ui, String title, String summary, String[] labels, int[] values,
+            int current, IntSetter setter) {
+        int checked = 0;
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] == current) {
+                checked = i;
+            }
+        }
+        final int selected = checked;
+        ui.row(title, labels[selected] + " · " + summary, null, ui.chevron(), v ->
+                Dialogs.builder(this)
+                        .setTitle(title)
+                        .setSingleChoiceItems(labels, selected, (dialog, which) -> {
+                            setter.set(values[which]);
+                            store.save(this);
+                            dialog.dismiss();
+                            render();
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show());
+    }
+
     private void chooseGamingLauncher(Config config) {
         java.util.Map<String, String> apps = homeApps();
         if (apps.isEmpty()) {
@@ -445,6 +476,47 @@ public class MainActivity extends Activity {
                     config.dualStatusBarLandscape = checked;
                     store.save(this);
                 });
+        ui.switchRow("Month as a number", "The second row's date as 8/11, not 8 November"
+                        + " · restart System UI",
+                config.dualStatusBarMonthNumber, checked -> {
+                    config.dualStatusBarMonthNumber = checked;
+                    store.save(this);
+                });
+        ui.switchRow("Year in the date", "The second row's date with the year"
+                        + " · restart System UI",
+                config.dualStatusBarYear, checked -> {
+                    config.dualStatusBarYear = checked;
+                    store.save(this);
+                });
+        ui.switchRow("Notifications at the end",
+                "On the second row, the notifications at the end of the left half (before the"
+                        + " camera in portrait), the date at its start · restart System UI",
+                config.dualStatusBarNotificationsAtEnd, checked -> {
+                    config.dualStatusBarNotificationsAtEnd = checked;
+                    store.save(this);
+                });
+
+        ui.section("OLED saver");
+        choiceRow(ui, "Move the status bar",
+                "Its content shifts a few pixels so no pixel stays lit in one place; never past"
+                        + " the screen's edges · restart System UI",
+                new String[]{"Never", "Every 30 seconds", "Every minute", "Every 2 minutes",
+                        "Every 5 minutes", "Every 10 minutes", "Every 15 minutes",
+                        "Every 30 minutes"},
+                new int[]{0, 30, 60, 120, 300, 600, 900, 1800},
+                config.statusBarShiftSeconds, value -> config.statusBarShiftSeconds = value);
+        choiceRow(ui, "How far it moves", "At most, on each side · restart System UI",
+                new String[]{"1 dp", "2 dp", "3 dp", "4 dp", "6 dp"},
+                new int[]{1, 2, 3, 4, 6},
+                config.statusBarShiftDp, value -> config.statusBarShiftDp = value);
+        choiceRow(ui, "Hide the status bar",
+                "Fades out after this time; back on a new notification, when the shade is"
+                        + " pulled or the screen turns on · restart System UI",
+                new String[]{"Never", "Instantly (shown 5 s)", "After 1 minute",
+                        "After 2 minutes", "After 5 minutes", "After 10 minutes",
+                        "After 15 minutes", "After 20 minutes", "After 30 minutes"},
+                new int[]{-1, 0, 1, 2, 5, 10, 15, 20, 30},
+                config.statusBarHideMinutes, value -> config.statusBarHideMinutes = value);
 
         ui.section("Quick settings");
         ui.switchRow("Green quick settings", "Quick settings icons in glowing green",

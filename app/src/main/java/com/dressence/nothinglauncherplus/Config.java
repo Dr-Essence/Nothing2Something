@@ -46,6 +46,12 @@ public final class Config {
     public static final String KEY_STATUS_DATE = "status_bar_date";
     public static final String KEY_DUAL_STATUS = "dual_status_bar";
     public static final String KEY_DUAL_STATUS_LAND = "dual_status_bar_landscape";
+    public static final String KEY_DUAL_MONTH_NUMBER = "dual_status_bar_month_number";
+    public static final String KEY_DUAL_YEAR = "dual_status_bar_year";
+    public static final String KEY_DUAL_NOTIF_END = "dual_status_bar_notifications_end";
+    public static final String KEY_SB_SHIFT_SECONDS = "status_bar_shift_seconds";
+    public static final String KEY_SB_SHIFT_DP = "status_bar_shift_dp";
+    public static final String KEY_SB_HIDE_MINUTES = "status_bar_hide_minutes";
     public static final String KEY_SYSTEM_FONT = "system_font";
     public static final String KEY_NDOT_QS = "ndot_quick_settings";
     public static final String KEY_QS_AMBER = "qs_amber";
@@ -161,6 +167,18 @@ public final class Config {
     public boolean dualStatusBar = false;
     /** The second row in landscape too. */
     public boolean dualStatusBarLandscape = false;
+    /** The second row's date with the month as a number ("8/11"), not its name. */
+    public boolean dualStatusBarMonthNumber = false;
+    /** The second row's date with the year. */
+    public boolean dualStatusBarYear = false;
+    /** The second row's notifications at the end of the left half, the date at its start. */
+    public boolean dualStatusBarNotificationsAtEnd = false;
+    /** OLED saver: how often the status bar's content moves, in seconds (0: never). */
+    public int statusBarShiftSeconds = 0;
+    /** OLED saver: how far it moves at most, in dp. */
+    public int statusBarShiftDp = 2;
+    /** OLED saver: the status bar's content fades out after this many minutes (-1: never). */
+    public int statusBarHideMinutes = -1;
     /**
      * The font hooked apps draw their text in: "file:" and a font file's path, "res:" and a
      * font of Nothing's widgets app, or empty for the phone's own.
@@ -357,6 +375,12 @@ public final class Config {
         statusBarDate = in.bool(KEY_STATUS_DATE, false);
         dualStatusBar = in.bool(KEY_DUAL_STATUS, false);
         dualStatusBarLandscape = in.bool(KEY_DUAL_STATUS_LAND, false);
+        dualStatusBarMonthNumber = in.bool(KEY_DUAL_MONTH_NUMBER, false);
+        dualStatusBarYear = in.bool(KEY_DUAL_YEAR, false);
+        dualStatusBarNotificationsAtEnd = in.bool(KEY_DUAL_NOTIF_END, false);
+        statusBarShiftSeconds = in.number(KEY_SB_SHIFT_SECONDS, 0);
+        statusBarShiftDp = in.number(KEY_SB_SHIFT_DP, 2);
+        statusBarHideMinutes = in.number(KEY_SB_HIDE_MINUTES, -1);
         systemFont = in.text(KEY_SYSTEM_FONT, "");
         ndotQuickSettings = in.bool(KEY_NDOT_QS, false);
         qsAmber = in.bool(KEY_QS_AMBER, false);
@@ -409,6 +433,12 @@ public final class Config {
         out.bool(KEY_STATUS_DATE, statusBarDate);
         out.bool(KEY_DUAL_STATUS, dualStatusBar);
         out.bool(KEY_DUAL_STATUS_LAND, dualStatusBarLandscape);
+        out.bool(KEY_DUAL_MONTH_NUMBER, dualStatusBarMonthNumber);
+        out.bool(KEY_DUAL_YEAR, dualStatusBarYear);
+        out.bool(KEY_DUAL_NOTIF_END, dualStatusBarNotificationsAtEnd);
+        out.number(KEY_SB_SHIFT_SECONDS, statusBarShiftSeconds);
+        out.number(KEY_SB_SHIFT_DP, statusBarShiftDp);
+        out.number(KEY_SB_HIDE_MINUTES, statusBarHideMinutes);
         out.text(KEY_SYSTEM_FONT, systemFont);
         out.bool(KEY_NDOT_QS, ndotQuickSettings);
         out.bool(KEY_QS_AMBER, qsAmber);

@@ -17,6 +17,7 @@ public final class SystemUi {
         Hooks.install("lit texts", Led::install);
         Hooks.install("status bar clock", () -> Clock.install(cl, store));
         Hooks.install("dual status bar", () -> DualStatusBar.install(cl, store));
+        Hooks.install("status bar saver", () -> StatusBarSaver.install(cl, store));
         Hooks.install("status bar battery", () -> Battery.install(cl, store));
         Hooks.install("green icons", () -> GreenIcons.install(store));
         Hooks.install("green texts", () -> GreenTexts.install(store));
