@@ -289,17 +289,17 @@ class GamingSpaceActivity : Activity() {
     private fun place(width: Int, height: Int) {
         screenHeight = (height * SCREEN_SHARE).toInt()
         screen.layoutParams = FrameLayout.LayoutParams(width, screenHeight)
+        // As on a folder's card (DotMatrix.layout): the name's strip across the top, and the
+        // picture's screen filling the face below it, the picture in the middle.
         val inset = dp(16f).toInt()
-        val side = screenHeight - inset * 2
+        val labelH = dp(44f).toInt()
+        val side = screenHeight - labelH - inset * 3
         screen.setTextSize(TypedValue.COMPLEX_UNIT_PX, side * 0.6f)
-        screen.setDotPanel(Rect(inset * 2, inset, inset * 2 + side, inset + side),
+        val left = (width - side) / 2
+        val top = inset * 2 + labelH
+        screen.setDotPanel(Rect(left, top, left + side, top + side),
             Rect(0, 0, width, screenHeight), dp(24f))
-        // The name lights on the screen's right part, like a folder's name on its card.
-        val labelLeft = inset * 4 + side
-        val labelSize = dp(30f)
-        val mid = screenHeight / 2
-        screenLabel.set(labelLeft, (mid - labelSize).toInt(), width - inset * 2,
-            (mid + labelSize).toInt())
+        screenLabel.set(inset * 2, inset, width - inset * 2, inset + labelH)
         shownTitle = null
         layoutCross()
         showSelection(false)
@@ -330,7 +330,8 @@ class GamingSpaceActivity : Activity() {
         cards.clear()
         val w = dp(CARD_W).toInt()
         val h = dp(CARD_H).toInt()
-        val labelH = dp(30f).toInt()
+        // As a drawer folder: the name's strip on top, the emoji's screen under it.
+        val labelH = dp(28f).toInt()
         val side = ((h - labelH) * COVER_SCALE).toInt()
         GamingLibrary.order.forEachIndexed { i, cat ->
             val card = AnimatedEmojiView(this)
@@ -338,10 +339,10 @@ class GamingSpaceActivity : Activity() {
             card.setTextSize(TypedValue.COMPLEX_UNIT_PX, side * 0.6f)
             setCover(card, cat.emoji, cat.ordinal.toLong())
             val left = (w - side) / 2
-            val top = (h - labelH - side) / 2
+            val top = labelH + (h - labelH - side) / 2
             card.setDotPanel(Rect(left, top, left + side, top + side), Rect(0, 0, w, h),
                 minOf(w, h) * CARD_CORNER)
-            card.setDotLabel(cat.title, LED_GREEN, Rect(0, h - labelH, w, h - dp(4f).toInt()),
+            card.setDotLabel(cat.title, LED_GREEN, Rect(0, dp(4f).toInt(), w, labelH),
                 NdotFont.get(this), dp(13f))
             card.setOnClickListener { setCategory(i) }
             bar.addView(card, FrameLayout.LayoutParams(w, h))
@@ -460,7 +461,7 @@ class GamingSpaceActivity : Activity() {
     private fun title(text: String) {
         if (text == shownTitle) return
         shownTitle = text
-        screen.setDotLabel(text, LED_GREEN, screenLabel, NdotFont.get(this), dp(30f))
+        screen.setDotLabel(text, LED_GREEN, screenLabel, NdotFont.get(this), dp(26f))
     }
 
     /** The icon as it is (for the big screen, which makes its own dots). */
