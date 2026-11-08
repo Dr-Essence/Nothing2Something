@@ -50,9 +50,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.55.9, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.55.10, what is pending, what still needs testing</summary>
 
-**Current build: 0.55.9** (CMF Phone 1, Nothing OS 4.1, Android 16): dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.55.10** (CMF Phone 1, Nothing OS 4.1, Android 16): finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
@@ -71,6 +71,13 @@ Each section below opens when tapped.
   the phone was held (Dr.Essence: "seems to work"; the LSPosed log not checked yet).
 
 **Not tested on a phone yet**
+- **0.55.10, finer dot icons.** Asked by Dr.Essence: more and smaller dots. The grid is 34
+  dots across instead of 22 (about 2.4 times the dots, each two thirds the size); the bezel's
+  reach over the grid, the glow and the power-on all follow the dot spacing. Checked here:
+  renders at 22, 28, 34 and 40 (34 keeps the artwork's shapes crisp and still reads as a dot
+  screen at icon size); the class compiles. Needs on the phone: the icons at 34, and whether
+  the drawer or the home screen stutters while icons power on (each draws 2.4 times the dots
+  during the 0.56 s power-on; if it does, the density or the power-on is the place to look).
 - **0.55.6, no green edge on dot icons.** Seen on the phone: icons in a shape of their own
   showed a green outline, which Dr.Essence found did not look good. Their glass was lit green
   (`GLASS_GREEN`) with green unlit dots, and the glass between the outermost dots and the bezel

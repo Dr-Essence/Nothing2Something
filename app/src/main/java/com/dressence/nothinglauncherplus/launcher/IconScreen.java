@@ -32,8 +32,12 @@ import java.util.List;
  */
 final class IconScreen {
 
-    /** Dots across the icon. */
-    private static final int GRID = 22;
+    /**
+     * Dots across the icon. 34 (until 0.55.9, 22): Dr.Essence asked for more and smaller dots;
+     * picked from renders at 22, 28, 34 and 40, where 34 kept the shapes crisp and still read as
+     * a dot screen at icon size.
+     */
+    private static final int GRID = 34;
     /** Dot diameter, in dot spacings. */
     private static final float DOT = 0.8f;
     /** Below this a dot's cell counts as dark; above it, one of these opacities. */
