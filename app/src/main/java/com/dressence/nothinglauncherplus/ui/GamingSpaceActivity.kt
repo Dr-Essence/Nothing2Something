@@ -16,7 +16,9 @@ import android.util.LruCache
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.InputDevice
+import android.view.GestureDetector
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
@@ -31,6 +33,7 @@ import com.dressence.nothinglauncherplus.launcher.IconScreen
 import com.dressence.nothinglauncherplus.xposed.NdotFont
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.math.abs
 
 /**
  * Nothing Gaming Space: a home screen for playing with a controller, in Nothing's dot-matrix
@@ -107,6 +110,39 @@ class GamingSpaceActivity : Activity() {
     /** A game's artwork from SteamGridDB, when that is on (see [SteamGridArt]). */
     private lateinit var artwork: DotAnimationView
     private val art by lazy { SteamGridArt(this) }
+    /** Menus in Gaming Space's own look, over the page. */
+    private val sheet by lazy { NothingSheet(this, root) { ndot } }
+    /** Touch: swipes move through categories and apps, a tap on the big screen plays. */
+    private val gestures by lazy {
+        GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, vx: Float, vy: Float): Boolean {
+                if (phase != Phase.MAIN || sheet.isOpen) return false
+                if (abs(vx) > abs(vy)) setCategory(category + if (vx < 0) 1 else -1)
+                else setApp(appFocus[category] + if (vy < 0) 1 else -1)
+                return true
+            }
+
+            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                if (phase != Phase.MAIN || sheet.isOpen || e.y > screenHeight) return false
+                launch()
+                return true
+            }
+
+            override fun onLongPress(e: MotionEvent) {
+                if (phase == Phase.MAIN && !sheet.isOpen && e.y <= screenHeight) menu()
+            }
+        })
+    }
+
+    /** Touches are watched for swipes first; taps on cards and apps still reach them. */
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (phase == Phase.MAIN && !sheet.isOpen && gestures.onTouchEvent(ev) &&
+            ev.actionMasked == MotionEvent.ACTION_UP) {
+            // A swipe ended here: cancel it for the views, so it is not also a tap.
+            ev.action = MotionEvent.ACTION_CANCEL
+        }
+        return super.dispatchTouchEvent(ev)
+    }
     private var screenHeight = 0
     private val screenLabel = Rect()
     private var shownTitle: String? = null
@@ -462,7 +498,7 @@ class GamingSpaceActivity : Activity() {
      */
     private fun showSelection(categoryFirst: Boolean) {
         main.removeCallbacks(showApp)
-        artwork.showPicture(null)
+        artwork.showArtwork(null)
         val cat = GamingLibrary.order[category]
         val app = appsOf(category).getOrNull(appFocus[category])
         if (categoryFirst) {
@@ -499,12 +535,13 @@ class GamingSpaceActivity : Activity() {
         if (app.category != GamingLibrary.Category.GAMES &&
             app.category != GamingLibrary.Category.EMULATORS) return
         worker.execute {
-            val picture = art.fetch(app.packageName, app.label) ?: return@execute
+            val picture = art.fetch(app.packageName, app.label,
+                store.config.gamingArtworkAnimated) ?: return@execute
             main.post {
                 val now = appsOf(category).getOrNull(appFocus[category])
                 if (!isDestroyed && now?.packageName == app.packageName &&
                     animation.visibility != View.VISIBLE) {
-                    artwork.showPicture(picture)
+                    artwork.showArtwork(picture)
                 }
             }
         }
@@ -560,6 +597,13 @@ class GamingSpaceActivity : Activity() {
     // -------------------------------------------------------------------------------------
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (sheet.isOpen) {
+            return if (event.repeatCount == 0 || keyCode in arrayOf(KeyEvent.KEYCODE_DPAD_UP,
+                    KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT,
+                    KeyEvent.KEYCODE_DPAD_RIGHT)) {
+                sheet.onKey(keyCode) || super.onKeyDown(keyCode, event)
+            } else true
+        }
         if (phase != Phase.MAIN) {
             // The intro and the warning: a button skips; volume and other keys work as always.
             val skips = KeyEvent.isGamepadButton(keyCode) || keyCode == KeyEvent.KEYCODE_BACK ||
@@ -593,7 +637,7 @@ class GamingSpaceActivity : Activity() {
 
     @Deprecated("Back does nothing on this home screen")
     override fun onBackPressed() {
-        if (phase != Phase.MAIN) skip?.invoke()
+        if (sheet.isOpen) sheet.close() else if (phase != Phase.MAIN) skip?.invoke()
     }
 
     private fun launch() {
@@ -606,23 +650,35 @@ class GamingSpaceActivity : Activity() {
         }
     }
 
-    /** Moves the selected app to another category, hides it, or renames it. */
+    /**
+     * The selected app's menu, in Gaming Space's own look ([NothingSheet]): play it, move it
+     * to another category, rename it, choose its artwork, or hide it.
+     */
     private fun menu() {
         val app = appsOf(category).getOrNull(appFocus[category]) ?: return
+        val canArt = store.config.gamingArtwork && SteamGridArt.key(this).isNotEmpty() &&
+            (app.category == GamingLibrary.Category.GAMES ||
+                app.category == GamingLibrary.Category.EMULATORS)
+        val actions = ArrayList<Pair<String, () -> Unit>>()
+        actions += "Play" to { launch() }
+        actions += "Move to another category" to { moveTo(app) }
+        actions += "Rename" to { rename(app) }
+        if (canArt) actions += "Choose artwork" to { chooseArtwork(app) }
+        actions += "Hide from Gaming Space" to {
+            store.config.gamingCategories[app.packageName] = GamingLibrary.HIDDEN
+            store.save(this)
+            reloadApps()
+        }
+        sheet.list(app.label, actions.map { it.first }, 0) { actions[it].second() }
+    }
+
+    private fun moveTo(app: GamingLibrary.App) {
         val cats = GamingLibrary.order
-        val names = cats.map { it.title } + "Hide from Gaming Space"
-        Dialogs.builder(this)
-            .setTitle(app.label)
-            .setSingleChoiceItems(names.toTypedArray(), cats.indexOf(app.category)) { d, which ->
-                store.config.gamingCategories[app.packageName] =
-                    if (which < cats.size) cats[which].name else GamingLibrary.HIDDEN
-                store.save(this)
-                d.dismiss()
-                reloadApps()
-            }
-            .setNeutralButton("Rename") { _, _ -> rename(app) }
-            .setNegativeButton("Cancel", null)
-            .show()
+        sheet.list("Move to", cats.map { it.title }, cats.indexOf(app.category)) { which ->
+            store.config.gamingCategories[app.packageName] = cats[which].name
+            store.save(this)
+            reloadApps()
+        }
     }
 
     /**
@@ -631,28 +687,46 @@ class GamingSpaceActivity : Activity() {
      * forgotten, so it is looked up again at once. An empty name goes back to the app's own.
      */
     private fun rename(app: GamingLibrary.App) {
-        val field = android.widget.EditText(this)
-        field.setSingleLine(true)
-        field.setText(app.label)
-        field.setSelection(app.label.length)
-        val pad = dp(20f).toInt()
-        val box = FrameLayout(this)
-        box.setPadding(pad, dp(8f).toInt(), pad, 0)
-        box.addView(field)
-        Dialogs.builder(this)
-            .setTitle("Rename")
-            .setMessage("The name shown here, and searched for its artwork. Empty: the app's own.")
-            .setView(box)
-            .setPositiveButton("Save") { _, _ ->
-                val name = field.text.toString().trim()
-                if (name.isEmpty()) store.config.gamingNames.remove(app.packageName)
-                else store.config.gamingNames[app.packageName] = name
-                store.save(this)
-                worker.execute { art.forget(app.packageName) }
-                reloadApps()
+        sheet.text("Rename", app.label) { name ->
+            if (name.isEmpty()) store.config.gamingNames.remove(app.packageName)
+            else store.config.gamingNames[app.packageName] = name
+            store.save(this)
+            worker.execute { art.forget(app.packageName) }
+            reloadApps()
+        }
+    }
+
+    /**
+     * Every picture SteamGridDB has for the app's game, animated banners first, to pick the
+     * one shown; the pick is saved and shown at once.
+     */
+    private fun chooseArtwork(app: GamingLibrary.App) {
+        sheet.message("Artwork", "Looking on SteamGridDB for \"${app.label}\"…")
+        worker.execute {
+            val found = try { art.options(app.label) } catch (t: Throwable) { null }
+            val previews = found?.second?.take(14)?.map { it to art.preview(it) } ?: emptyList()
+            main.post {
+                if (isDestroyed) return@post
+                if (found == null || previews.isEmpty()) {
+                    sheet.message("Artwork", "Nothing found for \"${app.label}\". Rename it to" +
+                        " the game's name on SteamGridDB, then try again.")
+                    return@post
+                }
+                sheet.pictures("Artwork · ${found.first}",
+                    previews.map { (choice, picture) -> choice.kind to picture }) { which ->
+                    val choice = previews[which].first
+                    worker.execute {
+                        try {
+                            art.save(app.packageName, choice)
+                        } catch (t: Throwable) {
+                            main.post { sheet.message("Artwork", "Could not download it.") }
+                            return@execute
+                        }
+                        main.post { showSelection(false) }
+                    }
+                }
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        }
     }
 
     // -------------------------------------------------------------------------------------

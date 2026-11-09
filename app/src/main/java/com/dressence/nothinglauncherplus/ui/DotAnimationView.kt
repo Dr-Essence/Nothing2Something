@@ -8,6 +8,9 @@ import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
+import android.graphics.drawable.Animatable
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.os.SystemClock
 import android.view.View
 import kotlin.math.PI
@@ -53,6 +56,8 @@ internal class DotAnimationView(context: Context) : View(context) {
     /** A still picture shown when no animation plays: as given, and fitted to the dots. */
     private var pictureSource: Bitmap? = null
     private var picture: Bitmap? = null
+    /** An animated picture playing on the dots (see [showArtwork]). */
+    private var moving: Drawable? = null
     private val random = Random(7)
 
     private val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG).also { it.color = GLASS }
@@ -82,7 +87,7 @@ internal class DotAnimationView(context: Context) : View(context) {
 
     fun stop() {
         category = null
-        visibility = if (pictureSource != null) VISIBLE else GONE
+        visibility = if (pictureSource != null || moving != null) VISIBLE else GONE
         onEnd?.let { onEnd = null; it() }
     }
 
@@ -115,13 +120,44 @@ internal class DotAnimationView(context: Context) : View(context) {
      * Shows a still picture (a game's artwork) on the dots until it is replaced or cleared:
      * cropped to the screen's shape from the middle and shrunk to one pixel per dot.
      */
+    /**
+     * Shows a game's artwork: a still picture as with [showPicture] (each dot one colour),
+     * or an animated one (an animated banner) playing on the dots: drawn under the mask of
+     * round dots at the dots' size, every frame Android gives it.
+     */
+    fun showArtwork(art: Drawable?) {
+        stopMoving()
+        if (art is BitmapDrawable) {
+            showPicture(art.bitmap)
+            return
+        }
+        showPicture(null)
+        if (art == null) return
+        moving = art
+        art.callback = this
+        (art as? Animatable)?.start()
+        visibility = VISIBLE
+        invalidate()
+    }
+
+    private fun stopMoving() {
+        moving?.let {
+            (it as? Animatable)?.stop()
+            it.callback = null
+        }
+        moving = null
+    }
+
+    override fun verifyDrawable(who: Drawable): Boolean = who === moving || super.verifyDrawable(who)
+
     fun showPicture(source: Bitmap?) {
+        if (source != null) stopMoving()
         pictureSource = source
         fitPicture()
         // Shown as soon as there is a picture, even before it can be fitted: a view that is
         // GONE is never measured, so its dots (and the fitted picture) would never be made.
         // Mistake recorded (0.61.0/0.61.1): it was shown only once fitted, so it never was.
-        visibility = if (source != null || category != null) VISIBLE else GONE
+        visibility = if (source != null || category != null || moving != null) VISIBLE else GONE
         invalidate()
     }
 
@@ -146,6 +182,7 @@ internal class DotAnimationView(context: Context) : View(context) {
         if (cat == null) {
             if (picture == null && pictureSource != null) fitPicture() // laid out just now
             picture?.let { drawDots(canvas, it, dots, 1f) }
+            moving?.let { drawMoving(canvas, it, dots) }
             return
         }
         val bitmap = frame ?: return
@@ -171,6 +208,28 @@ internal class DotAnimationView(context: Context) : View(context) {
         val edge = 200f
         drawDots(canvas, bitmap, dots, minOf(1f, elapsed / edge, (DURATION_MS - elapsed) / edge))
         postInvalidateOnAnimation()
+    }
+
+    /** An animated picture on the dots: cropped from the middle to the dots' area. */
+    private fun drawMoving(canvas: Canvas, art: Drawable, dots: Bitmap) {
+        val w = cols * pitch
+        val h = rows * pitch
+        val iw = art.intrinsicWidth.takeIf { it > 0 } ?: w.toInt()
+        val ih = art.intrinsicHeight.takeIf { it > 0 } ?: h.toInt()
+        val scale = maxOf(w / iw, h / ih)
+        val dw = iw * scale
+        val dh = ih * scale
+        val x = left + (w - dw) / 2
+        val y = top + (h - dh) / 2
+        art.setBounds(x.toInt(), y.toInt(), (x + dw).toInt(), (y + dh).toInt())
+        canvas.drawRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), corner, corner,
+            glassPaint)
+        canvas.drawBitmap(dots, 0f, 0f, unlitPaint)
+        val layer = canvas.saveLayer(0f, 0f, width.toFloat(), height.toFloat(), null)
+        canvas.clipRect(left, top, left + w, top + h)
+        art.draw(canvas)
+        canvas.drawBitmap(dots, 0f, 0f, maskPaint)
+        canvas.restoreToCount(layer)
     }
 
     /**

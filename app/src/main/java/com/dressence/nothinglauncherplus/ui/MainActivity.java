@@ -452,6 +452,13 @@ public class MainActivity extends Activity {
                         askSteamGridKey();
                     }
                 });
+        ui.switchRow("Animated artwork first", "When a game has an animated banner on"
+                        + " SteamGridDB, it plays on the big dot screen · Y on a game, Choose"
+                        + " artwork, picks another",
+                config.gamingArtworkAnimated, checked -> {
+                    config.gamingArtworkAnimated = checked;
+                    store.save(this);
+                });
         String lastArt = SteamGridArt.Companion.lastResult(this);
         ui.row("SteamGridDB API key", (SteamGridArt.Companion.key(this).isEmpty() ? "Not set ·"
                         + " make one at steamgriddb.com, Profile, Preferences, API"

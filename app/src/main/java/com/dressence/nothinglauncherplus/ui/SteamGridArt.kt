@@ -3,6 +3,8 @@ package com.dressence.nothinglauncherplus.ui
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.graphics.drawable.Drawable
 import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
@@ -82,20 +84,38 @@ internal class SteamGridArt(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private val dir = File(context.filesDir, "artwork").also { it.mkdirs() }
 
+    /** One picture SteamGridDB has for a game: its address, its small preview, and kind. */
+    class Choice(val url: String, val thumb: String, val animated: Boolean, val kind: String)
+
+    private fun file(pkg: String) = File(dir, "$pkg.img")
+
     /** Forgets an app's saved artwork and any "no match", so it is looked up again. */
     fun forget(pkg: String) {
-        File(dir, "$pkg.jpg").delete()
+        file(pkg).delete()
+        File(dir, "$pkg.jpg").delete() // as 0.61.0 to 0.61.2 saved it
         prefs.edit().remove(NO_MATCH + pkg).apply()
     }
 
-    /** The app's saved artwork, if it was fetched before (reads a file: off the main thread). */
-    fun cached(pkg: String): Bitmap? {
-        val file = File(dir, "$pkg.jpg")
-        return if (file.exists()) BitmapFactory.decodeFile(file.path) else null
+    /**
+     * The app's saved artwork as a drawable, if it was fetched or chosen before: an animated
+     * one ([android.graphics.drawable.AnimatedImageDrawable]) for an animated picture, else a
+     * still one. Reads a file: off the main thread.
+     */
+    fun cached(pkg: String): Drawable? {
+        val saved = file(pkg).takeIf { it.exists() } ?: File(dir, "$pkg.jpg").takeIf { it.exists() }
+        ?: return null
+        return try {
+            ImageDecoder.decodeDrawable(ImageDecoder.createSource(saved))
+        } catch (t: Throwable) {
+            null
+        }
     }
 
-    /** The app's artwork: saved, or looked up by its name and saved; null if there is none. */
-    fun fetch(pkg: String, label: String): Bitmap? {
+    /**
+     * The app's artwork: saved, or looked up by its name and saved; null if there is none.
+     * With [animated] an animated banner is taken first when the game has one.
+     */
+    fun fetch(pkg: String, label: String, animated: Boolean): Drawable? {
         cached(pkg)?.let { return it }
         val key = prefs.getString(KEY, "") ?: ""
         if (key.isEmpty()) return null
@@ -103,18 +123,17 @@ internal class SteamGridArt(context: Context) {
         if (missed != 0L && System.currentTimeMillis() - missed < RETRY_MS) return null
         return try {
             val game = search(key, label)
-            val url = game?.let { image(key, "heroes/game/${it.first}?$FILTERS") }
-                ?: game?.let { image(key, "grids/game/${it.first}?dimensions=920x430,460x215&$FILTERS") }
-            if (url == null) {
+            val pick = game?.let { choices(key, it.first, if (animated) 1 else 0).firstOrNull() }
+            if (pick == null) {
                 prefs.edit().putLong(NO_MATCH + pkg, System.currentTimeMillis())
                     .putString(LAST, if (game == null) "No match for \"$label\""
                         else "\"${game.second}\" has no artwork yet").apply()
                 return null
             }
-            val bytes = download(url, null)
-            File(dir, "$pkg.jpg").writeBytes(bytes)
-            prefs.edit().putString(LAST, "Found \"${game?.second}\" for \"$label\"").apply()
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            save(pkg, pick)
+            prefs.edit().putString(LAST, "Found \"${game.second}\"" +
+                (if (pick.animated) " (animated)" else "") + " for \"$label\"").apply()
+            cached(pkg)
         } catch (e: HttpError) {
             prefs.edit().putString(LAST, "\"$label\": SteamGridDB answered HTTP ${e.code}").apply()
             null
@@ -123,6 +142,64 @@ internal class SteamGridArt(context: Context) {
             prefs.edit().putString(LAST, "\"$label\": ${t.javaClass.simpleName}" +
                 (t.message?.let { ": $it" } ?: "")).apply()
             null
+        }
+    }
+
+    /**
+     * Every picture to choose from for an app's game, animated banners first, then still
+     * banners, then wide covers, with the matched game's name. Blocking.
+     */
+    fun options(label: String): Pair<String, List<Choice>>? {
+        val key = prefs.getString(KEY, "") ?: ""
+        if (key.isEmpty()) return null
+        val game = search(key, label) ?: return null
+        return game.second to choices(key, game.first, 4, 8, 6)
+    }
+
+    /** Saves [choice] as the app's artwork (the full picture: animated ones move). Blocking. */
+    fun save(pkg: String, choice: Choice) {
+        val bytes = download(if (choice.animated) choice.url else choice.thumb.ifEmpty { choice.url },
+            null)
+        file(pkg).writeBytes(bytes)
+        File(dir, "$pkg.jpg").delete()
+        prefs.edit().remove(NO_MATCH + pkg).apply()
+    }
+
+    /** A small preview picture for the chooser (the first frame of an animated one). */
+    fun preview(choice: Choice): Bitmap? = try {
+        val bytes = download(choice.thumb.ifEmpty { choice.url }, null)
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    } catch (t: Throwable) {
+        null
+    }
+
+    /**
+     * Up to [animated] animated banners, [still] still banners and [covers] wide covers of a
+     * game, in that order. SteamGridDB's `types` filter tells animated from still.
+     */
+    private fun choices(key: String, game: Int, animated: Int, still: Int = 1,
+            covers: Int = 1): List<Choice> {
+        val out = ArrayList<Choice>()
+        if (animated > 0) out += list(key, "heroes/game/$game?types=animated&$FILTERS", true,
+            "Animated banner").take(animated)
+        out += list(key, "heroes/game/$game?types=static&$FILTERS", false, "Banner").take(still)
+        if (out.size < animated + still) {
+            out += list(key, "grids/game/$game?dimensions=920x430,460x215&$FILTERS", false,
+                "Cover").take(covers)
+        }
+        return out
+    }
+
+    private fun list(key: String, path: String, animated: Boolean, kind: String): List<Choice> {
+        val data = try {
+            JSONObject(String(download("$BASE/$path", key))).optJSONArray("data")
+        } catch (e: HttpError) {
+            if (e.code == 404) null else throw e // 404: the game has none of these
+        } ?: return emptyList()
+        return (0 until data.length()).mapNotNull { i ->
+            val item = data.getJSONObject(i)
+            val url = item.optString("url")
+            if (url.isEmpty()) null else Choice(url, item.optString("thumb"), animated, kind)
         }
     }
 
@@ -146,14 +223,6 @@ internal class SteamGridArt(context: Context) {
             }
         }
         return null
-    }
-
-    /** The first image's thumbnail (or full) address for [path], or null if it has none. */
-    private fun image(key: String, path: String): String? {
-        val data = JSONObject(String(download("$BASE/$path", key))).optJSONArray("data")
-        if (data == null || data.length() == 0) return null
-        val first = data.getJSONObject(0)
-        return first.optString("thumb").ifEmpty { first.optString("url") }.ifEmpty { null }
     }
 
     /** An answer other than 2xx, with its code (401 or 403: the key was refused). */

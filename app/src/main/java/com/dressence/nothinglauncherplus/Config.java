@@ -85,6 +85,7 @@ public final class Config {
     public static final String KEY_GAMING_WARNED = "gaming_warned";
     public static final String KEY_GAMING_ARTWORK = "gaming_artwork";
     public static final String KEY_GAMING_NAMES = "gaming_names";
+    public static final String KEY_GAMING_ANIMATED = "gaming_artwork_animated";
     public static final String KEY_FULL_SCREEN_MODE = "full_screen_mode";
 
     /** Full-screen apps: when the picked apps hide the status bar. */
@@ -263,6 +264,8 @@ public final class Config {
     public boolean gamingWarned = false;
     /** Nothing Gaming Space: game artwork from SteamGridDB (needs the user's own API key). */
     public boolean gamingArtwork = false;
+    /** Nothing Gaming Space: an animated banner first, when a game has one. */
+    public boolean gamingArtworkAnimated = true;
     /**
      * Nothing Gaming Space: names the user gave apps (package to name), shown instead of the
      * app's own and searched on SteamGridDB, so a game whose Play name differs is found.
@@ -478,6 +481,7 @@ public final class Config {
         }
         gamingWarned = in.bool(KEY_GAMING_WARNED, false);
         gamingArtwork = in.bool(KEY_GAMING_ARTWORK, false);
+        gamingArtworkAnimated = in.bool(KEY_GAMING_ANIMATED, true);
         gamingNames.clear();
         for (String pair : in.text(KEY_GAMING_NAMES, "").split(",")) {
             int eq = pair.indexOf('=');
@@ -552,6 +556,7 @@ public final class Config {
         out.text(KEY_GAMING_CATEGORIES, gaming.toString());
         out.bool(KEY_GAMING_WARNED, gamingWarned);
         out.bool(KEY_GAMING_ARTWORK, gamingArtwork);
+        out.bool(KEY_GAMING_ANIMATED, gamingArtworkAnimated);
         StringBuilder names = new StringBuilder();
         for (java.util.Map.Entry<String, String> e : gamingNames.entrySet()) {
             if (names.length() > 0) {
