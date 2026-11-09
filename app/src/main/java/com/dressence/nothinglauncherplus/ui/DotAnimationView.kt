@@ -177,11 +177,18 @@ internal class DotAnimationView(context: Context) : View(context) {
             picture = null
             return
         }
-        val fitted = Bitmap.createBitmap(cols, rows, Bitmap.Config.ARGB_8888)
-        val area = framing.place(source.width.toFloat(), source.height.toFloat(), 0f, 0f,
-            cols.toFloat(), rows.toFloat())
-        Canvas(fitted).drawBitmap(source, null, area, Paint(Paint.FILTER_BITMAP_FLAG))
-        picture = fitted
+        picture = try {
+            // A bitmap's own canvas cannot draw a hardware bitmap: a readable copy first.
+            val readable = if (source.config == Bitmap.Config.HARDWARE)
+                source.copy(Bitmap.Config.ARGB_8888, false) else source
+            val fitted = Bitmap.createBitmap(cols, rows, Bitmap.Config.ARGB_8888)
+            val area = framing.place(readable.width.toFloat(), readable.height.toFloat(), 0f, 0f,
+                cols.toFloat(), rows.toFloat())
+            Canvas(fitted).drawBitmap(readable, null, area, Paint(Paint.FILTER_BITMAP_FLAG))
+            fitted
+        } catch (t: Throwable) {
+            null // a picture that cannot be shown leaves the icon; never takes the screen down
+        }
     }
 
     override fun onDraw(canvas: Canvas) {

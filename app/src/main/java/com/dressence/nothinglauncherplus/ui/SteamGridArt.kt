@@ -105,7 +105,14 @@ internal class SteamGridArt(context: Context) {
         val saved = file(pkg).takeIf { it.exists() } ?: File(dir, "$pkg.jpg").takeIf { it.exists() }
         ?: return null
         return try {
-            ImageDecoder.decodeDrawable(ImageDecoder.createSource(saved))
+            // In ordinary memory, not on the GPU: a still picture is drawn into the dots'
+            // small bitmap, which a hardware bitmap cannot be. (Mistake recorded, 0.62.0 and
+            // 0.63.0: decoded with the default, hardware, allocator, Gaming Space crashed as
+            // soon as a game had saved artwork: "Software rendering doesn't support hardware
+            // bitmaps" in DotAnimationView.fitPicture, seen in Dr.Essence's log.)
+            ImageDecoder.decodeDrawable(ImageDecoder.createSource(saved)) { decoder, _, _ ->
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            }
         } catch (t: Throwable) {
             null
         }
