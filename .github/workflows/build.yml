@@ -33,15 +33,31 @@ jobs:
             echo "::warning::no release key - debug-signed build, it cannot update an installed release"
           fi
 
-      # Gradle itself is downloaded by the wrapper from GitHub's releases; a short outage there
-      # (HTTP 504, seen on 0.63.1 and 0.64.0) failed the build before any code was compiled.
-      # Fetched first, up to four times, so a passing hiccup no longer fails the build.
+      # Gradle itself: on 9 Nov 2026 GitHub's release storage, where services.gradle.org
+      # redirects, answered HTTP 504 to the runners for over ten minutes (0.63.1, 0.64.0 and
+      # four retries failed before compiling). So the zip is fetched here from several places in
+      # turn, each checked against the official checksum (gradle.org/release-checksums, Gradle 8.14.3 -bin; not from a
+      # download, which was a 504 error page), and the wrapper is pointed at the checked file.
       - name: Fetch Gradle
         run: |
-          for attempt in 1 2 3 4; do
-            ./gradlew --no-daemon --version && exit 0
-            echo "Gradle download failed (attempt $attempt), trying again in 30 s"
-            sleep 30
+          want=bd71102213493060956ec229d946beee57158dbd89d0e62b91bca0fa2c5f3531
+          zip="$RUNNER_TEMP/gradle-8.14.3-bin.zip"
+          for url in \
+              https://downloads.gradle.org/distributions/gradle-8.14.3-bin.zip \
+              https://github.com/gradle/gradle-distributions/releases/download/v8.14.3/gradle-8.14.3-bin.zip \
+              https://mirrors.cloud.tencent.com/gradle/gradle-8.14.3-bin.zip \
+              https://mirrors.huaweicloud.com/gradle/gradle-8.14.3-bin.zip; do
+            for attempt in 1 2; do
+              if curl -fsSL --retry 2 --max-time 300 -o "$zip" "$url" \
+                  && echo "$want  $zip" | sha256sum -c -; then
+                echo "Gradle from $url"
+                sed -i "s#^distributionUrl=.*#distributionUrl=file\\://$zip#" \
+                    gradle/wrapper/gradle-wrapper.properties
+                exit 0
+              fi
+              echo "Not from $url (attempt $attempt)"
+              sleep 10
+            done
           done
           exit 1
 
