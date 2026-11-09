@@ -11,6 +11,8 @@ import com.dressence.nothinglauncherplus.Config
  * Nothing Gaming Space's apps, each in one category.
  *
  * How an app's category is found, first match wins:
+ * Names: the app's own, or the one the user gave it ([Config.gamingNames]).
+ *
  * 1. The user's own choice ([Config.gamingCategories]), made with the controller's menu button
  *    or a long press; [HIDDEN] keeps an app out of every category.
  * 2. A known emulator ([EMULATORS]: package names, or the start of them for families such as
@@ -79,7 +81,9 @@ internal object GamingLibrary {
             if (chosen == HIDDEN) continue
             val category = Category.entries.firstOrNull { it.name == chosen }
                 ?: automatic(pkg, info.activityInfo.applicationInfo, browsers, tv)
-            apps += App(pkg, info.loadLabel(pm).toString(), category)
+            // The user's own name for it, if given (also what SteamGridDB is searched with).
+            val label = config.gamingNames[pkg] ?: info.loadLabel(pm).toString()
+            apps += App(pkg, label, category)
         }
         apps.sortBy { it.label.lowercase() }
         return apps

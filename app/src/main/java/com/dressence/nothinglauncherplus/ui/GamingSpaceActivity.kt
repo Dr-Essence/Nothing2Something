@@ -606,7 +606,7 @@ class GamingSpaceActivity : Activity() {
         }
     }
 
-    /** Moves the selected app to another category, or hides it. */
+    /** Moves the selected app to another category, hides it, or renames it. */
     private fun menu() {
         val app = appsOf(category).getOrNull(appFocus[category]) ?: return
         val cats = GamingLibrary.order
@@ -618,6 +618,37 @@ class GamingSpaceActivity : Activity() {
                     if (which < cats.size) cats[which].name else GamingLibrary.HIDDEN
                 store.save(this)
                 d.dismiss()
+                reloadApps()
+            }
+            .setNeutralButton("Rename") { _, _ -> rename(app) }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    /**
+     * Gives the app a name of the user's own: shown here and searched on SteamGridDB (a game
+     * listed under another name there is then found). Its saved artwork and any "no match" are
+     * forgotten, so it is looked up again at once. An empty name goes back to the app's own.
+     */
+    private fun rename(app: GamingLibrary.App) {
+        val field = android.widget.EditText(this)
+        field.setSingleLine(true)
+        field.setText(app.label)
+        field.setSelection(app.label.length)
+        val pad = dp(20f).toInt()
+        val box = FrameLayout(this)
+        box.setPadding(pad, dp(8f).toInt(), pad, 0)
+        box.addView(field)
+        Dialogs.builder(this)
+            .setTitle("Rename")
+            .setMessage("The name shown here, and searched for its artwork. Empty: the app's own.")
+            .setView(box)
+            .setPositiveButton("Save") { _, _ ->
+                val name = field.text.toString().trim()
+                if (name.isEmpty()) store.config.gamingNames.remove(app.packageName)
+                else store.config.gamingNames[app.packageName] = name
+                store.save(this)
+                worker.execute { art.forget(app.packageName) }
                 reloadApps()
             }
             .setNegativeButton("Cancel", null)

@@ -452,10 +452,14 @@ public class MainActivity extends Activity {
                         askSteamGridKey();
                     }
                 });
-        ui.row("SteamGridDB API key", SteamGridArt.Companion.key(this).isEmpty() ? "Not set ·"
+        String lastArt = SteamGridArt.Companion.lastResult(this);
+        ui.row("SteamGridDB API key", (SteamGridArt.Companion.key(this).isEmpty() ? "Not set ·"
                         + " make one at steamgriddb.com, Profile, Preferences, API"
-                        : "Set · kept only in this app, never shared", null, ui.chevron(),
-                v -> askSteamGridKey());
+                        : "Set · kept only in this app, never shared")
+                        + (lastArt.isEmpty() ? "" : " · last lookup: " + lastArt), null,
+                ui.chevron(), v -> askSteamGridKey());
+        ui.row("Check the key", "Tries one search on SteamGridDB and says what happened", null,
+                ui.chevron(), v -> checkSteamGridKey());
         int hiddenGaming = java.util.Collections.frequency(config.gamingCategories.values(),
                 GamingLibrary.HIDDEN);
         if (hiddenGaming > 0) {
@@ -611,6 +615,22 @@ public class MainActivity extends Activity {
                         })
                         .setNegativeButton("Cancel", null)
                         .show());
+    }
+
+    /** Tries the key with one search, off the main thread, and shows what happened. */
+    private void checkSteamGridKey() {
+        android.app.AlertDialog waiting = Dialogs.builder(this)
+                .setTitle("SteamGridDB")
+                .setMessage("Checking…")
+                .show();
+        new Thread(() -> {
+            String result = SteamGridArt.Companion.check(this);
+            runOnUiThread(() -> {
+                if (!isDestroyed()) {
+                    waiting.setMessage(result);
+                }
+            });
+        }, "steamgriddb-check").start();
     }
 
     /** The user's own SteamGridDB key, typed in; kept in this app's private storage only. */

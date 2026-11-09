@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.61.0, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.61.1, what is pending, what still needs testing</summary>
 
-**Current build: 0.61.0** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.61.1** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.59.0, Nothing Gaming Space opens, plays the intro and lists the categories and apps
@@ -100,6 +100,18 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.61.1, Nothing Gaming Space: renaming, and the artwork's lookups shown.** On 0.61.0
+  Dr.Essence set a key and saw no artwork, with no way to tell why (failed lookups were
+  silent). Now: "Check the key" tries one search and says in words what happened (the key
+  works, refused with HTTP 401/403, or the network error); the key's row shows the last
+  lookup ("Found …", "No match for …", "… has no artwork yet", or the error). Asked by
+  Dr.Essence: renaming, so SteamGridDB finds everything: Y (or a long press) on an app, then
+  Rename; the name is shown in Gaming Space and searched on SteamGridDB, and the app's saved
+  artwork and any "no match" are forgotten so it is looked up again (stored URL-encoded, as a
+  name can hold commas; empty goes back to the app's own). SteamGridDB itself now answers
+  from here: without a key `{"success":false,"errors":["Authentication Required"]}`, HTTP
+  401, as the code expects. Checked here: it compiles. Needs: "Check the key" on the phone,
+  and the last lookup shown after selecting a game.
 - **0.61.0, Nothing Gaming Space, third part: game artwork; marked (alpha) (demo).** Dr.Essence
   tried 0.60.0: "many things need fixing", to be discussed; the option now says "(alpha)
   (demo)" (its settings row and the name in the gaming launcher picker). Artwork: a switch
