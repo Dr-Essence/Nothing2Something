@@ -452,6 +452,13 @@ public class MainActivity extends Activity {
                         askSteamGridKey();
                     }
                 });
+        ui.switchRow("Game trailers from Steam (video)", "A game's trailer from Steam's"
+                        + " store plays on the big dot screen, muted, while it is selected ·"
+                        + " streams over the internet · no key needed",
+                config.gamingTrailers, checked -> {
+                    config.gamingTrailers = checked;
+                    store.save(this);
+                });
         ui.switchRow("Animated artwork first", "When a game has an animated banner on"
                         + " SteamGridDB, it plays on the big dot screen · Y on a game, Choose"
                         + " artwork, picks another",

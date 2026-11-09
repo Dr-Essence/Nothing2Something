@@ -86,6 +86,8 @@ public final class Config {
     public static final String KEY_GAMING_ARTWORK = "gaming_artwork";
     public static final String KEY_GAMING_NAMES = "gaming_names";
     public static final String KEY_GAMING_ANIMATED = "gaming_artwork_animated";
+    public static final String KEY_GAMING_TRAILERS = "gaming_trailers";
+    public static final String KEY_GAMING_FRAMES = "gaming_frames";
     public static final String KEY_FULL_SCREEN_MODE = "full_screen_mode";
 
     /** Full-screen apps: when the picked apps hide the status bar. */
@@ -266,6 +268,10 @@ public final class Config {
     public boolean gamingArtwork = false;
     /** Nothing Gaming Space: an animated banner first, when a game has one. */
     public boolean gamingArtworkAnimated = true;
+    /** Nothing Gaming Space: a game's Steam trailer plays on the big screen (streamed). */
+    public boolean gamingTrailers = false;
+    /** Nothing Gaming Space: where each game's picture sits in the banner ("x;y;zoom"). */
+    public final java.util.Map<String, String> gamingFrames = new java.util.LinkedHashMap<>();
     /**
      * Nothing Gaming Space: names the user gave apps (package to name), shown instead of the
      * app's own and searched on SteamGridDB, so a game whose Play name differs is found.
@@ -482,6 +488,14 @@ public final class Config {
         gamingWarned = in.bool(KEY_GAMING_WARNED, false);
         gamingArtwork = in.bool(KEY_GAMING_ARTWORK, false);
         gamingArtworkAnimated = in.bool(KEY_GAMING_ANIMATED, true);
+        gamingTrailers = in.bool(KEY_GAMING_TRAILERS, false);
+        gamingFrames.clear();
+        for (String pair : in.text(KEY_GAMING_FRAMES, "").split(",")) {
+            int eq = pair.indexOf('=');
+            if (eq > 0) {
+                gamingFrames.put(pair.substring(0, eq), pair.substring(eq + 1));
+            }
+        }
         gamingNames.clear();
         for (String pair : in.text(KEY_GAMING_NAMES, "").split(",")) {
             int eq = pair.indexOf('=');
@@ -557,6 +571,15 @@ public final class Config {
         out.bool(KEY_GAMING_WARNED, gamingWarned);
         out.bool(KEY_GAMING_ARTWORK, gamingArtwork);
         out.bool(KEY_GAMING_ANIMATED, gamingArtworkAnimated);
+        out.bool(KEY_GAMING_TRAILERS, gamingTrailers);
+        StringBuilder frames = new StringBuilder();
+        for (java.util.Map.Entry<String, String> e : gamingFrames.entrySet()) {
+            if (frames.length() > 0) {
+                frames.append(',');
+            }
+            frames.append(e.getKey()).append('=').append(e.getValue());
+        }
+        out.text(KEY_GAMING_FRAMES, frames.toString());
         StringBuilder names = new StringBuilder();
         for (java.util.Map.Entry<String, String> e : gamingNames.entrySet()) {
             if (names.length() > 0) {

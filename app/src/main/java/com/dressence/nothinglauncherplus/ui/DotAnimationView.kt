@@ -118,7 +118,8 @@ internal class DotAnimationView(context: Context) : View(context) {
 
     /**
      * Shows a still picture (a game's artwork) on the dots until it is replaced or cleared:
-     * cropped to the screen's shape from the middle and shrunk to one pixel per dot.
+     * placed as the game's [framing] says (centred, covering, unless adjusted) and shrunk to
+     * one pixel per dot.
      */
     /**
      * Shows a game's artwork: a still picture as with [showPicture] (each dot one colour),
@@ -161,19 +162,26 @@ internal class DotAnimationView(context: Context) : View(context) {
         invalidate()
     }
 
+    /** Where the game's picture sits in the banner (its "Adjust artwork" setting). */
+    var framing = Framing.CENTRED
+        set(value) {
+            field = value
+            fitPicture()
+            invalidate()
+        }
+
+    /** The still picture shrunk to one pixel per dot, placed as [framing] says. */
     private fun fitPicture() {
         val source = pictureSource
         if (source == null || cols == 0 || rows == 0) {
             picture = null
             return
         }
-        val want = cols / rows.toFloat()
-        val have = source.width / source.height.toFloat()
-        val w = if (have > want) (source.height * want).toInt() else source.width
-        val h = if (have > want) source.height else (source.width / want).toInt()
-        val crop = Bitmap.createBitmap(source, (source.width - w) / 2, (source.height - h) / 2,
-            maxOf(1, w), maxOf(1, h))
-        picture = Bitmap.createScaledBitmap(crop, cols, rows, true)
+        val fitted = Bitmap.createBitmap(cols, rows, Bitmap.Config.ARGB_8888)
+        val area = framing.place(source.width.toFloat(), source.height.toFloat(), 0f, 0f,
+            cols.toFloat(), rows.toFloat())
+        Canvas(fitted).drawBitmap(source, null, area, Paint(Paint.FILTER_BITMAP_FLAG))
+        picture = fitted
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -210,18 +218,14 @@ internal class DotAnimationView(context: Context) : View(context) {
         postInvalidateOnAnimation()
     }
 
-    /** An animated picture on the dots: cropped from the middle to the dots' area. */
+    /** An animated picture on the dots: covering the dots' area, placed as [framing] says. */
     private fun drawMoving(canvas: Canvas, art: Drawable, dots: Bitmap) {
         val w = cols * pitch
         val h = rows * pitch
         val iw = art.intrinsicWidth.takeIf { it > 0 } ?: w.toInt()
         val ih = art.intrinsicHeight.takeIf { it > 0 } ?: h.toInt()
-        val scale = maxOf(w / iw, h / ih)
-        val dw = iw * scale
-        val dh = ih * scale
-        val x = left + (w - dw) / 2
-        val y = top + (h - dh) / 2
-        art.setBounds(x.toInt(), y.toInt(), (x + dw).toInt(), (y + dh).toInt())
+        val area = framing.place(iw.toFloat(), ih.toFloat(), left, top, w, h)
+        art.setBounds(area.left.toInt(), area.top.toInt(), area.right.toInt(), area.bottom.toInt())
         canvas.drawRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), corner, corner,
             glassPaint)
         canvas.drawBitmap(dots, 0f, 0f, unlitPaint)

@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.62.0, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.63.0, what is pending, what still needs testing</summary>
 
-**Current build: 0.62.0** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.63.0** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.59.0, Nothing Gaming Space opens, plays the intro and lists the categories and apps
@@ -100,6 +100,24 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.63.0, Gaming Space: Steam trailers, a bigger banner, adjusting the artwork.** Asked by
+  Dr.Essence. Trailers: "Game trailers from Steam (video)" (off by default; no key): for a
+  game or emulator, Steam's store search finds it and its store data gives its trailers
+  (`SteamTrailers`); the highlighted one plays muted and looping on the big dot screen while
+  the game is selected (`DotVideoView`: Android's own player into a TextureView, drawn through
+  the round dots' mask), and stops when a game is opened. Since 2025 Steam lists trailers as
+  streams (HLS, DASH) and short microtrailer mp4s, not plain files (LaunchBox's report,
+  SteamDB's records); the trailer's entry is searched for an HLS link first, then an mp4.
+  Steam's store could not be reached from here (the session's network), so this is unread
+  against Steam's live answer; a trailer that fails to play leaves the artwork. The banner is
+  bigger (half the page; slimmer name strip; cards 92 x 96 dp, app rows 52 dp, to keep room for
+  the column). "Adjust artwork" (in the app's menu when artwork or a trailer shows): the
+  D-pad moves the picture, L1/R1 (or L2/R2) zoom, A saves, B cancels; by touch, drag and pinch,
+  a tap saves; kept per game ("x;y;zoom", `Framing`) and used for still and animated artwork
+  and the trailer. For ROMs (asked: a source of real animations): ScreenScraper's video snaps,
+  which need a user account and developer credentials it grants to apps on request; Gaming
+  Space lists apps, not ROM files, so that would be its own feature (reading ROM folders).
+  Checked here: it compiles. Needs: a trailer playing on the phone, adjusting artwork.
 - **0.62.0, Gaming Space: its own menus, choosing artwork, animated banners, touch.**
   Asked by Dr.Essence on 0.61.1. Menus in Gaming Space's look instead of Android's dialogs
   (`NothingSheet`: a black card with a grey rim over the dimmed screen, the title glowing green

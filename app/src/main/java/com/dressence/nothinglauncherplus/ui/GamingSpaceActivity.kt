@@ -65,15 +65,18 @@ class GamingSpaceActivity : Activity() {
         private const val DIM = 0xFF8A8A8A.toInt()
         private const val LED_GREEN = Palette.LED_GREEN
         /** The dot screen's share of the page's height; the cross gets the rest. */
-        private const val SCREEN_SHARE = 0.46f
+        private const val SCREEN_SHARE = 0.5f
         /** A category's card, as a drawer folder's: size (dp), emoji share, corner. */
-        private const val CARD_W = 104f
-        private const val CARD_H = 112f
+        private const val CARD_W = 92f
+        private const val CARD_H = 96f
         private const val COVER_SCALE = 0.86f
         private const val CARD_CORNER = 0.085f
         /** An app's row in the column (dp). */
-        private const val ITEM_H = 60f
-        private const val ITEM_ICON = 54f
+        private const val ITEM_H = 52f
+        private const val ITEM_ICON = 46f
+        /** "Adjust artwork": one step of the controller, in pan and in zoom. */
+        private const val PAN_STEP = 0.1f
+        private const val ZOOM_STEP = 0.1f
         private const val MOVE_MS = 180L
         /** How long a category's emoji stays after its animation, before its app comes up. */
         private const val CATEGORY_SHOW_MS = 900L
@@ -110,6 +113,13 @@ class GamingSpaceActivity : Activity() {
     /** A game's artwork from SteamGridDB, when that is on (see [SteamGridArt]). */
     private lateinit var artwork: DotAnimationView
     private val art by lazy { SteamGridArt(this) }
+    /** A game's trailer from Steam, when that is on (see [SteamTrailers]). */
+    private lateinit var video: DotVideoView
+    private val trailers by lazy { SteamTrailers(this) }
+    /** "Adjust artwork": the app being adjusted and where its picture is now. */
+    private var adjusting: GamingLibrary.App? = null
+    private var adjustFrame = Framing.CENTRED
+    private lateinit var adjustHint: TextView
     /** Menus in Gaming Space's own look, over the page. */
     private val sheet by lazy { NothingSheet(this, root) { ndot } }
     /** Touch: swipes move through categories and apps, a tap on the big screen plays. */
@@ -136,6 +146,10 @@ class GamingSpaceActivity : Activity() {
 
     /** Touches are watched for swipes first; taps on cards and apps still reach them. */
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (adjusting != null) {
+            adjustTouch(ev)
+            return true
+        }
         if (phase == Phase.MAIN && !sheet.isOpen && gestures.onTouchEvent(ev) &&
             ev.actionMasked == MotionEvent.ACTION_UP) {
             // A swipe ended here: cancel it for the views, so it is not also a tap.
@@ -194,6 +208,12 @@ class GamingSpaceActivity : Activity() {
             store.reload()
             reloadApps() // an app installed or removed while away
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // A game opened from here: its trailer stops (no stream in the background).
+        if (phase == Phase.MAIN && screenHeight > 0) video.play(null)
     }
 
     override fun onDestroy() {
@@ -309,6 +329,13 @@ class GamingSpaceActivity : Activity() {
         artwork = DotAnimationView(this)
         artwork.visibility = View.GONE
         page.addView(artwork, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
+        video = DotVideoView(this)
+        page.addView(video, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
+        adjustHint = text("", 12f, GREEN)
+        adjustHint.setShadowLayer(dp(8f), 0f, 0f, GLOW)
+        adjustHint.visibility = View.GONE
+        page.addView(adjustHint, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT))
         animation = DotAnimationView(this)
         animation.visibility = View.GONE
         page.addView(animation, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
@@ -340,7 +367,7 @@ class GamingSpaceActivity : Activity() {
         // As on a folder's card (DotMatrix.layout): the name's strip across the top, and the
         // picture's screen filling the face below it, the picture in the middle.
         val inset = dp(16f).toInt()
-        val labelH = dp(44f).toInt()
+        val labelH = dp(36f).toInt()
         val side = screenHeight - labelH - inset * 3
         screen.setTextSize(TypedValue.COMPLEX_UNIT_PX, side * 0.6f)
         val left = (width - side) / 2
@@ -356,6 +383,9 @@ class GamingSpaceActivity : Activity() {
         artwork.layoutParams = FrameLayout.LayoutParams(width, screenHeight - artTop - inset)
             .also { it.topMargin = artTop }
         artwork.setGeometry(side / 32f, dp(18f))
+        video.layoutParams = FrameLayout.LayoutParams(width, screenHeight - artTop - inset)
+            .also { it.topMargin = artTop }
+        video.setGeometry(side / 32f, dp(18f))
         shownTitle = null
         layoutCross()
         showSelection(false)
@@ -449,7 +479,7 @@ class GamingSpaceActivity : Activity() {
     private fun layoutCross() {
         if (screenHeight == 0) return
         val slot = dp(40f)
-        val barY = screenHeight + dp(14f)
+        val barY = screenHeight + dp(8f)
         val step = dp(CARD_W + 18f)
         cards.forEachIndexed { i, card ->
             val on = i == category
@@ -498,7 +528,9 @@ class GamingSpaceActivity : Activity() {
      */
     private fun showSelection(categoryFirst: Boolean) {
         main.removeCallbacks(showApp)
+        if (adjusting != null) endAdjust(false)
         artwork.showArtwork(null)
+        video.play(null)
         val cat = GamingLibrary.order[category]
         val app = appsOf(category).getOrNull(appFocus[category])
         if (categoryFirst) {
@@ -524,7 +556,33 @@ class GamingSpaceActivity : Activity() {
         title(app.label)
         rawIcon(app.packageName)?.let { screen.setImage(it, app.packageName.hashCode().toLong()) }
         showArtwork(app)
+        showTrailer(app)
     }
+
+    /** The game's framing in the banner, as adjusted (centred if never). */
+    private fun framingOf(pkg: String) = Framing.parse(store.config.gamingFrames[pkg])
+
+    /**
+     * A game's trailer from Steam over its artwork, when trailers are on: looked up once,
+     * streamed while the game is selected, muted and looping.
+     */
+    private fun showTrailer(app: GamingLibrary.App) {
+        if (!store.config.gamingTrailers || !isGame(app)) return
+        worker.execute {
+            val url = trailers.find(app.packageName, app.label) ?: return@execute
+            main.post {
+                val now = appsOf(category).getOrNull(appFocus[category])
+                if (!isDestroyed && now?.packageName == app.packageName &&
+                    animation.visibility != View.VISIBLE) {
+                    video.framing = framingOf(app.packageName)
+                    video.play(url)
+                }
+            }
+        }
+    }
+
+    private fun isGame(app: GamingLibrary.App) = app.category == GamingLibrary.Category.GAMES ||
+        app.category == GamingLibrary.Category.EMULATORS
 
     /**
      * A game's (or emulator's) artwork over the icon, when artwork is on: from this app's
@@ -541,6 +599,7 @@ class GamingSpaceActivity : Activity() {
                 val now = appsOf(category).getOrNull(appFocus[category])
                 if (!isDestroyed && now?.packageName == app.packageName &&
                     animation.visibility != View.VISIBLE) {
+                    artwork.framing = framingOf(app.packageName)
                     artwork.showArtwork(picture)
                 }
             }
@@ -604,6 +663,21 @@ class GamingSpaceActivity : Activity() {
                 sheet.onKey(keyCode) || super.onKeyDown(keyCode, event)
             } else true
         }
+        if (adjusting != null) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> nudge(-PAN_STEP, 0f, 0f)
+                KeyEvent.KEYCODE_DPAD_RIGHT -> nudge(PAN_STEP, 0f, 0f)
+                KeyEvent.KEYCODE_DPAD_UP -> nudge(0f, -PAN_STEP, 0f)
+                KeyEvent.KEYCODE_DPAD_DOWN -> nudge(0f, PAN_STEP, 0f)
+                KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_L2 -> nudge(0f, 0f, -ZOOM_STEP)
+                KeyEvent.KEYCODE_BUTTON_R1, KeyEvent.KEYCODE_BUTTON_R2 -> nudge(0f, 0f, ZOOM_STEP)
+                KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER ->
+                    endAdjust(true)
+                KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BACK -> endAdjust(false)
+                else -> return super.onKeyDown(keyCode, event)
+            }
+            return true
+        }
         if (phase != Phase.MAIN) {
             // The intro and the warning: a button skips; volume and other keys work as always.
             val skips = KeyEvent.isGamepadButton(keyCode) || keyCode == KeyEvent.KEYCODE_BACK ||
@@ -664,12 +738,79 @@ class GamingSpaceActivity : Activity() {
         actions += "Move to another category" to { moveTo(app) }
         actions += "Rename" to { rename(app) }
         if (canArt) actions += "Choose artwork" to { chooseArtwork(app) }
+        if (artwork.visibility == View.VISIBLE || video.visibility == View.VISIBLE) {
+            actions += "Adjust artwork" to { startAdjust(app) }
+        }
         actions += "Hide from Gaming Space" to {
             store.config.gamingCategories[app.packageName] = GamingLibrary.HIDDEN
             store.save(this)
             reloadApps()
         }
         sheet.list(app.label, actions.map { it.first }, 0) { actions[it].second() }
+    }
+
+    /**
+     * "Adjust artwork": the picture (or trailer) is moved and zoomed in the banner, live. With
+     * the controller: the D-pad moves it, L1/R1 (or L2/R2) zoom, A saves, B leaves it as it
+     * was. With touch: drag to move, pinch to zoom, tap to save.
+     */
+    private fun startAdjust(app: GamingLibrary.App) {
+        adjusting = app
+        adjustFrame = framingOf(app.packageName)
+        adjustHint.text = "ADJUST ARTWORK   ·   MOVE   ·   L1 R1 ZOOM   ·   A SAVE   ·   B CANCEL"
+        adjustHint.translationX = dp(28f)
+        adjustHint.translationY = screenHeight - dp(28f)
+        adjustHint.visibility = View.VISIBLE
+    }
+
+    private fun nudge(dx: Float, dy: Float, dz: Float) {
+        adjustFrame = Framing(adjustFrame.x + dx, adjustFrame.y + dy, adjustFrame.zoom + dz)
+            .clamped()
+        artwork.framing = adjustFrame
+        video.framing = adjustFrame
+    }
+
+    private fun endAdjust(save: Boolean) {
+        val app = adjusting ?: return
+        adjusting = null
+        adjustHint.visibility = View.GONE
+        if (save) {
+            store.config.gamingFrames[app.packageName] = adjustFrame.toString()
+            store.save(this)
+        } else {
+            artwork.framing = framingOf(app.packageName)
+            video.framing = framingOf(app.packageName)
+        }
+    }
+
+    /** "Adjust artwork" by touch: drag moves, pinch zooms, a tap saves. */
+    private val pinch by lazy {
+        android.view.ScaleGestureDetector(this,
+            object : android.view.ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScale(d: android.view.ScaleGestureDetector): Boolean {
+                    nudge(0f, 0f, (d.scaleFactor - 1f) * adjustFrame.zoom)
+                    return true
+                }
+            })
+    }
+    private var dragX = 0f
+    private var dragY = 0f
+    private var dragged = false
+
+    private fun adjustTouch(ev: MotionEvent) {
+        pinch.onTouchEvent(ev)
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> { dragX = ev.x; dragY = ev.y; dragged = false }
+            MotionEvent.ACTION_MOVE -> if (!pinch.isInProgress && ev.pointerCount == 1) {
+                val w = maxOf(1, root.width).toFloat()
+                // Dragging right shows more of the left: the picture follows the finger.
+                nudge(-(ev.x - dragX) / w * 2f, -(ev.y - dragY) / screenHeight * 2f, 0f)
+                if (kotlin.math.hypot(ev.x - dragX, ev.y - dragY) > dp(4f)) dragged = true
+                dragX = ev.x
+                dragY = ev.y
+            }
+            MotionEvent.ACTION_UP -> if (!dragged && !pinch.isInProgress) endAdjust(true)
+        }
     }
 
     private fun moveTo(app: GamingLibrary.App) {
@@ -691,7 +832,10 @@ class GamingSpaceActivity : Activity() {
             if (name.isEmpty()) store.config.gamingNames.remove(app.packageName)
             else store.config.gamingNames[app.packageName] = name
             store.save(this)
-            worker.execute { art.forget(app.packageName) }
+            worker.execute {
+                art.forget(app.packageName)
+                trailers.forget(app.packageName)
+            }
             reloadApps()
         }
     }
