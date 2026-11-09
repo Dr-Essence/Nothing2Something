@@ -33,6 +33,18 @@ jobs:
             echo "::warning::no release key - debug-signed build, it cannot update an installed release"
           fi
 
+      # Gradle itself is downloaded by the wrapper from GitHub's releases; a short outage there
+      # (HTTP 504, seen on 0.63.1 and 0.64.0) failed the build before any code was compiled.
+      # Fetched first, up to four times, so a passing hiccup no longer fails the build.
+      - name: Fetch Gradle
+        run: |
+          for attempt in 1 2 3 4; do
+            ./gradlew --no-daemon --version && exit 0
+            echo "Gradle download failed (attempt $attempt), trying again in 30 s"
+            sleep 30
+          done
+          exit 1
+
       # The runner image ships the Android SDK; ANDROID_HOME is already set.
       - name: Build APK
         env:
