@@ -201,19 +201,6 @@ final class SystemFont {
         }
     }
 
-    /**
-     * Restarts System UI and the launcher only (they start again by themselves in a moment),
-     * so they draw in the newly chosen font; nothing else is touched. False without root.
-     */
-    static boolean restartSystemUi() {
-        try {
-            return su("pkill -f com.android.systemui; am force-stop "
-                    + com.dressence.nothinglauncherplus.Config.LAUNCHER_PKG) == null;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
     /** Runs {@code script} as root; null on success, else the error. */
     private static String su(String script) throws Exception {
         Process p = new ProcessBuilder("su").redirectErrorStream(true).start();

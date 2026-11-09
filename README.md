@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.65.2, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.65.3, what is pending, what still needs testing</summary>
 
-**Current build: 0.65.2** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.65.3** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,26 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.65.3, first cleanup from the code audit (four bugs).** A review of the whole code (four
+  parts read in parallel, each claim checked against the code) found these, fixed here:
+  - **The font restarted System UI without the safety limit.** Choosing a system font ran its
+    own `pkill` of System UI, without the 90-second limit and the crash guard's "planned
+    restart" note of `SystemUiRestart`, so a few fonts in a row could put LSPosed into safe
+    mode (the 0.54.1 mistake). The font now goes through `SystemUiRestart` (the one way System
+    UI is restarted) and restarts the launcher as before; within the 90 s, the toast says when
+    the status bar will follow.
+  - **System UI broadcast the saver's state to every app, on every fade and tap,** even with
+    no app picked in Full-screen apps; Android logged "Sending non-protected broadcast
+    STATUS_BAR_FADED from system" each time. Now it goes by name to the picked apps only, in
+    the "while the saver hides it" mode, only when the state changes, and a starting app's
+    query is answered only if it is picked. Android's check (`checkBroadcastFromSystem`,
+    phone's services.jar) is silent for a broadcast to one package whose receiver requires a
+    permission, as the apps' does: the log line should be gone.
+  - `SteamGridArt.options()`, left unused by the game chooser of 0.64.1, removed.
+  - The trailer switch said "streams over the internet"; it downloads a short clip once.
+  - Also: the LSPosed description (still "custom folders for the app drawer") describes the
+    module now, and `.kotlin/` (Kotlin's build cache) is ignored by git.
+  Compiled; needs a font change, and Full-screen apps in the saver mode, on the phone.
 - **0.65.2, no squeezed home screen on a turn.** Dr.Essence's log (9 Nov, 10:28): swiping home
   from Nothing Gaming Space (landscape) with the phone upright, Android had already given the
   launcher a portrait window for the gesture (`Relayout ... requestedWidth = 2400

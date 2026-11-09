@@ -454,7 +454,7 @@ public class MainActivity extends Activity {
                 });
         ui.switchRow("Game trailers from Steam (video)", "A game's trailer from Steam's"
                         + " store plays on the big dot screen, muted, while it is selected ·"
-                        + " streams over the internet · no key needed",
+                        + " a short clip downloaded once per game (a few MB) · no key needed",
                 config.gamingTrailers, checked -> {
                     config.gamingTrailers = checked;
                     store.save(this);
@@ -1377,10 +1377,19 @@ public class MainActivity extends Activity {
         sendBroadcast(new android.content.Intent(Config.ACTION_FONT).setPackage("android"));
         new Thread(() -> {
             SystemFont.removeOldModule();
-            boolean restarted = SystemFont.restartSystemUi();
-            runOnUiThread(() -> Toast.makeText(this, (choice == null ? "Phone font back"
-                    : choice.title + " set")
-                    + (restarted ? ": status bar and launcher now use it." : ".")
+            // Through SystemUiRestart, the one way System UI is restarted: it writes the
+            // crash guard's "planned restart" note and allows one restart every 90 s. (Mistake
+            // recorded, up to 0.65.2: the font had its own restart with neither, so choosing a
+            // few fonts in a row could put LSPosed into safe mode, as in 0.54.1.)
+            long wait = SystemUiRestart.waitSeconds();
+            boolean restarted = wait == 0 && SystemUiRestart.restart();
+            UpdateReceiver.restartLauncher();
+            String name = choice == null ? "Phone font back" : choice.title + " set";
+            String status = restarted ? ": status bar and launcher now use it."
+                    : wait > 0 ? ": the launcher uses it now, the status bar after the next"
+                            + " System UI restart (allowed again in " + wait + " s)."
+                    : ": the launcher uses it now; root not available for the status bar.";
+            runOnUiThread(() -> Toast.makeText(this, name + status
                     + " Other apps use it when they next open.", Toast.LENGTH_LONG).show());
         }).start();
     }

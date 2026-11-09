@@ -165,17 +165,6 @@ internal class SteamGridArt(context: Context) {
     }
 
     /**
-     * Every picture to choose from for an app's game, animated banners first, then still
-     * banners, then wide covers, with the matched game's name. Blocking.
-     */
-    fun options(label: String): Pair<String, List<Choice>>? {
-        val key = prefs.getString(KEY, "") ?: ""
-        if (key.isEmpty()) return null
-        val game = search(key, label) ?: return null
-        return game.second to choices(key, game.first, 4, 8, 6)
-    }
-
-    /**
      * Every game SteamGridDB finds for [name] (id and name, best match first), for choosing
      * the right one by hand when the automatic match is wrong. Blocking.
      */

@@ -41,12 +41,22 @@ import java.util.WeakHashMap
  * The OLED saver lives in System UI. It sends [ACTION_STATE] when it fades the bar out or
  * brings it back; apps accept it only from a sender holding the status bar permission (System
  * UI), and ask for the current state with [ACTION_QUERY] when they start.
+ *
+ * The state goes to each picked app by name, only in the "while the saver hides it" mode, and
+ * only when it changes. Mistake recorded (up to 0.65.2): it went to every app listening, on
+ * every fade and every tap, even with no app picked, and Android logged "Sending
+ * non-protected broadcast ... STATUS_BAR_FADED from system" each time (System UI is a system
+ * process). Android's own check (`BroadcastController.checkBroadcastFromSystem`, phone's
+ * services.jar) stays quiet for a broadcast sent to one package whose receivers all require a
+ * permission, which the apps' receiver does ([SENDER_PERMISSION]).
  */
 internal object FullScreenApps {
 
     const val ACTION_STATE = "com.dressence.nothinglauncherplus.STATUS_BAR_FADED"
     const val ACTION_QUERY = "com.dressence.nothinglauncherplus.STATUS_BAR_QUERY"
     const val EXTRA_FADED = "faded"
+    /** In a query: the asking app, so the answer goes to it alone. */
+    const val EXTRA_PACKAGE = "package"
     /** Held by System UI: only it can tell apps the bar faded out. */
     const val SENDER_PERMISSION = "android.permission.STATUS_BAR_SERVICE"
     private const val SYSUI = "com.android.systemui"
@@ -112,7 +122,8 @@ internal object FullScreenApps {
         context.registerReceiver(receiver, IntentFilter(ACTION_STATE), SENDER_PERMISSION, null,
             Context.RECEIVER_EXPORTED)
         listening = true // only once registered: a failure is tried again on the next resume
-        context.sendBroadcast(Intent(ACTION_QUERY).setPackage(SYSUI))
+        context.sendBroadcast(Intent(ACTION_QUERY).setPackage(SYSUI)
+            .putExtra(EXTRA_PACKAGE, context.packageName))
     }
 
     /** Hides or shows this activity's status bar as the setting and the saver say now. */
@@ -167,25 +178,43 @@ internal object FullScreenApps {
 
     @Volatile private var sysuiFaded = false
     private var answering = false
+    private var sysuiStore: ConfigStore? = null
 
-    /** In System UI: tells the apps the bar faded out (true) or came back (false). */
-    fun barFaded(context: Context, now: Boolean) {
-        sysuiFaded = now
-        send(context)
+    /**
+     * The apps to tell, read again if the settings changed (a file check, only on a fade): the
+     * picked ones, and none unless they follow the saver.
+     */
+    private fun listeners(): Set<String> {
+        val store = sysuiStore ?: return emptySet()
+        store.reloadIfChanged()
+        val config = store.get()
+        return if (config.fullScreenMode == Config.FULL_SCREEN_SAVER) config.fullScreenApps
+        else emptySet()
     }
 
-    /** In System UI: answers apps that start and ask where the saver is. */
-    fun answerQueries(context: Context) {
+    /** In System UI: tells the picked apps the bar faded out (true) or came back (false). */
+    fun barFaded(context: Context, now: Boolean) = guarded {
+        if (now == sysuiFaded) return@guarded
+        sysuiFaded = now
+        for (app in listeners()) send(context, app)
+    }
+
+    /** In System UI: answers a picked app that starts and asks where the saver is. */
+    fun answerQueries(context: Context, store: ConfigStore) {
         if (answering) return
         answering = true
+        sysuiStore = store
         val receiver = object : BroadcastReceiver() {
-            override fun onReceive(c: Context, intent: Intent) = guarded { send(c) }
+            override fun onReceive(c: Context, intent: Intent) = guarded {
+                val app = intent.getStringExtra(EXTRA_PACKAGE) ?: return@guarded
+                if (app in listeners()) send(c, app)
+            }
         }
         context.registerReceiver(receiver, IntentFilter(ACTION_QUERY), Context.RECEIVER_EXPORTED)
     }
 
-    private fun send(context: Context) = guarded {
-        context.sendBroadcast(Intent(ACTION_STATE).putExtra(EXTRA_FADED, sysuiFaded)
-            .addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY))
+    private fun send(context: Context, app: String) {
+        context.sendBroadcast(Intent(ACTION_STATE).setPackage(app)
+            .putExtra(EXTRA_FADED, sysuiFaded).addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY))
     }
 }

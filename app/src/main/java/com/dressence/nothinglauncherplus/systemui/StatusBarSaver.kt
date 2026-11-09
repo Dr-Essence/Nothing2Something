@@ -98,9 +98,12 @@ internal object StatusBarSaver {
     private val logged = HashMap<String, Long>()
     private val savers = WeakHashMap<View, Saver>()
     private var screenReceiver: BroadcastReceiver? = null
+    /** The settings, for Full-screen apps' list (read again on a fade if they changed). */
+    private lateinit var settings: ConfigStore
 
     @JvmStatic
     fun install(cl: ClassLoader, store: ConfigStore) {
+        settings = store
         val config = store.get()
         shiftMs = config.statusBarShiftSeconds * 1000L
         shiftDp = config.statusBarShiftDp
@@ -208,7 +211,9 @@ internal object StatusBarSaver {
             return
         }
         savers.getOrPut(bar) { Saver(contents) }.start()
-        if (hideMs >= 0) guarded { FullScreenApps.answerQueries(bar.context.applicationContext) }
+        if (hideMs >= 0) guarded {
+            FullScreenApps.answerQueries(bar.context.applicationContext, settings)
+        }
         if (hideMs >= 0 && screenReceiver == null) {
             val receiver = object : BroadcastReceiver() {
                 override fun onReceive(context: Context, intent: Intent) =
@@ -299,7 +304,7 @@ internal object StatusBarSaver {
             if (hidden) {
                 hidden = false
                 contents.animate().alpha(1f).setDuration(FADE_MS).start()
-                guarded { FullScreenApps.barFaded(contents.context, false) }
+                FullScreenApps.barFaded(contents.context, false)
             }
         }
 
