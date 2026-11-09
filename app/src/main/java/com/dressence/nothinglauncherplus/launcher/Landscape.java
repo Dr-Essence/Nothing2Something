@@ -66,6 +66,7 @@ final class Landscape {
 
     void install() {
         Hooks.install("home rotation", this::hookRotation);
+        Hooks.install("rotation shape hold", this::hookShapeHold);
         Hooks.install("landscape profiles", this::hookProfileChoice);
         Hooks.install("landscape config change", this::hookConfigChange);
         Hooks.install("landscape layout", this::hookDeviceProfile);
@@ -87,28 +88,22 @@ final class Landscape {
 
     /**
      * RotationHelper follows "allow home rotation", which Android 16 forces off on phones. Feed
-     * it our setting instead, while the phone's auto-rotate is on; the rest of the rotation flow
-     * (config change, new DeviceProfile, relayout) is stock.
-     *
-     * <p>Why auto-rotate too (mistake recorded, up to 0.65.0, Dr.Essence's log of 9 Nov): with
-     * home rotation on, the launcher asks for no orientation (-1, UNSPECIFIED). Going home from
-     * a landscape app (Nothing Gaming Space) with auto-rotate off, the screen stayed turned
-     * through the whole home gesture, the launcher was laid out in landscape (icons and widgets
-     * squeezed), and only when the gesture ended did Android turn the screen back to the user's
-     * rotation, 0.7 s later ("rotation changed to 0 from 3, lastOrientation=-1
-     * userRotationMode=1"). Android turns an activity ahead of time (its "fixed rotation") only
-     * when it asks for a fixed orientation: in the phone's own DisplayContent, both
-     * {@code applyFixedRotationForNonTopVisibleActivityIfNeeded} and
-     * {@code FixedRotationTransitionListener.shouldDeferRotation} skip an activity whose
-     * requested configuration orientation is undefined. With auto-rotate off the home screen has
-     * nothing to follow anyway, so it asks for Nothing's own portrait (as AOSP's Launcher3 did,
-     * which greyed out "Allow rotation" while auto-rotate was off), and Android shows it upright
-     * from the first frame.
+     * it our setting instead; the rest of the rotation flow (config change, new DeviceProfile,
+     * relayout) is stock.
      */
     private void hookRotation() {
         Class<?> helper = XposedHelpers.findClass(CLS_ROTATION_HELPER, cl);
+        XposedHelpers.findAndHookMethod(helper, "notifyChange", new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) {
+                if (!XposedHelpers.getBooleanField(param.thisObject, "mIgnoreAutoRotateSettings")) {
+                    XposedHelpers.setBooleanField(param.thisObject, "mHomeRotationEnabled",
+                            store.get().allowRotation);
+                }
+            }
+        });
         Class<?> launcherClass = XposedHelpers.findClass(CLS_LAUNCHER, cl);
-        Runnable refresh = () -> {
+        store.addChangeListener(() -> {
             Object launcher = XposedHelpers.callMethod(
                     XposedHelpers.getStaticObjectField(launcherClass, "ACTIVITY_TRACKER"),
                     "getCreatedContext");
@@ -116,51 +111,90 @@ final class Landscape {
                 XposedHelpers.callMethod(
                         XposedHelpers.callMethod(launcher, "getRotationHelper"), "notifyChange");
             }
-        };
-        XposedHelpers.findAndHookMethod(helper, "notifyChange", new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                if (XposedHelpers.getBooleanField(param.thisObject, "mIgnoreAutoRotateSettings")) {
-                    return;
-                }
-                Context context = (Context) XposedHelpers.getObjectField(param.thisObject,
-                        "mActivity");
-                watchAutoRotate(context, refresh);
-                XposedHelpers.setBooleanField(param.thisObject, "mHomeRotationEnabled",
-                        store.get().allowRotation && autoRotateOn(context));
-            }
         });
-        store.addChangeListener(refresh);
     }
 
-    private boolean watchingAutoRotate;
+    /** The longest the launcher's drawing is held while its layout and window disagree. */
+    private static final long SHAPE_HOLD_MS = 2000;
 
-    /** The phone's auto-rotate switch (Settings.System.ACCELEROMETER_ROTATION, 1 = on). */
-    private static boolean autoRotateOn(Context context) {
-        return android.provider.Settings.System.getInt(context.getContentResolver(),
-                android.provider.Settings.System.ACCELEROMETER_ROTATION, 0) == 1;
-    }
-
-    /** Asks the launcher again for its orientation whenever auto-rotate is switched. Once. */
-    private void watchAutoRotate(Context context, Runnable refresh) {
-        if (watchingAutoRotate) {
-            return;
-        }
-        watchingAutoRotate = true;
-        context.getApplicationContext().getContentResolver().registerContentObserver(
-                android.provider.Settings.System.getUriFor(
-                        android.provider.Settings.System.ACCELEROMETER_ROTATION), false,
-                new android.database.ContentObserver(
-                        new android.os.Handler(android.os.Looper.getMainLooper())) {
+    /**
+     * The launcher never draws a layout made for the other orientation than its window's.
+     *
+     * <p>Found in Dr.Essence's log of 9 Nov (10:28:25), going home from Nothing Gaming Space
+     * (landscape) with the phone upright: Android had already given the launcher a portrait
+     * window for the home gesture (its "fixed rotation": {@code Relayout ... requestedWidth =
+     * 2400 requestedHeight = 1080 outFrames = frame=[0,0][1080,2400]}), but the launcher still
+     * had its landscape profile and drew it into that window at once ({@code Start draw} at
+     * 25.279); its new profile came only about a second later (portrait at 26.856, after a
+     * stale landscape one at 26.112). Those frames are the squeezed icons and widgets.
+     *
+     * <p>A layout and a window of different shapes are always wrong to draw, whatever brought
+     * them about (the home gesture, a turn, an app turning the screen), so the check is that,
+     * not one case: before each frame the launcher's profile (wide or tall) is compared with
+     * its window's root view, and while they differ the frame is skipped. Android keeps showing
+     * the previous frame and asks again on the next one, so the first frame drawn is the right
+     * layout. Two seconds at most (the log's mismatch lasted 1.6 s), so the launcher can never
+     * stop drawing for good. Nothing's own drawing is untouched; only frames that would be wrong
+     * are left out.
+     */
+    private void hookShapeHold() {
+        Class<?> launcherClass = XposedHelpers.findClass(CLS_LAUNCHER, cl);
+        XposedHelpers.findAndHookMethod(launcherClass, "onCreate", android.os.Bundle.class,
+                new XC_MethodHook() {
                     @Override
-                    public void onChange(boolean selfChange) {
-                        try {
-                            refresh.run();
-                        } catch (Throwable t) {
-                            Hooks.log("auto-rotate watch: " + t);
-                        }
+                    protected void afterHookedMethod(MethodHookParam param) {
+                        Activity launcher = (Activity) param.thisObject;
+                        android.view.View root = launcher.getWindow().getDecorView();
+                        root.getViewTreeObserver().addOnPreDrawListener(
+                                new ShapeHold(launcher, root));
                     }
                 });
+    }
+
+    /** The per-frame check of {@link #hookShapeHold}; main thread. */
+    private final class ShapeHold implements android.view.ViewTreeObserver.OnPreDrawListener {
+        private final Activity launcher;
+        private final android.view.View root;
+        /** When the current mismatch began (uptime ms), 0 while the shapes agree. */
+        private long since;
+
+        ShapeHold(Activity launcher, android.view.View root) {
+            this.launcher = launcher;
+            this.root = root;
+        }
+
+        @Override
+        public boolean onPreDraw() {
+            try {
+                int width = root.getWidth();
+                int height = root.getHeight();
+                if (!store.get().allowRotation || width == 0 || height == 0 || width == height) {
+                    return true;
+                }
+                Object dp = XposedHelpers.callMethod(launcher, "getDeviceProfile");
+                int dpWidth = XposedHelpers.getIntField(dp, "widthPx");
+                int dpHeight = XposedHelpers.getIntField(dp, "heightPx");
+                long now = android.os.SystemClock.uptimeMillis();
+                if ((dpWidth > dpHeight) == (width > height)) {
+                    if (since != 0) {
+                        Hooks.log("rotation shape hold: drawn after " + (now - since) + " ms");
+                        since = 0;
+                    }
+                    return true;
+                }
+                if (since == 0) {
+                    since = now;
+                    Hooks.log("rotation shape hold: profile " + dpWidth + "x" + dpHeight
+                            + " in a " + width + "x" + height + " window, not drawn");
+                }
+                if (now - since > SHAPE_HOLD_MS) {
+                    return true; // never stall the launcher: draw as it is
+                }
+                return false;
+            } catch (Throwable t) {
+                return true;
+            }
+        }
     }
 
     /**

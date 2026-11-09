@@ -415,7 +415,7 @@ public class MainActivity extends Activity {
                 v -> openIconPackPicker());
 
         ui.section("Landscape & controllers");
-        ui.switchRow("Home screen rotation", "Home and app drawer follow auto-rotate (beta) · with auto-rotate off they stay upright",
+        ui.switchRow("Home screen rotation", "Home and app drawer follow auto-rotate (beta)",
                 config.allowRotation, checked -> {
                     config.allowRotation = checked;
                     store.save(this);
