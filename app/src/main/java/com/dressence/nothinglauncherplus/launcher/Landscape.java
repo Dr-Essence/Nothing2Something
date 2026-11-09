@@ -87,22 +87,28 @@ final class Landscape {
 
     /**
      * RotationHelper follows "allow home rotation", which Android 16 forces off on phones. Feed
-     * it our setting instead; the rest of the rotation flow (config change, new DeviceProfile,
-     * relayout) is stock.
+     * it our setting instead, while the phone's auto-rotate is on; the rest of the rotation flow
+     * (config change, new DeviceProfile, relayout) is stock.
+     *
+     * <p>Why auto-rotate too (mistake recorded, up to 0.65.0, Dr.Essence's log of 9 Nov): with
+     * home rotation on, the launcher asks for no orientation (-1, UNSPECIFIED). Going home from
+     * a landscape app (Nothing Gaming Space) with auto-rotate off, the screen stayed turned
+     * through the whole home gesture, the launcher was laid out in landscape (icons and widgets
+     * squeezed), and only when the gesture ended did Android turn the screen back to the user's
+     * rotation, 0.7 s later ("rotation changed to 0 from 3, lastOrientation=-1
+     * userRotationMode=1"). Android turns an activity ahead of time (its "fixed rotation") only
+     * when it asks for a fixed orientation: in the phone's own DisplayContent, both
+     * {@code applyFixedRotationForNonTopVisibleActivityIfNeeded} and
+     * {@code FixedRotationTransitionListener.shouldDeferRotation} skip an activity whose
+     * requested configuration orientation is undefined. With auto-rotate off the home screen has
+     * nothing to follow anyway, so it asks for Nothing's own portrait (as AOSP's Launcher3 did,
+     * which greyed out "Allow rotation" while auto-rotate was off), and Android shows it upright
+     * from the first frame.
      */
     private void hookRotation() {
         Class<?> helper = XposedHelpers.findClass(CLS_ROTATION_HELPER, cl);
-        XposedHelpers.findAndHookMethod(helper, "notifyChange", new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                if (!XposedHelpers.getBooleanField(param.thisObject, "mIgnoreAutoRotateSettings")) {
-                    XposedHelpers.setBooleanField(param.thisObject, "mHomeRotationEnabled",
-                            store.get().allowRotation);
-                }
-            }
-        });
         Class<?> launcherClass = XposedHelpers.findClass(CLS_LAUNCHER, cl);
-        store.addChangeListener(() -> {
+        Runnable refresh = () -> {
             Object launcher = XposedHelpers.callMethod(
                     XposedHelpers.getStaticObjectField(launcherClass, "ACTIVITY_TRACKER"),
                     "getCreatedContext");
@@ -110,7 +116,51 @@ final class Landscape {
                 XposedHelpers.callMethod(
                         XposedHelpers.callMethod(launcher, "getRotationHelper"), "notifyChange");
             }
+        };
+        XposedHelpers.findAndHookMethod(helper, "notifyChange", new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) {
+                if (XposedHelpers.getBooleanField(param.thisObject, "mIgnoreAutoRotateSettings")) {
+                    return;
+                }
+                Context context = (Context) XposedHelpers.getObjectField(param.thisObject,
+                        "mActivity");
+                watchAutoRotate(context, refresh);
+                XposedHelpers.setBooleanField(param.thisObject, "mHomeRotationEnabled",
+                        store.get().allowRotation && autoRotateOn(context));
+            }
         });
+        store.addChangeListener(refresh);
+    }
+
+    private boolean watchingAutoRotate;
+
+    /** The phone's auto-rotate switch (Settings.System.ACCELEROMETER_ROTATION, 1 = on). */
+    private static boolean autoRotateOn(Context context) {
+        return android.provider.Settings.System.getInt(context.getContentResolver(),
+                android.provider.Settings.System.ACCELEROMETER_ROTATION, 0) == 1;
+    }
+
+    /** Asks the launcher again for its orientation whenever auto-rotate is switched. Once. */
+    private void watchAutoRotate(Context context, Runnable refresh) {
+        if (watchingAutoRotate) {
+            return;
+        }
+        watchingAutoRotate = true;
+        context.getApplicationContext().getContentResolver().registerContentObserver(
+                android.provider.Settings.System.getUriFor(
+                        android.provider.Settings.System.ACCELEROMETER_ROTATION), false,
+                new android.database.ContentObserver(
+                        new android.os.Handler(android.os.Looper.getMainLooper())) {
+                    @Override
+                    public void onChange(boolean selfChange) {
+                        try {
+                            refresh.run();
+                        } catch (Throwable t) {
+                            Hooks.log("auto-rotate watch: " + t);
+                        }
+                    }
+                });
     }
 
     /**

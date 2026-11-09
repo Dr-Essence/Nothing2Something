@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.65.0, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.65.1, what is pending, what still needs testing</summary>
 
-**Current build: 0.65.0** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.65.1** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,21 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.65.1, home screen squeezed for a moment after a landscape app.** Dr.Essence's log (9 Nov,
+  10:28): auto-rotate off, Nothing Gaming Space in landscape (rotation 3), swipe home: the
+  launcher was laid out in landscape ("launcher profile 2400x1080 landscape=true"), and only
+  when the home gesture ended did Android turn the screen back ("rotation changed to 0 from 3,
+  lastOrientation=-1 userRotationMode=1") and the launcher relay out in portrait 0.7 s later;
+  icons and widgets looked squeezed in between. Why: with Home screen rotation on, the launcher
+  asks for no orientation, and Android turns an activity ahead of time only when it asks for a
+  fixed one (the phone's `DisplayContent`: `applyFixedRotationForNonTopVisibleActivityIfNeeded`
+  and `shouldDeferRotation` skip an undefined one). Now Home screen rotation applies only while
+  auto-rotate is on (watched, so switching it takes effect at once); with it off, the launcher
+  asks for Nothing's own portrait and Android shows it upright from the first frame. Trade-off:
+  with auto-rotate off, the rotate button in the navigation bar no longer turns the home
+  screen. Not yet changed: with auto-rotate on, going home while holding the phone upright
+  from a landscape app (the launcher accepts any orientation, so Android cannot pre-turn it).
+  Compiled; needs the same swipe home from Gaming Space on the phone.
 - **0.65.0, a "Nothing Gaming Space" folder for the artwork and trailers.** A new row in the
   gaming settings asks for All files access; with it, pictures go to
   `Nothing Gaming Space/SteamGridDB` and trailers to `Nothing Gaming Space/Videos` at the top
@@ -874,7 +889,10 @@ hotseat is always assumed at the bottom. Nothing also made ten of AOSP's layout 
 deleting their landscape branches. Forcing rotation therefore squashes everything.
 
 With **Home screen rotation** on, the launcher follows auto-rotate (through its own
-`RotationHelper`, which Android 16 otherwise keeps off on phones). In phone landscape, and only
+`RotationHelper`, which Android 16 otherwise keeps off on phones). With auto-rotate off it
+stays upright: the launcher then asks for Nothing's portrait, so Android turns it ahead of time
+when you go home from a landscape app (with no orientation asked, Android left it in landscape
+for the whole home gesture and turned it only afterwards). In phone landscape, and only
 there, the module answers Nothing's sizing methods with AOSP's vertical-bar layout:
 
 - hotseat as a bar on the side (left in seascape), workspace padding to match;
