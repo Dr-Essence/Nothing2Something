@@ -158,8 +158,6 @@ class GamingSpaceActivity : Activity() {
         return super.dispatchTouchEvent(ev)
     }
     private var screenHeight = 0
-    private val screenLabel = Rect()
-    private var shownTitle: String? = null
     /** The categories' cards across, and the open category's apps down. */
     private lateinit var bar: FrameLayout
     private lateinit var column: FrameLayout
@@ -360,33 +358,31 @@ class GamingSpaceActivity : Activity() {
     }
 
     /** Sizes the dot screen to the top part of the page; the cross is placed below it. */
+    /**
+     * The top part: one dot screen edge to edge, nothing round it (Dr.Essence on 0.64.0: no
+     * title, no bezel, nothing behind it). The folders' engine puts a bezel inside its panel's
+     * edge (DotMatrix.layout: the larger of 1.2 dots and 4.5% of the panel's smaller side), so
+     * the panel is made larger than the screen by that much: the bezel falls outside the view
+     * and only dots show. Artwork, trailers and the category animations use the same dots.
+     */
     private fun place(width: Int, height: Int) {
         screenHeight = (height * SCREEN_SHARE).toInt()
-        screen.layoutParams = FrameLayout.LayoutParams(width, screenHeight)
-        animation.layoutParams = FrameLayout.LayoutParams(width, screenHeight)
-        // As on a folder's card (DotMatrix.layout): the name's strip across the top, and the
-        // picture's screen filling the face below it, the picture in the middle.
-        val inset = dp(16f).toInt()
-        val labelH = dp(36f).toInt()
-        val side = screenHeight - labelH - inset * 3
+        for (view in listOf(screen, animation, artwork, video)) {
+            view.layoutParams = FrameLayout.LayoutParams(width, screenHeight)
+        }
+        val side = (screenHeight * 0.8f).toInt()
+        val pitch = side / 32f
         screen.setTextSize(TypedValue.COMPLEX_UNIT_PX, side * 0.6f)
         val left = (width - side) / 2
-        val top = inset * 2 + labelH
+        val top = (screenHeight - side) / 2
+        // The bezel the engine would draw for a panel this tall, solved for the larger panel.
+        val bezel = (maxOf(pitch * 1.2f, screenHeight * 0.045f / (1f - 0.09f)) + 2f).toInt()
+        screen.setDotLabel(null, 0, null, null, 0f)
         screen.setDotPanel(Rect(left, top, left + side, top + side),
-            Rect(0, 0, width, screenHeight), dp(24f))
-        screenLabel.set(inset * 2, inset, width - inset * 2, inset + labelH)
-        // The animations use the screen's own dot size (the folders' engine: 32 dots across
-        // the picture's square), over the whole screen.
-        animation.setGeometry(side / 32f, dp(24f))
-        // A game's artwork fills the screen under the name's strip, on the same dots.
-        val artTop = inset * 2 + labelH
-        artwork.layoutParams = FrameLayout.LayoutParams(width, screenHeight - artTop - inset)
-            .also { it.topMargin = artTop }
-        artwork.setGeometry(side / 32f, dp(18f))
-        video.layoutParams = FrameLayout.LayoutParams(width, screenHeight - artTop - inset)
-            .also { it.topMargin = artTop }
-        video.setGeometry(side / 32f, dp(18f))
-        shownTitle = null
+            Rect(-bezel, -bezel, width + bezel, screenHeight + bezel), 0f)
+        animation.setGeometry(pitch, 0f)
+        artwork.setGeometry(pitch, 0f)
+        video.setGeometry(pitch, 0f)
         layoutCross()
         showSelection(false)
     }
@@ -529,6 +525,7 @@ class GamingSpaceActivity : Activity() {
     private fun showSelection(categoryFirst: Boolean) {
         main.removeCallbacks(showApp)
         if (adjusting != null) endAdjust(false)
+        screen.visibility = View.VISIBLE
         artwork.showArtwork(null)
         video.play(null)
         val cat = GamingLibrary.order[category]
@@ -537,14 +534,12 @@ class GamingSpaceActivity : Activity() {
             // Its animation over the whole screen; under it the emoji and name wait, and stay
             // a moment once it fades, before the selected app comes up.
             setCover(screen, cat.emoji, cat.ordinal * 31L)
-            title(cat.title)
             animation.play(cat) {
                 if (appsOf(category).isNotEmpty()) main.postDelayed(showApp, CATEGORY_SHOW_MS)
             }
         } else if (app == null) {
             animation.stop()
             setCover(screen, cat.emoji, cat.ordinal * 31L)
-            title(cat.title)
         } else {
             animation.stop()
             showApp.run()
@@ -553,7 +548,6 @@ class GamingSpaceActivity : Activity() {
 
     private val showApp = Runnable {
         val app = appsOf(category).getOrNull(appFocus[category]) ?: return@Runnable
-        title(app.label)
         rawIcon(app.packageName)?.let { screen.setImage(it, app.packageName.hashCode().toLong()) }
         showArtwork(app)
         showTrailer(app)
@@ -575,6 +569,7 @@ class GamingSpaceActivity : Activity() {
                 if (!isDestroyed && now?.packageName == app.packageName &&
                     animation.visibility != View.VISIBLE) {
                     video.framing = framingOf(app.packageName)
+                    video.onPlaying = { ok -> if (ok) screen.visibility = View.INVISIBLE }
                     video.play(url)
                 }
             }
@@ -601,16 +596,12 @@ class GamingSpaceActivity : Activity() {
                     animation.visibility != View.VISIBLE) {
                     artwork.framing = framingOf(app.packageName)
                     artwork.showArtwork(picture)
+                    screen.visibility = View.INVISIBLE // nothing behind the artwork
                 }
             }
         }
     }
 
-    private fun title(text: String) {
-        if (text == shownTitle) return
-        shownTitle = text
-        screen.setDotLabel(text, LED_GREEN, screenLabel, NdotFont.get(this), dp(26f))
-    }
 
     /** The icon as it is (for the big screen, which makes its own dots). */
     private fun rawIcon(pkg: String): Bitmap? = try {
@@ -720,7 +711,7 @@ class GamingSpaceActivity : Activity() {
         try {
             startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (t: Throwable) {
-            title("COULD NOT OPEN")
+            sheet.message(app.label, "Could not open it.")
         }
     }
 
@@ -738,6 +729,9 @@ class GamingSpaceActivity : Activity() {
         actions += "Move to another category" to { moveTo(app) }
         actions += "Rename" to { rename(app) }
         if (canArt) actions += "Choose artwork" to { chooseArtwork(app) }
+        if (store.config.gamingTrailers && isGame(app)) {
+            actions += "Choose trailer" to { chooseTrailer(app) }
+        }
         if (artwork.visibility == View.VISIBLE || video.visibility == View.VISIBLE) {
             actions += "Adjust artwork" to { startAdjust(app) }
         }
@@ -841,32 +835,93 @@ class GamingSpaceActivity : Activity() {
     }
 
     /**
-     * Every picture SteamGridDB has for the app's game, animated banners first, to pick the
-     * one shown; the pick is saved and shown at once.
+     * Choosing artwork by hand: SteamGridDB's games for the app's name (or a name typed in,
+     * "Search another name"), then the chosen game's pictures, animated banners first; the
+     * pick is saved and shown at once.
      */
-    private fun chooseArtwork(app: GamingLibrary.App) {
-        sheet.message("Artwork", "Looking on SteamGridDB for \"${app.label}\"…")
+    private fun chooseArtwork(app: GamingLibrary.App, name: String = app.label) {
+        chooseGame("Artwork", name, { art.games(it) }, { chooseArtwork(app, it) }) { game ->
+            sheet.message("Artwork", "Loading the pictures of \"${game.second}\"…")
+            worker.execute {
+                val previews = try {
+                    art.choicesFor(game.first).take(14).map { it to art.preview(it) }
+                } catch (t: Throwable) {
+                    emptyList()
+                }
+                main.post {
+                    if (isDestroyed) return@post
+                    if (previews.isEmpty()) {
+                        sheet.message("Artwork", "\"${game.second}\" has no artwork yet.")
+                        return@post
+                    }
+                    sheet.pictures("Artwork · ${game.second}",
+                        previews.map { (choice, picture) -> choice.kind to picture }) { which ->
+                        worker.execute {
+                            try {
+                                art.save(app.packageName, previews[which].first)
+                            } catch (t: Throwable) {
+                                main.post { sheet.message("Artwork", "Could not download it.") }
+                                return@execute
+                            }
+                            main.post { showSelection(false) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Choosing the trailer by hand: Steam's games for the app's name (or a name typed in),
+     * then the chosen game's trailers; the chosen one is made into the app's clip.
+     */
+    private fun chooseTrailer(app: GamingLibrary.App, name: String = app.label) {
+        chooseGame("Trailer", name, { trailers.games(it) }, { chooseTrailer(app, it) }) { game ->
+            sheet.message("Trailer", "Loading the trailers of \"${game.second}\"…")
+            worker.execute {
+                val movies = try { trailers.movies(game.first) } catch (t: Throwable) { emptyList() }
+                main.post {
+                    if (isDestroyed) return@post
+                    if (movies.isEmpty()) {
+                        sheet.message("Trailer", "\"${game.second}\" has no trailer on Steam.")
+                        return@post
+                    }
+                    sheet.list("Trailer · ${game.second}", movies.map { it.first }, 0) { which ->
+                        sheet.message("Trailer", "Saving \"${movies[which].first}\"…")
+                        worker.execute {
+                            val ok = try {
+                                trailers.use(app.packageName, movies[which].second)
+                            } catch (t: Throwable) {
+                                false
+                            }
+                            main.post {
+                                if (isDestroyed) return@post
+                                if (ok) { sheet.close(); showSelection(false) }
+                                else sheet.message("Trailer", "Could not download it.")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * The games a source finds for [name], to pick the right one; the last choice, "Search
+     * another name", asks for a name and starts again with it ([again]).
+     */
+    private fun chooseGame(what: String, name: String, find: (String) -> List<Pair<Int, String>>,
+            again: (String) -> Unit, chosen: (Pair<Int, String>) -> Unit) {
+        sheet.message(what, "Searching for \"$name\"…")
         worker.execute {
-            val found = try { art.options(app.label) } catch (t: Throwable) { null }
-            val previews = found?.second?.take(14)?.map { it to art.preview(it) } ?: emptyList()
+            val games = try { find(name).take(12) } catch (t: Throwable) { emptyList() }
             main.post {
                 if (isDestroyed) return@post
-                if (found == null || previews.isEmpty()) {
-                    sheet.message("Artwork", "Nothing found for \"${app.label}\". Rename it to" +
-                        " the game's name on SteamGridDB, then try again.")
-                    return@post
-                }
-                sheet.pictures("Artwork · ${found.first}",
-                    previews.map { (choice, picture) -> choice.kind to picture }) { which ->
-                    val choice = previews[which].first
-                    worker.execute {
-                        try {
-                            art.save(app.packageName, choice)
-                        } catch (t: Throwable) {
-                            main.post { sheet.message("Artwork", "Could not download it.") }
-                            return@execute
-                        }
-                        main.post { showSelection(false) }
+                val options = games.map { it.second } + "Search another name…"
+                sheet.list("$what · which game?", options, 0) { which ->
+                    if (which < games.size) chosen(games[which])
+                    else sheet.text("Search another name", name) { typed ->
+                        if (typed.isNotEmpty()) again(typed)
                     }
                 }
             }

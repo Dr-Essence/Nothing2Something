@@ -163,6 +163,29 @@ internal class SteamGridArt(context: Context) {
         return game.second to choices(key, game.first, 4, 8, 6)
     }
 
+    /**
+     * Every game SteamGridDB finds for [name] (id and name, best match first), for choosing
+     * the right one by hand when the automatic match is wrong. Blocking.
+     */
+    fun games(name: String): List<Pair<Int, String>> {
+        val key = prefs.getString(KEY, "") ?: ""
+        if (key.isEmpty() || name.isBlank()) return emptyList()
+        val json = JSONObject(String(download(
+            "$BASE/search/autocomplete/${URLEncoder.encode(name.trim(), "UTF-8").replace("+", "%20")}",
+            key)))
+        val data = json.optJSONArray("data") ?: return emptyList()
+        return (0 until data.length()).map {
+            val game = data.getJSONObject(it)
+            game.getInt("id") to game.optString("name", name)
+        }
+    }
+
+    /** The pictures of one game (by its SteamGridDB id), animated banners first. Blocking. */
+    fun choicesFor(game: Int): List<Choice> {
+        val key = prefs.getString(KEY, "") ?: ""
+        return if (key.isEmpty()) emptyList() else choices(key, game, 4, 8, 6)
+    }
+
     /** Saves [choice] as the app's artwork (the full picture: animated ones move). Blocking. */
     fun save(pkg: String, choice: Choice) {
         val bytes = download(if (choice.animated) choice.url else choice.thumb.ifEmpty { choice.url },

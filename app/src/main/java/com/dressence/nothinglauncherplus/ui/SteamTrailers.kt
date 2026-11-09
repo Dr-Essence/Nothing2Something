@@ -63,6 +63,42 @@ internal class SteamTrailers(context: Context) {
         }
     }
 
+    /** Every game Steam's store finds for [name] (app id and name), for choosing by hand. */
+    fun games(name: String): List<Pair<Int, String>> {
+        val json = JSONObject(get("$STORE/storesearch/?term=" +
+            URLEncoder.encode(name.trim(), "UTF-8") + "&l=english&cc=US"))
+        val items = json.optJSONArray("items") ?: return emptyList()
+        return (0 until items.length()).map { items.getJSONObject(it) }
+            .filter { it.optInt("id") > 0 }
+            .map { it.getInt("id") to it.optString("name") }
+    }
+
+    /** A game's trailers (name and the link a clip is made from), the highlighted first. */
+    fun movies(app: Int): List<Pair<String, String>> {
+        val json = JSONObject(get("$STORE/appdetails?appids=$app"))
+        val movies = json.optJSONObject(app.toString())?.optJSONObject("data")
+            ?.optJSONArray("movies") ?: return emptyList()
+        return (0 until movies.length()).map { movies.getJSONObject(it) }
+            .sortedByDescending { it.optBoolean("highlight") }
+            .mapNotNull { movie ->
+                val links = ArrayList<String>()
+                collect(movie, links)
+                val link = links.firstOrNull { it.contains(".m3u8") }
+                    ?: links.firstOrNull { it.contains(".mp4") }
+                link?.let { movie.optString("name", "Trailer") to it }
+            }
+    }
+
+    /** Makes the clip of the chosen trailer [link] the app's own. Blocking. */
+    fun use(pkg: String, link: String): Boolean {
+        val clip = java.io.File(dir, "$pkg.mp4")
+        clip.delete()
+        val made = save(link, clip)
+        prefs.edit().putString(pkg, if (made) clip.path else NONE)
+            .putLong("$pkg@", System.currentTimeMillis()).apply()
+        return made
+    }
+
     /** Forgets an app's trailer (after a rename), so it is looked up again. */
     fun forget(pkg: String) {
         java.io.File(dir, "$pkg.mp4").delete()
