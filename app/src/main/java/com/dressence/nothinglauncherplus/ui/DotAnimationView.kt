@@ -82,7 +82,7 @@ internal class DotAnimationView(context: Context) : View(context) {
 
     fun stop() {
         category = null
-        visibility = if (picture != null) VISIBLE else GONE
+        visibility = if (pictureSource != null) VISIBLE else GONE
         onEnd?.let { onEnd = null; it() }
     }
 
@@ -118,7 +118,10 @@ internal class DotAnimationView(context: Context) : View(context) {
     fun showPicture(source: Bitmap?) {
         pictureSource = source
         fitPicture()
-        visibility = if (picture != null || category != null) VISIBLE else GONE
+        // Shown as soon as there is a picture, even before it can be fitted: a view that is
+        // GONE is never measured, so its dots (and the fitted picture) would never be made.
+        // Mistake recorded (0.61.0/0.61.1): it was shown only once fitted, so it never was.
+        visibility = if (source != null || category != null) VISIBLE else GONE
         invalidate()
     }
 
@@ -141,6 +144,7 @@ internal class DotAnimationView(context: Context) : View(context) {
         val dots = mask ?: return
         val cat = category
         if (cat == null) {
+            if (picture == null && pictureSource != null) fitPicture() // laid out just now
             picture?.let { drawDots(canvas, it, dots, 1f) }
             return
         }
