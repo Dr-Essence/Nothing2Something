@@ -26,7 +26,9 @@ import java.net.URLEncoder
  * H.264 video, frames of the trailer), saved in this app's files and played from there, looping,
  * muted. A movie with an mp4 link instead (older entries, microtrailers) is saved as it is.
  *
- * Each app's clip (or "none") is remembered for a week. Blocking: call off the main thread.
+ * The clip is saved as <package>.mp4 in Nothing Gaming Space/Videos on the phone's storage when
+ * allowed, else in this app's files ([GamingStorage]); a video the user puts there under that
+ * name is played instead. Each app's clip (or "none") is remembered for a week. Blocking: call off the main thread.
  */
 internal class SteamTrailers(context: Context) {
 
@@ -43,7 +45,10 @@ internal class SteamTrailers(context: Context) {
     }
 
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-    private val dir = java.io.File(context.filesDir, "trailers").also { it.mkdirs() }
+    private val context = context.applicationContext
+    /** Looked up on each use: All files access may be granted while Gaming Space is open. */
+    private val dir: java.io.File
+        get() = GamingStorage.folder(context, GamingStorage.VIDEOS, "trailers")
 
     /** The saved clip of an app's game's trailer (a file path), or null if it has none. */
     fun find(pkg: String, label: String): String? {

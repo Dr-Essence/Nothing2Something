@@ -474,6 +474,16 @@ public class MainActivity extends Activity {
                 ui.chevron(), v -> askSteamGridKey());
         ui.row("Check the key", "Tries one search on SteamGridDB and says what happened", null,
                 ui.chevron(), v -> checkSteamGridKey());
+        // Saved pictures and videos in a folder of the phone's storage (see GamingStorage):
+        // Android asks for "All files access" for a folder at the top of the storage.
+        boolean sharedFolder = GamingStorage.INSTANCE.shared();
+        ui.row("Save in a \"Nothing Gaming Space\" folder", sharedFolder
+                        ? "On · artwork in " + GamingStorage.INSTANCE.rootPath() + "/"
+                        + GamingStorage.ART + ", trailers in …/" + GamingStorage.VIDEOS
+                        + " · a file named after an app's package is used for it"
+                        : "Off · saved inside this app · tap to allow All files access and keep"
+                        + " them in the phone's storage, in SteamGridDB and Videos folders",
+                null, ui.chevron(), v -> GamingStorage.INSTANCE.askAccess(this));
         int hiddenGaming = java.util.Collections.frequency(config.gamingCategories.values(),
                 GamingLibrary.HIDDEN);
         if (hiddenGaming > 0) {

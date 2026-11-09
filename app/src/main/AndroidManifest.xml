@@ -11,6 +11,9 @@
     <!-- Only for Nothing Gaming Space's game artwork from SteamGridDB, which is off unless
          turned on and given the user's own API key (see SteamGridArt). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Nothing Gaming Space's "Nothing Gaming Space" folder at the top of the storage
+         (GamingStorage): granted by the user in Settings, All files access. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
 
     <queries>
         <intent>
