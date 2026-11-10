@@ -39,5 +39,8 @@ internal object AppIcon {
         else PackageManager.COMPONENT_ENABLED_STATE_DISABLED
         context.packageManager.setComponentEnabledSetting(component(context), state,
             PackageManager.DONT_KILL_APP)
+        // The icon's long-press shortcut lives on the icon: removed with it, back with it
+        // (RunningServices.setShortcuts checks the icon itself and never throws).
+        if (RunningServices.shortcutsOn(context)) RunningServices.setShortcuts(context, true)
     }
 }

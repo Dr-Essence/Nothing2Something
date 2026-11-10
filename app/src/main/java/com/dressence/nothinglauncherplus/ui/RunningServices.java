@@ -69,17 +69,34 @@ public final class RunningServices extends Activity {
                 .build();
     }
 
-    /** Shortcuts on or off: the module icon's shortcut and the entry in shortcut lists. */
+    /**
+     * Shortcuts on or off: the module icon's shortcut and the entry in shortcut lists.
+     *
+     * <p>The long-press shortcut belongs to the app's icon: Android's ShortcutService attaches
+     * a dynamic shortcut to the app's launcher activity and throws IllegalStateException
+     * ("Launcher activity not found") when there is none, which is the case while "Show app
+     * icon" is off (AppIcon). Mistake recorded, 0.67.0 to 0.70.2: this ran unguarded in the
+     * settings screen's onCreate, so with the icon hidden the settings crashed on every way in
+     * (Settings row, LSPosed, search; Dr.Essence's crash log). Now, with the icon hidden, the
+     * shortcut is only removed, and any refusal is caught: shortcuts are a convenience, never
+     * a reason to crash. AppIcon publishes it again when the icon comes back.
+     */
     static void setShortcuts(Context context, boolean on) {
         ShortcutManager shortcuts = context.getSystemService(ShortcutManager.class);
         if (shortcuts != null) {
-            if (on) {
-                shortcuts.setDynamicShortcuts(Collections.singletonList(shortcut(context)));
-                shortcuts.enableShortcuts(Collections.singletonList(SHORTCUT_ID));
-            } else {
-                shortcuts.removeAllDynamicShortcuts();
-                shortcuts.disableShortcuts(Collections.singletonList(SHORTCUT_ID),
-                        "Turned off in Nothing2Something");
+            try {
+                if (on && AppIcon.shown(context)) {
+                    shortcuts.setDynamicShortcuts(Collections.singletonList(shortcut(context)));
+                    shortcuts.enableShortcuts(Collections.singletonList(SHORTCUT_ID));
+                } else {
+                    shortcuts.removeAllDynamicShortcuts();
+                    if (!on) {
+                        shortcuts.disableShortcuts(Collections.singletonList(SHORTCUT_ID),
+                                "Turned off in Nothing2Something");
+                    }
+                }
+            } catch (RuntimeException e) {
+                android.util.Log.w("Nothing2Something", "shortcuts not updated: " + e);
             }
         }
         context.getPackageManager().setComponentEnabledSetting(
@@ -104,11 +121,15 @@ public final class RunningServices extends Activity {
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             ShortcutManager shortcuts = getSystemService(ShortcutManager.class);
+            setResult(RESULT_CANCELED);
             if (Intent.ACTION_CREATE_SHORTCUT.equals(getIntent().getAction())
                     && shortcuts != null) {
-                setResult(RESULT_OK, shortcuts.createShortcutResultIntent(shortcut(this)));
-            } else {
-                setResult(RESULT_CANCELED);
+                try {
+                    setResult(RESULT_OK, shortcuts.createShortcutResultIntent(shortcut(this)));
+                } catch (RuntimeException e) {
+                    // Refused (no app icon, see setShortcuts): no shortcut, no crash.
+                    android.util.Log.w("Nothing2Something", "shortcut not made: " + e);
+                }
             }
             finish();
         }

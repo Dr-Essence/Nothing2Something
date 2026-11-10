@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.2, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.3, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.2** (CMF Phone 1, Nothing OS 4.1, Android 16): Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.3** (CMF Phone 1, Nothing OS 4.1, Android 16): Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,24 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.3, the settings no longer crash with the app icon hidden.** Dr.Essence on 0.70.2:
+  after switching "Show app icon" off, Nothing2Something crashed at once when opened from
+  Settings. The crash report in his LSPosed zip (dropbox, data_app_crash):
+  `IllegalStateException: Launcher activity not found` in
+  `ShortcutManager.setDynamicShortcuts`, from `RunningServices.setShortcuts`, from
+  `SettingsActivity.onCreate`. The settings screen re-publishes the Running services
+  long-press shortcut each time it opens; Android attaches such a shortcut to the app's
+  launcher activity and throws when there is none, which is the case with the icon hidden.
+  So every way in crashed (Settings row, LSPosed, search). A mistake of 0.67.0: what else
+  depends on the launcher icon was not checked when the icon became hideable.
+  - With the icon hidden the shortcut is now only removed (Android allows nothing else), and
+    every shortcut call is guarded: a refusal is logged, never a crash. Showing the icon
+    again publishes the shortcut again (`AppIcon.setShown`). "Running services" placed from
+    the launcher's shortcut list (`CreateShortcut`) is guarded the same way.
+  - Checked: these are the only shortcut calls in the code (searched for every
+    ShortcutManager use).
+  Compiled. Not run on the phone yet. To get the icon back on 0.70.2 without the app:
+  `su -c pm enable com.dressence.nothinglauncherplus/com.dressence.nothinglauncherplus.ui.MainActivity`.
 - **0.70.2, Gaming Space: artwork shows again, no ghost on trailers, searches say why they
   fail.** Dr.Essence on 0.70.1 (five screenshots, an LSPosed zip): games without a video
   showed a black screen, searching for a video was broken, and videos had "weird duplicated
