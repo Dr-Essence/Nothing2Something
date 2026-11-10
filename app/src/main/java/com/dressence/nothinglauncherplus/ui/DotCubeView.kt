@@ -26,7 +26,7 @@ import kotlin.math.sin
  * (`Matrix.setPolyToPoly` with four points makes exactly that perspective mapping). Sides are
  * drawn far ones first, and darker the more they turn away, as if lit from the front.
  */
-internal class DotCubeView(context: Context) : View(context), TurningIcon {
+internal class DotCubeView(context: Context) : View(context) {
 
     companion object {
         /** Turning speed in degrees a second: selected, and the rest. */
@@ -104,7 +104,7 @@ internal class DotCubeView(context: Context) : View(context), TurningIcon {
     private var face: Bitmap? = null
     private var angle = (Math.random() * 360).toFloat()
     private var lastFrame = 0L
-    override var lit = false
+    var lit = false
         set(value) {
             field = value
             invalidate()
@@ -198,14 +198,6 @@ internal class DotCubeView(context: Context) : View(context), TurningIcon {
         val full = 2f * minOf(width / (r[1] - r[0]), height / (r[3] - r[2])) // a side, straight on
         return (w.width() / full).coerceIn(0f, 1f)
     }
-}
-
-/**
- * An app's turning dot shape in Nothing Gaming Space: a box ([DotCubeView]) or, for a round
- * icon, a ball ([DotBallView]). Lit is the selected one: it turns faster and is fully bright.
- */
-internal interface TurningIcon {
-    var lit: Boolean
 }
 
 /**

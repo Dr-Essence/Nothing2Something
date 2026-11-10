@@ -407,12 +407,8 @@ public final class IconScreen {
         return b;
     }
 
-    /**
-     * True if the icon's silhouette is a circle: the launcher's shape (adaptive icons). Also
-     * used by Nothing Gaming Space, on icons that are not adaptive, to find the round ones that
-     * become dot balls (ui.DotBallView).
-     */
-    public static boolean isCircle(Bitmap icon) {
+    /** True if the icon's silhouette is a circle: the launcher's shape (adaptive icons). */
+    private static boolean isCircle(Bitmap icon) {
         int w = icon.getWidth();
         int h = icon.getHeight();
         int[] px = pixels(icon);
