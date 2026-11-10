@@ -984,7 +984,12 @@ class GamingSpaceActivity : Activity() {
                         sheet.message("Trailer", "\"${game.second}\" has no trailer on Steam.")
                         return@post
                     }
-                    sheet.list("Trailer · ${game.second}", movies.map { it.first }, 0) { which ->
+                    val own = "Use my own clip…"
+                    sheet.list("Trailer · ${game.second}", movies.map { it.first } + own, 0) { which ->
+                        if (which == movies.size) {
+                            ownClip(app)
+                            return@list
+                        }
                         sheet.message("Trailer", "Saving \"${movies[which].first}\"…")
                         worker.execute {
                             val ok = try {
@@ -1002,6 +1007,20 @@ class GamingSpaceActivity : Activity() {
                 }
             }
         }
+    }
+
+    /**
+     * Where a clip of the user's own goes: Gaming Space plays a video named after the app's
+     * package in the Videos folder, before looking anything up ([SteamTrailers.find]). For
+     * games that are not on Steam (most phone-only games), a screen recording of the game is
+     * the trailer.
+     */
+    private fun ownClip(app: GamingLibrary.App) {
+        val folder = if (GamingStorage.shared()) GamingStorage.rootPath() + "/" + GamingStorage.VIDEOS
+            else "this app's files (give Nothing2Something All files access in the settings to" +
+                " use a folder you can open)"
+        sheet.message("Your own clip", "Put an MP4 in $folder, named ${app.packageName}.mp4." +
+            " It plays muted and looping. A screen recording of the game works well.")
     }
 
     /**

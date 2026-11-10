@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.69.1, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.0, what is pending, what still needs testing</summary>
 
-**Current build: 0.69.1** (CMF Phone 1, Nothing OS 4.1, Android 16): Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.0** (CMF Phone 1, Nothing OS 4.1, Android 16): Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,25 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.0, Gaming Space: Steam's microtrailers, and your own clip.** Asked by Dr.Essence:
+  more video sources, ideally short animated clips.
+  - **Microtrailers.** Steam keeps one beside every trailer, in the same folder as its
+    playlists (`.../store_trailers/<app>/<movie>/<hash>/<time>/microtrailer.mp4`): the few
+    seconds of highlights its store plays when a game is hovered. Not listed in the store's
+    data, found by name in that folder. Checked: Portal 2's is one plain MP4, H.264,
+    854 x 480, 7.2 s, no sound, 2.4 MB, frames looked at (gameplay, not logos); Hades,
+    Stardew Valley, Baldur's Gate 3, Hollow Knight and Terraria have one for every trailer
+    tried (1.9 to 3.3 MB). A trailer's clip is now its microtrailer, in one download; the
+    clip made from the first 15 s of the stream (often logos and black) is the fallback.
+    Clips saved before stay until the trailer is chosen again.
+  - **"Use my own clip…"** at the end of the trailer list says where to put a video of your
+    own (Videos/<package>.mp4): for games not on Steam, a screen recording of the game.
+  - **Not done, pending network access:** Play Store pictures as an artwork source, and
+    other sources (Steam's animated Points Shop items, RAWG's clips). This session's network
+    does not reach play.google.com, api.steampowered.com or api.rawg.io, and they are not
+    built without seeing their real answers.
+  Compiled; the microtrailers checked on Steam's servers as above. Not run on the phone yet.
+  To test: "Choose trailer" on a Steam game, pick one, and see the clip on the big screen.
 - **0.69.1, the dot balls of 0.69.0 removed.** Dr.Essence: "a sphere of NDot doesn't look
   good at all". Round icons are boxes again, as every other icon; the code is back as it was
   in 0.68.1 (`DotBallView` and the `TurningIcon` interface deleted, `IconScreen.isCircle`

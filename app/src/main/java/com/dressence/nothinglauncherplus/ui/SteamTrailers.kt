@@ -20,8 +20,16 @@ import java.net.URLEncoder
  * fragmented MP4 segments (`EXT-X-MAP` init segment, then 3-second `.m4s` chunks) and the sound
  * in a separate stream.
  *
- * Rather than stream that (whether Android's own player handles every such HLS is not certain),
- * a short clip is made from it, once: the smallest video variant's init segment and its first
+ * The clip used first is the trailer's **microtrailer**: Steam keeps one beside every trailer,
+ * in the same folder as its playlists (`.../store_trailers/<app>/<movie>/<hash>/<time>/
+ * microtrailer.mp4`), the few-second highlight its store plays when a game is hovered. Checked
+ * on Portal 2's (Nov 2026): one plain MP4 file, H.264, 854 x 480, 7.2 s, no sound, 2.4 MB,
+ * gameplay from the trailer's best moments, made to loop: what the dot screen wants, in one
+ * download. It is not listed in the store's data; it is found by its name in that folder.
+ *
+ * When a trailer has no microtrailer, a short clip is made from the stream instead, once
+ * (rather than streaming it: whether Android's own player handles every such HLS is not
+ * certain): the smallest video variant's init segment and its first
  * few chunks, joined, are a plain fragmented MP4 file (checked: 640 x 360, 15 s, 1.8 MB, a valid
  * H.264 video, frames of the trailer), saved in this app's files and played from there, looping,
  * muted. A movie with an mp4 link instead (older entries, microtrailers) is saved as it is.
@@ -110,10 +118,24 @@ internal class SteamTrailers(context: Context) {
         prefs.edit().remove(pkg).remove("$pkg@").apply()
     }
 
-    /** Saves [url] (an HLS master playlist, or an mp4) as a short clip in [clip]. */
+    /**
+     * Saves the trailer at [url] (an HLS master playlist, or an mp4) as a short clip in [clip]:
+     * its microtrailer when it has one, else a clip made from the stream.
+     */
     private fun save(url: String, clip: java.io.File): Boolean {
         val part = java.io.File(clip.path + ".part")
         try {
+            // The microtrailer: in the trailer's own folder, whatever kind of link this is.
+            try {
+                val micro = bytes(url.substringBefore('?').substringBeforeLast('/') +
+                    "/microtrailer.mp4")
+                if (micro.isNotEmpty() && micro.size <= MAX_BYTES) {
+                    part.writeBytes(micro)
+                    return part.renameTo(clip)
+                }
+            } catch (t: java.io.IOException) {
+                // None for this trailer (404): the clip is made from the stream below.
+            }
             part.outputStream().use { out ->
                 if (url.contains(".m3u8")) {
                     for (piece in hlsPieces(url)) {
