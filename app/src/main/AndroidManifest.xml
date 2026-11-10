@@ -53,18 +53,32 @@
         <meta-data android:name="xposedscope" android:resource="@array/xposed_scope" />
         <meta-data android:name="xposedsharedprefs" android:value="true" />
 
+        <!-- The module's settings. LSPosed opens it from its module list (MODULE_SETTINGS), the
+             Settings row and Settings search open it too, and none of them goes through the app
+             icon below, so it stays reachable while the icon is hidden. -->
         <activity
-            android:name=".ui.MainActivity"
+            android:name=".ui.SettingsActivity"
             android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS" />
             </intent-filter>
         </activity>
+
+        <!-- The app icon, on its own so "Show app icon" can switch it off (AppIcon) without
+             touching the settings above. Its name is the settings activity's name before 0.67.0
+             on purpose: a home-screen icon points at this exact name, and Nothing Launcher
+             removes a home-screen icon whose name no longer exists (PackageUpdatedTask,
+             "Removing shortcut that no longer points to valid component"). -->
+        <activity-alias
+            android:name=".ui.MainActivity"
+            android:targetActivity=".ui.SettingsActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- Nothing Gaming Space: a home screen for playing with a controller. It is a home
              app (so it can be picked as the gaming launcher that ControllerHome makes Android's
@@ -91,7 +105,7 @@
              (Settings shows it once the module marks it as accepted there: SettingsTile). -->
         <activity-alias
             android:name=".SettingsTile"
-            android:targetActivity=".ui.MainActivity"
+            android:targetActivity=".ui.SettingsActivity"
             android:exported="true"
             android:icon="@drawable/ic_settings_eyes"
             android:label="Nothing2Something">

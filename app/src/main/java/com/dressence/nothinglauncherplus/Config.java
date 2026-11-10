@@ -23,7 +23,7 @@ public final class Config {
     public static final String MODULE_PKG = "com.dressence.nothinglauncherplus";
     public static final String LAUNCHER_PKG = "com.nothing.launcher";
     public static final String SYSTEMUI_PKG = "com.android.systemui";
-    public static final String SETTINGS_ACTIVITY = MODULE_PKG + ".ui.MainActivity";
+    public static final String SETTINGS_ACTIVITY = MODULE_PKG + ".ui.SettingsActivity";
     /** Settings page to open (an extra of {@link #SETTINGS_ACTIVITY}); without it, the menu. */
     public static final String EXTRA_SETTINGS_PAGE = "page";
     public static final String PAGE_DRAWER = "drawer";

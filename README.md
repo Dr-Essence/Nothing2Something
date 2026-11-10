@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.66.0, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.67.0, what is pending, what still needs testing</summary>
 
-**Current build: 0.66.0** (CMF Phone 1, Nothing OS 4.1, Android 16): a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.67.0** (CMF Phone 1, Nothing OS 4.1, Android 16): a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,24 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.67.0, Show app icon (Module section).** Off hides the module's icon from the drawer and
+  home screen; the settings stay reachable from the Nothing2Something row in Settings, Settings
+  search and LSPosed. How it was found:
+  - Android 10+ replaces a hidden icon with a stand-in that opens the app's info page. In the
+    phone's services.jar, `LauncherAppsImpl.shouldShowSyntheticActivity` shows it for any app
+    that asks for permissions and has a launcher entry enabled *in its manifest* (it reads
+    `ActivityInfo.enabled` with MATCH_DISABLED_COMPONENTS, so switching the entry off at
+    runtime does not count). The module now answers false there for its own package only
+    (`HiddenAppIcon`, system scope, so it works after a reboot; before that the stand-in shows).
+  - The icon is now its own entry, an alias, so switching it off leaves the settings activity
+    (renamed `SettingsActivity`) enabled for LSPosed and Settings. The alias keeps the old name
+    `ui.MainActivity`: Nothing Launcher removes a home-screen icon whose component no longer
+    exists (`PackageUpdatedTask`, "Removing shortcut that no longer points to valid
+    component"), so a home-screen icon from before stays.
+  - The choice is Android's own component state (`AppIcon`), not a setting of the module.
+  Compiled, manifest checked in the built APK. To test: after updating, the home-screen icon is
+  still there; switch off, reboot, and the icon is gone with no app info icon in its place;
+  the Settings row and LSPosed still open the module; switch on brings it back.
 - **0.66.0, search inside the module.** A "Search settings" field at the top of the main menu
   lists, while typing, every setting whose title, summary, page or section holds all the
   typed words (title matches first, at most 40). It reads the same list Settings search uses

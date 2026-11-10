@@ -32,7 +32,7 @@ import java.util.List;
  * Module settings: a menu of pages (app drawer, home screen, sound, status bar and quick
  * settings, lock screen, backup, diagnostics), each the same screen opened with its page.
  */
-public class MainActivity extends Activity {
+public class SettingsActivity extends Activity {
 
     /** Replaced with {@code true} by the module's own hook when LSPosed has it enabled. */
     public static boolean isModuleActive() {
@@ -225,7 +225,7 @@ public class MainActivity extends Activity {
     }
 
     private void openPage(String page) {
-        startActivity(new Intent(this, MainActivity.class).putExtra(Config.EXTRA_SETTINGS_PAGE, page));
+        startActivity(new Intent(this, SettingsActivity.class).putExtra(Config.EXTRA_SETTINGS_PAGE, page));
     }
 
     private void renderMenu(Ui ui) {
@@ -306,6 +306,11 @@ public class MainActivity extends Activity {
 
     private void sectionModule(Ui ui) {
         ui.section("Module");
+        ui.switchRow("Show app icon", "Off: the icon leaves the app drawer and home screen; open"
+                + " the module from the Nothing2Something row in Settings, Settings search or"
+                + " LSPosed · needs the module active in the system (after a reboot), or Android"
+                + " shows an app info icon in its place", AppIcon.shown(this),
+                checked -> AppIcon.setShown(this, checked));
         ui.row("Backup", "Export or import folders, options and covers", null, ui.chevron(),
                 v -> openPage(PAGE_BACKUP));
         ui.row("Diagnostics", "Debug report for fixing problems", null, ui.chevron(),
@@ -1202,7 +1207,7 @@ public class MainActivity extends Activity {
     }
 
     private void addOpacityRow(Ui ui, Config config) {
-        addSliderRow(ui, "Drawer background", config.drawerOpacity, MainActivity::opacityLabel,
+        addSliderRow(ui, "Drawer background", config.drawerOpacity, SettingsActivity::opacityLabel,
                 value -> {
                     config.drawerOpacity = value;
                     store.save(this);

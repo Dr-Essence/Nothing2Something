@@ -5,7 +5,7 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
-import com.dressence.nothinglauncherplus.ui.MainActivity
+import com.dressence.nothinglauncherplus.ui.SettingsActivity
 
 /**
  * Android's search-indexables provider, the one Settings Intelligence (Nothing's Settings
@@ -18,8 +18,8 @@ import com.dressence.nothinglauncherplus.ui.MainActivity
  * action, package and class 9-11, key 12). It only asks system apps; `settings/SearchHook`
  * lets it ask this one.
  *
- * Every row is one setting from [SearchIndex]; a tap starts [MainActivity] with
- * [MainActivity.ACTION_SEARCH_RESULT] and the row's key, which opens its page at that row.
+ * Every row is one setting from [SearchIndex]; a tap starts [SettingsActivity] with
+ * [SettingsActivity.ACTION_SEARCH_RESULT] and the row's key, which opens its page at that row.
  */
 class SearchIndexProvider : ContentProvider() {
 
@@ -52,11 +52,11 @@ class SearchIndexProvider : ContentProvider() {
         row[5] = listOfNotNull("Nothing2Something", e.pageTitle, e.section)
             .joinToString(", ")                           // keywords
         row[6] = "Nothing2Something › " + e.pageTitle     // screen title, shown under the result
-        row[7] = MainActivity::class.java.name            // class name
+        row[7] = SettingsActivity::class.java.name            // class name
         row[8] = 0                                        // icon: the app's own
-        row[9] = MainActivity.ACTION_SEARCH_RESULT
+        row[9] = SettingsActivity.ACTION_SEARCH_RESULT
         row[10] = pkg
-        row[11] = MainActivity::class.java.name
+        row[11] = SettingsActivity::class.java.name
         row[12] = e.key
         row[13] = 0                                       // user id
         return if (width >= row.size) row else row.copyOf(width)

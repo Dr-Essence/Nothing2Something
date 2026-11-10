@@ -18,7 +18,7 @@ import com.dressence.nothinglauncherplus.search.SearchIndex
  * Nothing new is indexed for it: it reads the same list Nothing's Settings search gets
  * ([SearchIndex], every row of every page as the app lays them out, saved each time the app
  * opens), and a result opens the same way a Settings search result does (an
- * [MainActivity.ACTION_SEARCH_RESULT] intent with the row's key: the page, scrolled to the row,
+ * [SettingsActivity.ACTION_SEARCH_RESULT] intent with the row's key: the page, scrolled to the row,
  * which flashes). So the three ways in (this field, Settings search, the launcher's search bar,
  * which asks Settings Intelligence for its top three settings) always agree.
  */
@@ -29,7 +29,7 @@ internal object SettingsSearch {
 
     /** Adds the field and its result list to the page [ui] lays out. */
     @JvmStatic
-    fun addTo(activity: MainActivity, ui: Ui) {
+    fun addTo(activity: SettingsActivity, ui: Ui) {
         val field = EditText(activity)
         field.hint = "Search settings"
         field.setHintTextColor(Ui.TEXT_SECONDARY)
@@ -77,8 +77,8 @@ internal object SettingsSearch {
                 for (entry in found.take(MAX_RESULTS)) {
                     val where = listOfNotNull(entry.pageTitle, entry.section).joinToString(" › ")
                     list.row(entry.title, where, null, list.chevron()) {
-                        activity.startActivity(Intent(activity, MainActivity::class.java)
-                            .setAction(MainActivity.ACTION_SEARCH_RESULT)
+                        activity.startActivity(Intent(activity, SettingsActivity::class.java)
+                            .setAction(SettingsActivity.ACTION_SEARCH_RESULT)
                             .putExtra(":settings:fragment_args_key", entry.key))
                     }
                 }

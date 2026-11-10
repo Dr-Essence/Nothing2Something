@@ -10,7 +10,7 @@ import java.io.File
  *
  * The list is not written by hand: each time the settings app is opened, every one of its
  * pages is laid out once more, off screen, in a recording mode of `ui.Ui`, which notes each
- * row's title, summary, section and page (`MainActivity.buildSearchIndex`). So a setting added,
+ * row's title, summary, section and page (`SettingsActivity.buildSearchIndex`). So a setting added,
  * renamed or hidden ("Launcher only") is found as the app shows it, with nothing to keep in
  * step. The list is kept in a file; [SearchIndexProvider] hands it to Settings Intelligence,
  * and its [stamp] tells Settings Intelligence when to read it again (`settings/SearchHook`).

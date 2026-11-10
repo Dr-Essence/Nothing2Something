@@ -10,6 +10,7 @@ import com.dressence.nothinglauncherplus.perf.GameBar;
 import com.dressence.nothinglauncherplus.perf.GameUnlock;
 import com.dressence.nothinglauncherplus.system.OrientationProbe;
 import com.dressence.nothinglauncherplus.system.WakeOrientation;
+import com.dressence.nothinglauncherplus.system.HiddenAppIcon;
 import com.dressence.nothinglauncherplus.settings.SearchHook;
 import com.dressence.nothinglauncherplus.settings.SettingsTile;
 import com.dressence.nothinglauncherplus.settings.TaskManager;
@@ -51,6 +52,8 @@ public final class ModuleEntry implements IXposedHookLoadPackage {
             Hooks.install("orientation probe", () -> OrientationProbe.install(cl, store));
             Hooks.install("rotation sensor", () -> RotationSensor.install(cl, store));
             Hooks.install("wake orientation", () -> WakeOrientation.install(cl, store));
+            // The module's own icon: kept in "Launcher only" (it changes only this app).
+            Hooks.install("hidden app icon", () -> HiddenAppIcon.install(cl));
             if (launcherOnly(store)) {
                 Hooks.log("launcher only: the system's other changes left out");
                 return;
