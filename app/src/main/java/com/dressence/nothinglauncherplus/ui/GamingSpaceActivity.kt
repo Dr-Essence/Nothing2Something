@@ -112,8 +112,14 @@ class GamingSpaceActivity : Activity() {
     private lateinit var store: SettingsStore
     private val main = Handler(Looper.getMainLooper())
     private val worker: ExecutorService = Executors.newSingleThreadExecutor()
-    /** Box sides by package (see [boxFace]). */
-    private val faces = LruCache<String, Bitmap>(64)
+    /** Each app's look by package (see [look]). */
+    private val looks = LruCache<String, Look>(64)
+
+    /** How an app is shown below: a box with its icon on each side, or its cut-out icon. */
+    private sealed class Look {
+        class Box(val face: Bitmap) : Look()
+        class Slab(val icon: Bitmap) : Look()
+    }
     private var ndot: Typeface? = null
     private var phase = Phase.INTRO
     private var skip: (() -> Unit)? = null
@@ -491,10 +497,19 @@ class GamingSpaceActivity : Activity() {
         list.forEachIndexed { j, app ->
             val item = LinearLayout(this)
             item.gravity = Gravity.CENTER_VERTICAL
-            val cube = DotCubeView(this)
-            cube.tag = app.packageName
-            boxFace(app.packageName) { if (cube.tag == app.packageName) cube.setFace(it) }
-            item.addView(cube, LinearLayout.LayoutParams(size, size))
+            // A holder for the app's box or slab: which one is known once its icon is read.
+            val holder = FrameLayout(this)
+            holder.tag = app.packageName
+            look(app) { look ->
+                if (holder.tag != app.packageName) return@look
+                holder.removeAllViews()
+                holder.addView(when (look) {
+                    is Look.Box -> DotCubeView(this).also { it.setFace(look.face) }
+                    is Look.Slab -> DotSlabView(this).also { it.setIcon(look.icon) }
+                }, FrameLayout.LayoutParams(size, size))
+                layoutCross() // lights it if it is the selected app
+            }
+            item.addView(holder, LinearLayout.LayoutParams(size, size))
             val name = text(app.label, 26f, Color.WHITE)
             name.maxLines = 1
             name.ellipsize = android.text.TextUtils.TruncateAt.END
@@ -574,7 +589,8 @@ class GamingSpaceActivity : Activity() {
                 it.setTextColor(if (on) GREEN else Color.WHITE)
                 if (on) it.setShadowLayer(dp(10f), 0f, 0f, GLOW) else it.setShadowLayer(0f, 0f, 0f, 0)
             }
-            ((item as? ViewGroup)?.getChildAt(0) as? DotCubeView)?.lit = on
+            (((item as? ViewGroup)?.getChildAt(0) as? ViewGroup)?.getChildAt(0) as? TurningIcon)
+                ?.lit = on
         }
     }
 
@@ -721,18 +737,29 @@ class GamingSpaceActivity : Activity() {
             DotEffect.anchor(spec), seed)
     }
 
-    /** The side of an app's box: its icon as a dot screen side to side; made once, off the main thread. */
-    private fun boxFace(pkg: String, done: (Bitmap) -> Unit) {
-        faces.get(pkg)?.let { done(it); return }
+    /**
+     * How an app is shown: for a game or emulator with artwork on, its cut-out icon from
+     * SteamGridDB turning as a slab ([SteamGridArt.icon], chosen or found); else a box whose
+     * sides are its own icon as a dot screen ([DotFace]). Made once, off the main thread.
+     */
+    private fun look(app: GamingLibrary.App, done: (Look) -> Unit) {
+        looks.get(app.packageName)?.let { done(it); return }
+        val wantsIcon = store.config.gamingArtwork && isGame(app)
         worker.execute {
-            val face = try {
-                DotFace.of(packageManager.getApplicationIcon(pkg))
+            // The box first, at once; the icon (which may need the network) replaces it.
+            val box = try {
+                Look.Box(DotFace.of(packageManager.getApplicationIcon(app.packageName)))
             } catch (t: Throwable) {
-                return@execute // no icon: the box stays empty, as before
+                null
             }
+            if (box != null) main.post { done(box) }
+            val slab = if (wantsIcon) {
+                try { art.icon(app.packageName, app.label)?.let { Look.Slab(it) } } catch (t: Throwable) { null }
+            } else null
+            val look = slab ?: box ?: return@execute // no icon at all: the place stays empty
             main.post {
-                faces.put(pkg, face)
-                done(face)
+                looks.put(app.packageName, look)
+                if (look === slab) done(look)
             }
         }
     }
@@ -831,6 +858,7 @@ class GamingSpaceActivity : Activity() {
         actions += "Rename" to { rename(app) }
         if (canArt && hasKey) actions += "Choose artwork" to { chooseArtwork(app) }
         if (canArt) actions += "Use Play Store banner" to { usePlayBanner(app) }
+        if (canArt && hasKey) actions += "Choose icon" to { chooseIcon(app) }
         if (store.config.gamingTrailers && isGame(app)) {
             actions += "Choose trailer" to { chooseTrailer(app) }
         }
@@ -930,8 +958,10 @@ class GamingSpaceActivity : Activity() {
             store.save(this)
             worker.execute {
                 art.forget(app.packageName)
+                art.forgetIcon(app.packageName)
                 trailers.forget(app.packageName)
             }
+            looks.remove(app.packageName)
             reloadApps()
         }
     }
@@ -974,6 +1004,53 @@ class GamingSpaceActivity : Activity() {
                                 return@execute
                             }
                             main.post { showSelection() }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Choosing the turning icon by hand: SteamGridDB's games for the app's name (or a name
+     * typed in), then that game's PNG icons, with "Box" first to keep the box; the pick is
+     * saved and the app's place redrawn.
+     */
+    private fun chooseIcon(app: GamingLibrary.App, name: String = app.label) {
+        chooseGame("Icon", name, { art.games(it) }, { chooseIcon(app, it) }) { game ->
+            sheet.message("Icon", "Loading the icons of \"${game.second}\"…")
+            worker.execute {
+                var failed: Throwable? = null
+                val previews = try {
+                    art.iconChoices(game.first).take(14).map { it to art.preview(it) }
+                } catch (t: Throwable) {
+                    failed = t
+                    emptyList()
+                }
+                main.post {
+                    if (isDestroyed) return@post
+                    failed?.let {
+                        sheet.message("Icon", "Could not load the icons: ${why(it)}")
+                        return@post
+                    }
+                    val box = "Box" to (try {
+                        rawIcon(app.packageName)
+                    } catch (t: Throwable) { null })
+                    val tiles = listOf(box) + previews.map { (_, picture) -> "Icon" to picture }
+                    sheet.pictures("Icon · ${game.second}", tiles, square = true) { which ->
+                        worker.execute {
+                            val result = try {
+                                if (which == 0) art.useBox(app.packageName)
+                                else art.saveIcon(app.packageName, previews[which - 1].first)
+                                null
+                            } catch (t: Throwable) {
+                                "Could not download it: ${why(t)}"
+                            }
+                            main.post {
+                                if (isDestroyed) return@post
+                                if (result != null) sheet.message("Icon", result)
+                                else { looks.remove(app.packageName); buildColumn() }
+                            }
                         }
                     }
                 }

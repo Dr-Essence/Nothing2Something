@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.5, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.6, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.5** (CMF Phone 1, Nothing OS 4.1, Android 16): Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.6** (CMF Phone 1, Nothing OS 4.1, Android 16): games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,30 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.6, Gaming Space: games' icons turn as solid dot shapes.** Asked by Dr.Essence: 3D
+  icons for games, animated where possible, automatic and by hand. Shown first as a preview
+  drawn with the same steps (GTA V's "V" and Hollow Knight's icon at six angles) and approved
+  before it was built.
+  - **What SteamGridDB has, from its real API with Dr.Essence's key** (saved as a network
+    secret for this session, never seen): Hollow Knight and GTA V have 49 and 50 icons, none
+    animated; animated art there is in grids and logos (Hollow Knight: one animated square
+    cover, 51 frames, moving too little to read at 28 dots). PNG icons: 14 and 32, some of
+    them cut-out shapes (GTA V's official "V" 53% clear, Hollow Knight's 30%). The phone game
+    8 Ball Pool is not on SteamGridDB at all.
+  - **`DotSlabView`:** a cut-out icon becomes a slab of dots (40 cells across, 5 layers
+    thick: the front and back in the icon's colours, the back mirrored so it reads from
+    behind, the layers between only at the shape's edges, darker), turned and leant as the
+    boxes are, layers drawn far to near (no sorting), lit from the front.
+  - **Automatic:** with "Game artwork" on and a SteamGridDB key, a game or emulator uses the
+    best-voted PNG icon that is a cut-out (at least 15% clear), among the first four; none
+    found is remembered for a week. Its box shows at once and is replaced when the icon
+    arrives. Apps without one, and phone games not on SteamGridDB, stay boxes.
+  - **By hand:** "Choose icon" in a game's menu lists its PNG icons with "Box" first (square
+    previews); the pick is kept, and "Box" keeps the box. A rename looks the icon up again.
+  - The box and the slab share a small `TurningIcon` interface (lit = selected).
+  Compiled; checked against SteamGridDB's real answers as above. Not run on the phone yet.
+  To test: Games with GTA V (or any Steam game): its "V" turning; Y, Choose icon, another
+  icon or Box.
 - **0.70.5, Gaming Space: Android games get their Google Play banner.** Asked by Dr.Essence:
   sources for phone games too, not only ROMs. `PlayStore` reads a game's banner (the
   1024 x 500 "feature graphic") from its Google Play page, found by package name, so it is

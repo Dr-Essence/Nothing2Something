@@ -71,8 +71,12 @@ internal class NothingSheet(private val context: Context, private val host: Fram
         open(card, rows, selected.coerceIn(0, maxOf(0, rows.size - 1)), false, pick)
     }
 
-    /** A row of pictures to choose from, each with a caption (artwork). */
-    fun pictures(title: String, items: List<Pair<String, Bitmap?>>, pick: (Int) -> Unit) {
+    /**
+     * A row of pictures to choose from, each with a caption: wide tiles for banners, or
+     * [square] ones for icons (a square icon cropped into a banner tile shows a sliver).
+     */
+    fun pictures(title: String, items: List<Pair<String, Bitmap?>>, square: Boolean = false,
+            pick: (Int) -> Unit) {
         val card = card(title)
         val row = LinearLayout(context)
         val tiles = items.mapIndexed { i, (caption, picture) ->
@@ -81,11 +85,13 @@ internal class NothingSheet(private val context: Context, private val host: Fram
             tile.gravity = Gravity.CENTER_HORIZONTAL
             tile.setPadding(dp(8), dp(8), dp(8), dp(8))
             val image = ImageView(context)
-            image.scaleType = ImageView.ScaleType.CENTER_CROP
+            image.scaleType = if (square) ImageView.ScaleType.FIT_CENTER
+                else ImageView.ScaleType.CENTER_CROP
             image.setImageBitmap(picture)
             image.background = rounded(0xFF151615.toInt(), dp(10).toFloat(), 0)
             image.clipToOutline = true
-            tile.addView(image, LinearLayout.LayoutParams(dp(240), dp(78)))
+            tile.addView(image, if (square) LinearLayout.LayoutParams(dp(110), dp(110))
+                else LinearLayout.LayoutParams(dp(240), dp(78)))
             val label = text(caption.uppercase(), 12f, Color.WHITE)
             label.setPadding(0, dp(6), 0, 0)
             tile.addView(label)

@@ -38,6 +38,11 @@ internal class SteamGridArt(context: Context) {
         private const val PREFS = "steamgriddb"
         private const val KEY = "api_key"
         private const val NO_MATCH = "none:"
+        /** No cut-out icon found for an app (when), and the user's "use the box" choice. */
+        private const val NO_ICON = "noicon:"
+        private const val BOX = "box:"
+        /** Icon candidates downloaded to find a cut-out, at most. */
+        private const val ICON_TRIES = 4
         private const val LAST = "last_result"
         private const val RETRY_MS = 7L * 24 * 60 * 60 * 1000
         private const val FILTERS = "nsfw=false&humor=false&epilepsy=false"
@@ -193,6 +198,74 @@ internal class SteamGridArt(context: Context) {
     fun choicesFor(game: Int): List<Choice> {
         val key = prefs.getString(KEY, "") ?: ""
         return if (key.isEmpty()) emptyList() else choices(key, game, 4, 8, 6)
+    }
+
+    // ---------------------------------------------------------------------------------
+    // Icons that turn as a slab (DotSlabView)
+    // ---------------------------------------------------------------------------------
+
+    /**
+     * SteamGridDB's icons, checked with the real API (Nov 2026, Hollow Knight and GTA V):
+     * `GET /icons/game/<id>` lists 49 and 50 icons, best voted first, each with `url`, `thumb`
+     * (always a 256 x 256 PNG preview, also for `.ico` files), `mime` and `style`; none of
+     * either game's is animated (`types=animated` gives none: animated art on SteamGridDB is
+     * in grids and logos). `mimes=image/png` keeps the PNGs (32 and 14), some of them cut-out
+     * shapes (GTA V's official "V": 53% of its pixels clear). The icon is saved as
+     * `<package>.icon.png` beside the artwork.
+     */
+    private fun iconFile(pkg: String) = File(dir, "$pkg.icon.png")
+
+    /**
+     * The app's cut-out icon to turn as a slab, or null for the box: the one chosen by hand,
+     * else the best-voted PNG icon that is a cut-out ([DotSlabView.isCutOut]) among the first
+     * few. Off with no key, after "use the box", and for a week after finding none. Blocking.
+     */
+    fun icon(pkg: String, label: String): Bitmap? {
+        if (prefs.getBoolean(BOX + pkg, false)) return null
+        iconFile(pkg).takeIf { it.exists() }?.let { file ->
+            return BitmapFactory.decodeFile(file.path)
+        }
+        val key = prefs.getString(KEY, "") ?: ""
+        if (key.isEmpty()) return null
+        val missed = prefs.getLong(NO_ICON + pkg, 0L)
+        if (missed != 0L && System.currentTimeMillis() - missed < RETRY_MS) return null
+        return try {
+            val game = search(key, label)
+            val found = game?.let { iconChoices(it.first) }?.take(ICON_TRIES)?.firstNotNullOfOrNull {
+                val bytes = download(it.url, null)
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    ?.takeIf { bitmap -> DotSlabView.isCutOut(bitmap) }?.also { iconFile(pkg).writeBytes(bytes) }
+            }
+            if (found == null) prefs.edit().putLong(NO_ICON + pkg, System.currentTimeMillis()).apply()
+            found
+        } catch (t: Throwable) {
+            null // offline or SteamGridDB down: the box, and tried again next time
+        }
+    }
+
+    /** A game's PNG icons (by its SteamGridDB id), best voted first, for choosing. Blocking. */
+    fun iconChoices(game: Int): List<Choice> {
+        val key = prefs.getString(KEY, "") ?: ""
+        if (key.isEmpty()) return emptyList()
+        return list(key, "icons/game/$game?mimes=image/png&$FILTERS", false, "Icon")
+    }
+
+    /** Uses [choice] as the app's turning icon, chosen by hand (cut-out or not). Blocking. */
+    fun saveIcon(pkg: String, choice: Choice) {
+        iconFile(pkg).writeBytes(download(choice.url, null))
+        prefs.edit().remove(BOX + pkg).remove(NO_ICON + pkg).apply()
+    }
+
+    /** "Use the box": the app is a box again, and no icon is looked up for it. */
+    fun useBox(pkg: String) {
+        iconFile(pkg).delete()
+        prefs.edit().putBoolean(BOX + pkg, true).apply()
+    }
+
+    /** Forgets the app's icon (after a rename), so it is looked up again; keeps "use the box". */
+    fun forgetIcon(pkg: String) {
+        iconFile(pkg).delete()
+        prefs.edit().remove(NO_ICON + pkg).apply()
     }
 
     /** The game's Google Play banner as a choice, or null (see [PlayStore]). Blocking. */
