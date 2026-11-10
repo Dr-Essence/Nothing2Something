@@ -229,6 +229,9 @@ public class MainActivity extends Activity {
     }
 
     private void renderMenu(Ui ui) {
+        if (!ui.collecting()) {
+            SettingsSearch.addTo(this, ui); // not while recording: its rows are the index itself
+        }
         if (com.dressence.nothinglauncherplus.UpdateReceiver.externalForced(this)) {
             ui.note("Developer options → \"Force allow apps on external\" is on: Android then"
                     + " installs updates of this module on the memory card, which LSPosed cannot"

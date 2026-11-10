@@ -139,6 +139,16 @@ final class Ui {
                 context.getResources().getDisplayMetrics());
     }
 
+    /** Adds any view to the page, under what is there (e.g. the settings search). */
+    void add(View view) {
+        content.addView(view);
+    }
+
+    /** A page part that is not recorded for search (its own rows are found elsewhere). */
+    Ui into(LinearLayout container) {
+        return new Ui(activity, container);
+    }
+
     /** Small accent-coloured section label, like "Drawer layout". */
     TextView section(String label) {
         sectionLabel = label;
