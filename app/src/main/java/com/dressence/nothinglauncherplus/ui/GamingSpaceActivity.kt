@@ -29,7 +29,6 @@ import android.widget.TextView
 import com.dressence.nothinglauncherplus.anim.AnimatedEmojiView
 import com.dressence.nothinglauncherplus.anim.DotEffect
 import com.dressence.nothinglauncherplus.Palette
-import com.dressence.nothinglauncherplus.launcher.IconScreen
 import com.dressence.nothinglauncherplus.xposed.NdotFont
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -45,15 +44,19 @@ import kotlin.math.abs
  * - On start: a black screen, "NOTHING GAMING SPACE" glowing in green NDot, and the first time
  *   only, a photosensitivity warning that goes on by itself (A skips it).
  * - Then, in landscape, two halves: on top a big dot screen showing what is selected (a
- *   category's animated emoji, or an app's icon as a dot screen) with its name; below, a row of
- *   the categories (animated NDot emoji covers, the folder covers' engine), or the apps of the
- *   category opened.
+ *   category's animated emoji, or an app's icon, artwork or trailer); below, as on the
+ *   PlayStation's XMB, two levels:
+ *   - the categories: big dot cards in a row (animated NDot emoji covers, the folder covers'
+ *     engine), the selected one in a fixed place;
+ *   - a category's apps: the cards go away, the selected app is a big turning box whose every
+ *     side is a dot screen, with its name in NDot; the next apps follow below, smaller.
  *
- * Controller: left and right move, A (or down) opens, B (or up) goes back, L1 and R1 change the
- * category, Y or the menu button moves the selected app to another category or hides it. The
- * stick works too: Android turns it into the same left and right presses for an app that does
- * not read the stick itself, with its own repeat. Touch works as well: a tap opens, a long press
- * on an app moves it.
+ * Controller: on the categories, left and right move and A (or down) opens one; in the apps,
+ * up and down move, A plays, B (or up from the first app) goes back to the categories, left
+ * and right (or L1 and R1) change the category, Y or the menu button opens the app's menu. The
+ * stick works too: Android turns it into the same presses for an app that does not read the
+ * stick itself, with its own repeat. Touch: swipes move, a tap opens or plays, a long press on
+ * an app opens its menu, a tap on the category's name goes back.
  *
  * Categories: see [GamingLibrary].
  */
@@ -66,14 +69,19 @@ class GamingSpaceActivity : Activity() {
         private const val LED_GREEN = Palette.LED_GREEN
         /** The dot screen's share of the page's height; the cross gets the rest. */
         private const val SCREEN_SHARE = 0.5f
-        /** A category's card, as a drawer folder's: size (dp), emoji share, corner. */
+        /**
+         * A category's card, as a drawer folder's: its shape (width to height), height in the
+         * lower half's height, emoji share, corner, and the size of the cards beside it.
+         */
         private const val CARD_W = 92f
         private const val CARD_H = 96f
+        private const val CARD_SHARE = 0.78f
+        private const val CARD_SMALL = 0.62f
         private const val COVER_SCALE = 0.86f
         private const val CARD_CORNER = 0.085f
-        /** An app's row in the column (dp). */
-        private const val ITEM_H = 52f
-        private const val ITEM_ICON = 46f
+        /** An app's box in the lower half's height: the selected one, and the ones after it. */
+        private const val APP_BIG = 0.5f
+        private const val APP_SMALL = 0.25f
         /** "Adjust artwork": one step of the controller, in pan and in zoom. */
         private const val PAN_STEP = 0.1f
         private const val ZOOM_STEP = 0.1f
@@ -127,19 +135,24 @@ class GamingSpaceActivity : Activity() {
         GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, vx: Float, vy: Float): Boolean {
                 if (phase != Phase.MAIN || sheet.isOpen) return false
-                if (abs(vx) > abs(vy)) setCategory(category + if (vx < 0) 1 else -1)
-                else setApp(appFocus[category] + if (vy < 0) 1 else -1)
+                when {
+                    abs(vx) > abs(vy) -> setCategory(category + if (vx < 0) 1 else -1)
+                    !inApps -> if (vy < 0) enterApps() // a swipe up opens the category
+                    vy < 0 -> setApp(appFocus[category] + 1)
+                    appFocus[category] == 0 -> leaveApps() // down past the first app
+                    else -> setApp(appFocus[category] - 1)
+                }
                 return true
             }
 
             override fun onSingleTapUp(e: MotionEvent): Boolean {
                 if (phase != Phase.MAIN || sheet.isOpen || e.y > screenHeight) return false
-                launch()
+                if (inApps) launch() else enterApps()
                 return true
             }
 
             override fun onLongPress(e: MotionEvent) {
-                if (phase == Phase.MAIN && !sheet.isOpen && e.y <= screenHeight) menu()
+                if (phase == Phase.MAIN && !sheet.isOpen && inApps && e.y <= screenHeight) menu()
             }
         })
     }
@@ -158,11 +171,16 @@ class GamingSpaceActivity : Activity() {
         return super.dispatchTouchEvent(ev)
     }
     private var screenHeight = 0
+    private var pageHeight = 0
     /** The categories' cards across, and the open category's apps down. */
     private lateinit var bar: FrameLayout
     private lateinit var column: FrameLayout
     private val cards = ArrayList<View>()
     private val items = ArrayList<View>()
+    /** The open category's name over its apps: shows where you are, a tap goes back. */
+    private var heading: TextView? = null
+    /** Which level the lower half shows: the categories, or the selected category's apps. */
+    private var inApps = false
 
     private var apps: List<GamingLibrary.App> = emptyList()
     private var category = 0
@@ -366,6 +384,7 @@ class GamingSpaceActivity : Activity() {
      * and only dots show. Artwork, trailers and the category animations use the same dots.
      */
     private fun place(width: Int, height: Int) {
+        pageHeight = height
         screenHeight = (height * SCREEN_SHARE).toInt()
         for (view in listOf(screen, animation, artwork, video)) {
             view.layoutParams = FrameLayout.LayoutParams(width, screenHeight)
@@ -383,7 +402,9 @@ class GamingSpaceActivity : Activity() {
         animation.setGeometry(pitch, 0f)
         artwork.setGeometry(pitch, 0f)
         video.setGeometry(pitch, 0f)
-        layoutCross()
+        // The cards and boxes are sized from the lower half, known only now.
+        buildCards()
+        buildColumn()
         showSelection(false)
     }
 
@@ -406,14 +427,22 @@ class GamingSpaceActivity : Activity() {
         return apps.filter { it.category == cat }
     }
 
-    /** The categories, each a dot card like a drawer folder: its emoji and name on the dots. */
+    /** The lower half's height: the categories' row and the apps' column fit in it. */
+    private val crossHeight get() = pageHeight - screenHeight
+
+    /**
+     * The categories, each a dot card like a drawer folder: its emoji and name on the dots,
+     * sized from the lower half (Dr.Essence on 0.67.0: much bigger than the 92 dp they were).
+     */
     private fun buildCards() {
         bar.removeAllViews()
         cards.clear()
-        val w = dp(CARD_W).toInt()
-        val h = dp(CARD_H).toInt()
-        // As a drawer folder: the name's strip on top, the emoji's screen under it.
-        val labelH = dp(28f).toInt()
+        if (pageHeight == 0) return // sized in place(), once the page is laid out
+        val h = (crossHeight * CARD_SHARE).toInt()
+        val w = (h * CARD_W / CARD_H).toInt()
+        // As a drawer folder: the name's strip on top, the emoji's screen under it (the strip
+        // and the name keep a drawer folder's proportions: 28 and 13 of its 96).
+        val labelH = (h * 28f / CARD_H).toInt()
         val side = ((h - labelH) * COVER_SCALE).toInt()
         GamingLibrary.order.forEachIndexed { i, cat ->
             val card = AnimatedEmojiView(this)
@@ -424,19 +453,32 @@ class GamingSpaceActivity : Activity() {
             val top = labelH + (h - labelH - side) / 2
             card.setDotPanel(Rect(left, top, left + side, top + side), Rect(0, 0, w, h),
                 minOf(w, h) * CARD_CORNER)
-            card.setDotLabel(cat.title, LED_GREEN, Rect(0, dp(4f).toInt(), w, labelH),
-                NdotFont.get(this), dp(13f))
-            card.setOnClickListener { setCategory(i) }
+            card.setDotLabel(cat.title, LED_GREEN, Rect(0, (h * 4f / CARD_H).toInt(), w, labelH),
+                NdotFont.get(this), h * 13f / CARD_H)
+            card.setOnClickListener { if (i == category) enterApps() else setCategory(i) }
             bar.addView(card, FrameLayout.LayoutParams(w, h))
             cards += card
         }
         layoutCross()
     }
 
-    /** The open category's apps, top to bottom: a dot icon and the name beside it. */
+    /**
+     * The open category's apps, top to bottom: each a turning dot box and its name beside it,
+     * made at the selected box's size (the others are the same views, scaled down).
+     */
     private fun buildColumn() {
         column.removeAllViews()
         items.clear()
+        heading = null
+        if (pageHeight == 0) return
+        val cat = GamingLibrary.order[category]
+        val head = text(cat.title.uppercase(), 15f, GREEN)
+        head.setShadowLayer(dp(8f), 0f, 0f, GLOW)
+        head.setPadding(0, dp(4f).toInt(), dp(24f).toInt(), dp(4f).toInt())
+        head.setOnClickListener { leaveApps() }
+        column.addView(head, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT))
+        heading = head
         val list = appsOf(category)
         if (list.isEmpty()) {
             val none = text("NO APPS HERE  ·  Y ON AN APP MOVES IT", 14f, DIM)
@@ -444,60 +486,111 @@ class GamingSpaceActivity : Activity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT))
             items += none
         }
+        val size = (crossHeight * APP_BIG).toInt()
         list.forEachIndexed { j, app ->
             val item = LinearLayout(this)
             item.gravity = Gravity.CENTER_VERTICAL
             val cube = DotCubeView(this)
             cube.tag = app.packageName
             boxFace(app.packageName) { if (cube.tag == app.packageName) cube.setFace(it) }
-            val size = dp(ITEM_ICON).toInt()
             item.addView(cube, LinearLayout.LayoutParams(size, size))
-            val name = text(app.label, 18f, Color.WHITE)
+            val name = text(app.label, 26f, Color.WHITE)
             name.maxLines = 1
             name.ellipsize = android.text.TextUtils.TruncateAt.END
-            name.setPadding(dp(16f).toInt(), 0, 0, 0)
-            item.addView(name, LinearLayout.LayoutParams(dp(420f).toInt(),
+            name.setPadding(dp(20f).toInt(), 0, 0, 0)
+            item.addView(name, LinearLayout.LayoutParams(dp(520f).toInt(),
                 ViewGroup.LayoutParams.WRAP_CONTENT))
             item.setOnClickListener { if (appFocus[category] == j) launch() else setApp(j) }
             item.setOnLongClickListener { setApp(j); menu(); true }
-            column.addView(item, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                dp(ITEM_H).toInt()))
+            column.addView(item, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, size))
             items += item
         }
         layoutCross()
     }
 
     /**
-     * The cross: the selected category's card in its fixed place, the others along the bar
-     * beside it; under it, the selected app first and the next ones below, the earlier ones
-     * gone above (out of sight), as on the cross menu.
+     * Places both levels. The categories: the selected card in its fixed place, the next ones
+     * smaller beside it, the earlier ones gone to the left. The apps: the selected one big at
+     * the top, the next ones smaller below, the earlier ones gone above. The level not shown
+     * fades out and moves aside, and takes no taps.
      */
     private fun layoutCross() {
         if (screenHeight == 0) return
-        val slot = dp(40f)
-        val barY = screenHeight + dp(8f)
-        val step = dp(CARD_W + 18f)
+        val slot = dp(48f)
+        val shift = dp(40f)
+        val cardH = crossHeight * CARD_SHARE
+        val cardW = cardH * CARD_W / CARD_H
+        val gap = dp(22f)
+        val cardY = screenHeight + (crossHeight - cardH) / 2
         cards.forEachIndexed { i, card ->
             val on = i == category
-            card.animate().translationX(slot + (i - category) * step).translationY(barY)
-                .scaleX(if (on) 1f else 0.82f).scaleY(if (on) 1f else 0.82f)
-                .alpha(if (on) 1f else 0.45f).setDuration(MOVE_MS).start()
+            val step = cardW * CARD_SMALL + gap
+            val x = when {
+                on -> slot
+                i > category -> slot + cardW + gap + (i - category - 1) * step
+                else -> slot - (category - i) * step
+            }
+            card.pivotX = 0f
+            card.pivotY = cardH / 2
+            card.isClickable = !inApps // hidden cards let taps through
+            card.animate().translationX(x).translationY(if (inApps) cardY - shift else cardY)
+                .scaleX(if (on) 1f else CARD_SMALL).scaleY(if (on) 1f else CARD_SMALL)
+                .alpha(if (inApps) 0f else if (on) 1f else 0.45f).setDuration(MOVE_MS).start()
+        }
+        val big = crossHeight * APP_BIG
+        val small = crossHeight * APP_SMALL
+        val itemGap = dp(10f)
+        val headY = screenHeight + dp(8f)
+        val focusY = screenHeight + dp(40f)
+        val away = if (inApps) 0f else shift
+        heading?.let {
+            it.isClickable = inApps
+            it.animate().translationX(slot).translationY(headY + away)
+                .alpha(if (inApps) 1f else 0f).setDuration(MOVE_MS).start()
         }
         val focus = appFocus[category]
-        val top = barY + dp(CARD_H + 8f)
-        val x = slot + dp(CARD_W + 28f)
         items.forEachIndexed { j, item ->
-            val off = j - focus
+            val off = if (item is TextView) 0 else j - focus
             val on = off == 0
+            val y = when {
+                off < 0 -> focusY - big / 2
+                on -> focusY
+                else -> focusY + big + itemGap + (off - 1) * (small + itemGap)
+            }
+            val scale = if (on) 1f else small / big
             item.pivotX = 0f
-            item.animate().translationX(x).translationY(top + maxOf(off, 0) * dp(ITEM_H))
-                .alpha(if (off < 0) 0f else if (on) 1f else 0.5f)
-                .scaleX(if (on) 1f else 0.85f).scaleY(if (on) 1f else 0.85f)
-                .setDuration(MOVE_MS).start()
-            ((item as? ViewGroup)?.getChildAt(1) as? TextView)?.setTextColor(
-                if (on) GREEN else Color.WHITE)
+            item.pivotY = 0f
+            // Only what is shown takes taps: the apps above the selected one are invisible but
+            // reach into the big screen, and a view that is only disabled still swallows taps.
+            if (item !is TextView) {
+                item.isClickable = inApps && off >= 0
+                item.isLongClickable = inApps && off >= 0
+            }
+            item.animate().translationX(slot).translationY(y + away)
+                .alpha(if (!inApps || off < 0) 0f else if (on) 1f else 0.55f)
+                .scaleX(scale).scaleY(scale).setDuration(MOVE_MS).start()
+            ((item as? ViewGroup)?.getChildAt(1) as? TextView)?.let {
+                it.setTextColor(if (on) GREEN else Color.WHITE)
+                if (on) it.setShadowLayer(dp(10f), 0f, 0f, GLOW) else it.setShadowLayer(0f, 0f, 0f, 0)
+            }
             ((item as? ViewGroup)?.getChildAt(0) as? DotCubeView)?.lit = on
         }
+    }
+
+    /** Down into the selected category: its apps, the first one (or the last selected) big. */
+    private fun enterApps() {
+        if (inApps || appsOf(category).isEmpty()) return
+        inApps = true
+        layoutCross()
+        showSelection(false)
+    }
+
+    /** Back up to the categories. */
+    private fun leaveApps() {
+        if (!inApps) return
+        inApps = false
+        layoutCross()
+        showSelection(false)
     }
 
     private fun setCategory(index: Int) {
@@ -510,7 +603,7 @@ class GamingSpaceActivity : Activity() {
 
     private fun setApp(index: Int) {
         val list = appsOf(category)
-        if (list.isEmpty()) return
+        if (!inApps || list.isEmpty()) return
         val next = index.coerceIn(0, list.size - 1)
         if (next == appFocus[category]) return
         appFocus[category] = next
@@ -519,8 +612,9 @@ class GamingSpaceActivity : Activity() {
     }
 
     /**
-     * The big screen: on a new category, its emoji plays first, then the selected app's icon
-     * comes up; moving between apps shows the app at once.
+     * The big screen: on the categories, the selected category's emoji; in the apps, the
+     * selected app. A new category plays its animation first (in the apps, the selected app
+     * comes up after it); moving between apps shows the app at once.
      */
     private fun showSelection(categoryFirst: Boolean) {
         main.removeCallbacks(showApp)
@@ -529,13 +623,13 @@ class GamingSpaceActivity : Activity() {
         artwork.showArtwork(null)
         video.play(null)
         val cat = GamingLibrary.order[category]
-        val app = appsOf(category).getOrNull(appFocus[category])
+        val app = if (inApps) appsOf(category).getOrNull(appFocus[category]) else null
         if (categoryFirst) {
             // Its animation over the whole screen; under it the emoji and name wait, and stay
             // a moment once it fades, before the selected app comes up.
             setCover(screen, cat.emoji, cat.ordinal * 31L)
             animation.play(cat) {
-                if (appsOf(category).isNotEmpty()) main.postDelayed(showApp, CATEGORY_SHOW_MS)
+                if (inApps && appsOf(category).isNotEmpty()) main.postDelayed(showApp, CATEGORY_SHOW_MS)
             }
         } else if (app == null) {
             animation.stop()
@@ -547,6 +641,7 @@ class GamingSpaceActivity : Activity() {
     }
 
     private val showApp = Runnable {
+        if (!inApps) return@Runnable
         val app = appsOf(category).getOrNull(appFocus[category]) ?: return@Runnable
         rawIcon(app.packageName)?.let { screen.setImage(it, app.packageName.hashCode().toLong()) }
         showArtwork(app)
@@ -622,18 +717,14 @@ class GamingSpaceActivity : Activity() {
             DotEffect.anchor(spec), seed)
     }
 
-    /**
-     * The side of an app's box: its icon as a dot screen (the launcher's dot icons) on a dark
-     * plate; made once, off the main thread.
-     */
+    /** The side of an app's box: its icon as a dot screen side to side; made once, off the main thread. */
     private fun boxFace(pkg: String, done: (Bitmap) -> Unit) {
         faces.get(pkg)?.let { done(it); return }
         worker.execute {
-            val raw = rawIcon(pkg) ?: return@execute
             val face = try {
-                plate(IconScreen.dots(raw) ?: raw)
+                DotFace.of(packageManager.getApplicationIcon(pkg))
             } catch (t: Throwable) {
-                plate(raw)
+                return@execute // no icon: the box stays empty, as before
             }
             main.post {
                 faces.put(pkg, face)
@@ -677,18 +768,23 @@ class GamingSpaceActivity : Activity() {
             if (event.repeatCount == 0) skip?.invoke()
             return true
         }
+        val first = event.repeatCount == 0
         when (keyCode) {
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_BUTTON_L1 -> setCategory(category - 1)
             KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_BUTTON_R1 -> setCategory(category + 1)
-            KeyEvent.KEYCODE_DPAD_UP -> setApp(appFocus[category] - 1)
-            KeyEvent.KEYCODE_DPAD_DOWN -> setApp(appFocus[category] + 1)
+            // Up from the first app goes back to the categories, but not while held to scroll.
+            KeyEvent.KEYCODE_DPAD_UP -> if (inApps && appFocus[category] == 0) {
+                if (first) leaveApps()
+            } else setApp(appFocus[category] - 1)
+            KeyEvent.KEYCODE_DPAD_DOWN -> if (inApps) setApp(appFocus[category] + 1)
+                else if (first) enterApps()
             KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
             KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_BUTTON_START ->
-                if (event.repeatCount == 0) launch()
+                if (first) { if (inApps) launch() else enterApps() }
             KeyEvent.KEYCODE_BUTTON_Y, KeyEvent.KEYCODE_BUTTON_X, KeyEvent.KEYCODE_MENU ->
-                if (event.repeatCount == 0) menu()
-            // Home has nowhere to go back to: B and Back are taken and do nothing.
-            KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BACK -> {}
+                if (first && inApps) menu()
+            // B and Back go back to the categories; home has nowhere further to go back to.
+            KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BACK -> if (first) leaveApps()
             else -> return super.onKeyDown(keyCode, event)
         }
         return true
@@ -702,10 +798,11 @@ class GamingSpaceActivity : Activity() {
 
     @Deprecated("Back does nothing on this home screen")
     override fun onBackPressed() {
-        if (sheet.isOpen) sheet.close() else if (phase != Phase.MAIN) skip?.invoke()
+        if (sheet.isOpen) sheet.close() else if (phase != Phase.MAIN) skip?.invoke() else leaveApps()
     }
 
     private fun launch() {
+        if (!inApps) return
         val app = appsOf(category).getOrNull(appFocus[category]) ?: return
         val intent = packageManager.getLaunchIntentForPackage(app.packageName) ?: return
         try {
@@ -720,6 +817,7 @@ class GamingSpaceActivity : Activity() {
      * to another category, rename it, choose its artwork, or hide it.
      */
     private fun menu() {
+        if (!inApps) return
         val app = appsOf(category).getOrNull(appFocus[category]) ?: return
         val canArt = store.config.gamingArtwork && SteamGridArt.key(this).isNotEmpty() &&
             (app.category == GamingLibrary.Category.GAMES ||
@@ -822,7 +920,7 @@ class GamingSpaceActivity : Activity() {
      * forgotten, so it is looked up again at once. An empty name goes back to the app's own.
      */
     private fun rename(app: GamingLibrary.App) {
-        sheet.text("Rename", app.label) { name ->
+        sheet.text("Rename", app.label, "SAVE", search = false) { name ->
             if (name.isEmpty()) store.config.gamingNames.remove(app.packageName)
             else store.config.gamingNames[app.packageName] = name
             store.save(this)
@@ -920,7 +1018,7 @@ class GamingSpaceActivity : Activity() {
                 val options = games.map { it.second } + "Search another name…"
                 sheet.list("$what · which game?", options, 0) { which ->
                     if (which < games.size) chosen(games[which])
-                    else sheet.text("Search another name", name) { typed ->
+                    else sheet.text("Search another name", name, "SEARCH", search = true) { typed ->
                         if (typed.isNotEmpty()) again(typed)
                     }
                 }

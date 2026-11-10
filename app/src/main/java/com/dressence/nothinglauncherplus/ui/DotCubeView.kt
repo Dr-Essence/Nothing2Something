@@ -3,18 +3,21 @@ package com.dressence.nothinglauncherplus.ui
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.LightingColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.RectF
+import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.Drawable
 import android.os.SystemClock
 import android.view.View
 import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * A small box that turns slowly, an app's dot screen on each of its four sides (Nothing Gaming
- * Space's app column). The selected one turns faster and is fully lit; the others turn slowly,
+ * A box that turns slowly, an app's dot screen on each of its four sides ([DotFace]; Nothing
+ * Gaming Space's apps). The selected one turns faster and is fully lit; the others turn slowly,
  * a little darker.
  *
  * How it is drawn, without OpenGL: the box's eight corners are turned in 3D (round the
@@ -72,7 +75,7 @@ internal class DotCubeView(context: Context) : View(context) {
     private val pz = FloatArray(8)
     private val path = android.graphics.Path()
 
-    /** The picture on each side: the app's dot screen on a dark plate (see [plate]). */
+    /** The picture on each side: the app's dot screen ([DotFace]). */
     fun setFace(bitmap: Bitmap?) {
         face = bitmap
         invalidate()
@@ -163,24 +166,102 @@ internal class DotCubeView(context: Context) : View(context) {
     }
 }
 
-/** An app's dot screen on a dark plate with a thin rim: one side of its box. */
-internal fun plate(dots: Bitmap): Bitmap {
-    val size = 256
-    val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(out)
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
-    paint.color = 0xFF070807.toInt()
-    val r = size * 0.08f
-    canvas.drawRoundRect(0f, 0f, size.toFloat(), size.toFloat(), r, r, paint)
-    paint.style = Paint.Style.STROKE
-    paint.strokeWidth = size * 0.02f
-    paint.color = 0xFF2A2B2A.toInt()
-    canvas.drawRoundRect(2f, 2f, size - 2f, size - 2f, r, r, paint)
-    // Hardware bitmaps cannot be drawn on a bitmap's canvas: a readable copy if needed.
-    val picture = if (dots.config == Bitmap.Config.HARDWARE)
-        dots.copy(Bitmap.Config.ARGB_8888, false) else dots
-    val inset = size * 0.1f
-    canvas.drawBitmap(picture, null, RectF(inset, inset, size - inset, size - inset),
-        Paint(Paint.FILTER_BITMAP_FLAG))
-    return out
+/**
+ * One side of an app's box: the whole side is a dot screen, edge to edge (Dr.Essence on 0.67.0:
+ * the launcher's round dot icon on a black plate left most of the side empty).
+ *
+ * The picture is the icon without the launcher's mask: an adaptive icon's two layers are drawn
+ * as they are, filling the side (Android draws them 25% larger than the icon's bounds on every
+ * side and masks them, AdaptiveIconDrawable.EXTRA_INSET_PERCENTAGE, so drawing the layers that
+ * way without the mask gives the icon's full square). An older, non-adaptive icon is drawn
+ * whole in the middle. Then every cell of a [GRID] by [GRID] grid becomes one dot in the
+ * cell's colour, an unlit grey dot where the picture is dark, as on Nothing's dot screens.
+ */
+internal object DotFace {
+
+    /** The face's size in pixels, and its dots across. */
+    private const val SIZE = 384
+    private const val GRID = 28
+    /** A dot's radius, in cell sizes. */
+    private const val DOT = 0.42f
+    private const val GLASS = 0xFF050605.toInt()
+    private const val UNLIT = 0xFF1C1D1C.toInt()
+    private const val RIM = 0xFF2A2B2A.toInt()
+    /** Darker than this (0-255 brightness), a dot stays unlit. */
+    private const val DARK = 24
+
+    fun of(icon: Drawable): Bitmap = dots(fullIcon(icon))
+
+    /** The icon's full square, without the launcher's mask. */
+    private fun fullIcon(icon: Drawable): Bitmap {
+        val art = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(art)
+        if (icon is AdaptiveIconDrawable) {
+            val grow = SIZE / 4
+            for (layer in listOf(icon.background, icon.foreground)) {
+                val d = layer?.constantState?.newDrawable()?.mutate() ?: layer ?: continue
+                d.setBounds(-grow, -grow, SIZE + grow, SIZE + grow)
+                d.draw(canvas)
+            }
+        } else {
+            val d = icon.constantState?.newDrawable()?.mutate() ?: icon
+            val inset = SIZE / 12
+            d.setBounds(inset, inset, SIZE - inset, SIZE - inset)
+            d.draw(canvas)
+        }
+        return art
+    }
+
+    private fun dots(art: Bitmap): Bitmap {
+        val cells = average(art)
+        val out = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(out)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val corner = SIZE * 0.06f
+        paint.color = GLASS
+        canvas.drawRoundRect(0f, 0f, SIZE.toFloat(), SIZE.toFloat(), corner, corner, paint)
+        val pitch = SIZE / GRID.toFloat()
+        for (y in 0 until GRID) for (x in 0 until GRID) {
+            val c = cells[y * GRID + x]
+            val r = Color.red(c)
+            val g = Color.green(c)
+            val b = Color.blue(c)
+            val bright = (r * 299 + g * 587 + b * 114) / 1000
+            paint.color = if (bright < DARK) UNLIT else Color.rgb(r, g, b)
+            canvas.drawCircle((x + 0.5f) * pitch, (y + 0.5f) * pitch, pitch * DOT, paint)
+        }
+        // A thin rim, so the side reads as a screen's edge while the box turns.
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = SIZE * 0.015f
+        paint.color = RIM
+        canvas.drawRoundRect(2f, 2f, SIZE - 2f, SIZE - 2f, corner, corner, paint)
+        art.recycle()
+        return out
+    }
+
+    /**
+     * Each cell's mean colour, transparent parts counting as black. Done by hand: a filtered
+     * Bitmap.createScaledBitmap samples only a few pixels per cell when it shrinks this much
+     * (384 to 28), so the dots came out noisy instead of the cell's colour.
+     */
+    private fun average(art: Bitmap): IntArray {
+        val px = IntArray(SIZE * SIZE)
+        art.getPixels(px, 0, SIZE, 0, 0, SIZE, SIZE)
+        val out = IntArray(GRID * GRID)
+        for (cy in 0 until GRID) for (cx in 0 until GRID) {
+            val x0 = cx * SIZE / GRID; val x1 = (cx + 1) * SIZE / GRID
+            val y0 = cy * SIZE / GRID; val y1 = (cy + 1) * SIZE / GRID
+            var r = 0L; var g = 0L; var b = 0L
+            for (y in y0 until y1) for (x in x0 until x1) {
+                val c = px[y * SIZE + x]
+                val a = c ushr 24
+                r += ((c shr 16) and 0xFF) * a / 255
+                g += ((c shr 8) and 0xFF) * a / 255
+                b += (c and 0xFF) * a / 255
+            }
+            val n = ((x1 - x0) * (y1 - y0)).coerceAtLeast(1)
+            out[cy * GRID + cx] = Color.rgb((r / n).toInt(), (g / n).toInt(), (b / n).toInt())
+        }
+        return out
+    }
 }

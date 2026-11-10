@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.67.0, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.68.0, what is pending, what still needs testing</summary>
 
-**Current build: 0.67.0** (CMF Phone 1, Nothing OS 4.1, Android 16): a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.68.0** (CMF Phone 1, Nothing OS 4.1, Android 16): Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,37 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.68.0, Gaming Space: the lower half as on the XMB, and typing that saves by touch.**
+  Asked by Dr.Essence: the categories much bigger; going down into a category, the categories
+  go away and the selected app is a big box; the whole box a dot screen (the round dot icon on
+  a black plate left most of it empty); and with touch, Rename and the artwork and trailer
+  searches never took effect, because the keyboard's key did nothing.
+  - Two levels. The categories: dot cards 78% of the lower half's height (they were 92 dp),
+    the selected one in a fixed place, the next ones smaller beside it. The apps: the cards
+    fade out, the category's name stays small at the top (a tap goes back), the selected app's
+    box is half the lower half's height with its name in large green NDot, the next apps
+    follow below at half that size. The big screen shows the category on the first level and
+    the app on the second.
+  - Controls: on the categories, left and right move, A or down opens; in the apps, up and
+    down move, A plays, B (or up from the first app) goes back, left and right or L1 and R1
+    change the category, Y opens the menu. Touch: a swipe up opens the category, a swipe down
+    past the first app goes back. Hidden cards and apps take no taps (the apps above the
+    selected one reach into the big screen).
+  - Every side of a box is now a dot screen edge to edge (`DotFace`): the icon without the
+    launcher's mask (an adaptive icon's two layers drawn as Android draws them before masking,
+    25% beyond the bounds on each side), 28 dots across, each the mean colour of its cell (by
+    hand: a filtered `createScaledBitmap` samples only a few pixels per cell at 384 to 28),
+    unlit grey dots where it is dark. `plate()` is removed.
+  - The name field (Rename, "Search another name") has a SAVE or SEARCH button beside it, and
+    takes the keyboard's key whatever it sends: until now only the "Done" action was taken,
+    while a keyboard may send a plain Enter (it reaches the field as IME_NULL) or another
+    action. It also asks the keyboard for no full-screen field in landscape, which hid the
+    card. Which of these the phone's keyboard did is not known (no log); the button works in
+    every case.
+  Compiled; the dot face checked by rendering the same steps on a real icon from a
+  screenshot. Not seen on the phone yet: the sizes and the motion need Dr.Essence's eyes.
+  To test: open Gaming Space, move through the categories, go down into Games and back;
+  rename a game by touch and tap SAVE; "Choose artwork" › "Search another name" › SEARCH.
 - **0.67.0, Show app icon (Module section).** Off hides the module's icon from the drawer and
   home screen; the settings stay reachable from the Nothing2Something row in Settings, Settings
   search and LSPosed. How it was found:

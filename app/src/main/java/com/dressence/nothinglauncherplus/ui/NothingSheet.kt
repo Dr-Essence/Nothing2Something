@@ -101,26 +101,51 @@ internal class NothingSheet(private val context: Context, private val host: Fram
         open(card, tiles, 0, true, pick)
     }
 
-    /** A name to type; [done] gets it when saved (with A, Enter or the keyboard's Done). */
-    fun text(title: String, initial: String, done: (String) -> Unit) {
+    /**
+     * A name to type, with a button beside it labelled [action] ("SAVE", "SEARCH"); [done] gets
+     * the name. It is taken by any of: the button (a tap, so touch never depends on the
+     * keyboard), A on the controller, or the keyboard's own key, whatever that key sends.
+     *
+     * Why all of them (Dr.Essence on 0.67.0: with touch, the keyboard's key did nothing, so a
+     * rename or a search never happened): until 0.67.0 only the "Done" editor action was taken.
+     * A keyboard may send its key as a plain Enter key event instead, which reaches the
+     * listener as IME_NULL (TextView.onKeyDown, single-line field), or as another action; and in
+     * landscape a keyboard may cover the screen with its own full-screen field (extract mode),
+     * hiding this card. The field now asks for no full-screen field, takes every action and
+     * Enter, and the button is always there.
+     */
+    fun text(title: String, initial: String, action: String, search: Boolean,
+            done: (String) -> Unit) {
         val card = card(title)
+        val row = LinearLayout(context)
+        row.gravity = Gravity.CENTER_VERTICAL
         val edit = EditText(context)
         edit.setText(initial)
         edit.setSelection(initial.length)
         edit.setSingleLine(true)
         edit.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
-        edit.imeOptions = EditorInfo.IME_ACTION_DONE
+        edit.imeOptions = (if (search) EditorInfo.IME_ACTION_SEARCH else EditorInfo.IME_ACTION_DONE) or
+            EditorInfo.IME_FLAG_NO_EXTRACT_UI or EditorInfo.IME_FLAG_NO_FULLSCREEN
         edit.setTextColor(Color.WHITE)
         edit.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
         font()?.let { edit.typeface = it }
         edit.background = rounded(0xFF151615.toInt(), dp(12).toFloat(), GREEN)
         edit.setPadding(dp(16), dp(12), dp(16), dp(12))
-        edit.setOnEditorActionListener { _, action, _ ->
-            if (action == EditorInfo.IME_ACTION_DONE) { finishText(); true } else false
+        edit.setOnEditorActionListener { _, _, event ->
+            // An Enter key comes down and up: take it once, on the way down.
+            if (event == null || event.action == KeyEvent.ACTION_DOWN) finishText()
+            true
         }
-        card.addView(edit, LinearLayout.LayoutParams(dp(560), ViewGroup.LayoutParams.WRAP_CONTENT))
-        val hint = text("A OR DONE SAVES   ·   B CLOSES   ·   EMPTY: THE APP'S OWN NAME", 11f,
-            0xFF8A8A8A.toInt())
+        row.addView(edit, LinearLayout.LayoutParams(dp(480), ViewGroup.LayoutParams.WRAP_CONTENT))
+        val button = text(action.uppercase(), 17f, Color.BLACK)
+        button.background = rounded(GREEN, dp(12).toFloat(), 0)
+        button.setPadding(dp(20), dp(12), dp(20), dp(12))
+        button.setOnClickListener { finishText() }
+        row.addView(button, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT).also { it.leftMargin = dp(12) })
+        card.addView(row)
+        val hint = text("${action.uppercase()}, ENTER OR A   ·   B OR A TAP OUTSIDE CLOSES" +
+            if (search) "" else "   ·   EMPTY: THE APP'S OWN NAME", 11f, 0xFF8A8A8A.toInt())
         hint.setPadding(0, dp(10), 0, 0)
         card.addView(hint)
         field = edit
