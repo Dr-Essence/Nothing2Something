@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.68.1, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.69.0, what is pending, what still needs testing</summary>
 
-**Current build: 0.68.1** (CMF Phone 1, Nothing OS 4.1, Android 16): Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.69.0** (CMF Phone 1, Nothing OS 4.1, Android 16): round icons as turning dot balls in Gaming Space (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,24 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.69.0, Gaming Space: round icons are dot balls.** Asked by Dr.Essence: an icon that is
+  only a circle leaves a box side's corners empty, so it turns as a ball instead
+  (`DotBallView`); every other icon stays a box.
+  - Which icons: only one that is not adaptive and whose outline is a circle
+    (`IconScreen.isCircle`, now public). On this phone the launcher's mask is a circle, so
+    every adaptive icon is drawn round too; the test is on the icon's kind first.
+  - How it is drawn, without OpenGL: about 1,300 dots fixed on the ball in rows of latitude,
+    each row with as many as fit round it (64 round the equator, 32 rows). Each takes its
+    colour once from the icon laid straight on onto the front (a circle seen straight on is
+    exactly the ball's outline) and mirrored onto the back, so it reads the right way round
+    from both sides. Each frame they are turned and leant as the boxes are and projected; only
+    the half facing the viewer is drawn (a point of the ball faces the eye when
+    1 + EYE * z < 0), smaller and darker towards the outline. Sized to its outline seen in
+    perspective, so it never leaves its view.
+  - The box and the ball share a small `TurningIcon` interface (lit = selected); the app's
+    place below holds whichever its icon gets, chosen off the main thread.
+  Compiled; checked by drawing the same dot layout and projection on a round icon at five
+  angles (40 by 20 dots, the first try, was too coarse to read). Not seen on the phone yet.
 - **0.68.1, Gaming Space: renaming really saves, and the boxes stay whole.** Dr.Essence on
   0.68.0: SAVE did nothing to a tap, a box was cut off at some points of its turn, and its top
   was still empty.

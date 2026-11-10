@@ -107,8 +107,14 @@ class GamingSpaceActivity : Activity() {
     private lateinit var store: SettingsStore
     private val main = Handler(Looper.getMainLooper())
     private val worker: ExecutorService = Executors.newSingleThreadExecutor()
-    /** Box sides by package (see [boxFace]). */
-    private val faces = LruCache<String, Bitmap>(64)
+    /** Each app's look by package (see [look]). */
+    private val looks = LruCache<String, Look>(64)
+
+    /** How an app is shown below: a box with a dot screen on each side, or a dot ball. */
+    private sealed class Look {
+        class Box(val face: Bitmap) : Look()
+        class Ball(val texture: IntArray) : Look()
+    }
     private var ndot: Typeface? = null
     private var phase = Phase.INTRO
     private var skip: (() -> Unit)? = null
@@ -490,10 +496,18 @@ class GamingSpaceActivity : Activity() {
         list.forEachIndexed { j, app ->
             val item = LinearLayout(this)
             item.gravity = Gravity.CENTER_VERTICAL
-            val cube = DotCubeView(this)
-            cube.tag = app.packageName
-            boxFace(app.packageName) { if (cube.tag == app.packageName) cube.setFace(it) }
-            item.addView(cube, LinearLayout.LayoutParams(size, size))
+            // A holder for the app's box or ball: which one is known once its icon is read.
+            val holder = FrameLayout(this)
+            holder.tag = app.packageName
+            look(app.packageName) { look ->
+                if (holder.tag != app.packageName || holder.childCount > 0) return@look
+                holder.addView(when (look) {
+                    is Look.Box -> DotCubeView(this).also { it.setFace(look.face) }
+                    is Look.Ball -> DotBallView(this).also { it.setTexture(look.texture) }
+                }, FrameLayout.LayoutParams(size, size))
+                layoutCross() // lights it if it is the selected app
+            }
+            item.addView(holder, LinearLayout.LayoutParams(size, size))
             val name = text(app.label, 26f, Color.WHITE)
             name.maxLines = 1
             name.ellipsize = android.text.TextUtils.TruncateAt.END
@@ -573,7 +587,8 @@ class GamingSpaceActivity : Activity() {
                 it.setTextColor(if (on) GREEN else Color.WHITE)
                 if (on) it.setShadowLayer(dp(10f), 0f, 0f, GLOW) else it.setShadowLayer(0f, 0f, 0f, 0)
             }
-            ((item as? ViewGroup)?.getChildAt(0) as? DotCubeView)?.lit = on
+            (((item as? ViewGroup)?.getChildAt(0) as? ViewGroup)?.getChildAt(0) as? TurningIcon)
+                ?.lit = on
         }
     }
 
@@ -717,18 +732,22 @@ class GamingSpaceActivity : Activity() {
             DotEffect.anchor(spec), seed)
     }
 
-    /** The side of an app's box: its icon as a dot screen side to side; made once, off the main thread. */
-    private fun boxFace(pkg: String, done: (Bitmap) -> Unit) {
-        faces.get(pkg)?.let { done(it); return }
+    /**
+     * How an app is shown: a ball when its icon is only a circle ([DotBallView.texture]), else
+     * a box whose sides are its icon as a dot screen ([DotFace]); made once, off the main thread.
+     */
+    private fun look(pkg: String, done: (Look) -> Unit) {
+        looks.get(pkg)?.let { done(it); return }
         worker.execute {
-            val face = try {
-                DotFace.of(packageManager.getApplicationIcon(pkg))
+            val look = try {
+                val icon = packageManager.getApplicationIcon(pkg)
+                DotBallView.texture(icon)?.let { Look.Ball(it) } ?: Look.Box(DotFace.of(icon))
             } catch (t: Throwable) {
-                return@execute // no icon: the box stays empty, as before
+                return@execute // no icon: the place stays empty, as before
             }
             main.post {
-                faces.put(pkg, face)
-                done(face)
+                looks.put(pkg, look)
+                done(look)
             }
         }
     }
