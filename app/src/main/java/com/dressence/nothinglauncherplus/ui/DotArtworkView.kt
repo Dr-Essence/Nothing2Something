@@ -44,6 +44,9 @@ internal class DotArtworkView(context: Context) : View(context) {
     private var moving: Drawable? = null
     private val smooth = Paint(Paint.FILTER_BITMAP_FLAG)
 
+    /** True when a picture is set (still or animated), shown or not. */
+    val hasPicture: Boolean get() = still != null || moving != null
+
     /** Where the game's picture sits in the banner (its "Adjust artwork" setting). */
     var framing = Framing.CENTRED
         set(value) {

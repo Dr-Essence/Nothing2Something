@@ -127,6 +127,8 @@ class GamingSpaceActivity : Activity() {
     /** A game's trailer from Steam, when that is on (see [SteamTrailers]). */
     private lateinit var video: DotVideoView
     private val trailers by lazy { SteamTrailers(this) }
+    /** True while the selected game's trailer plays: the artwork is then kept hidden. */
+    private var trailerShowing = false
     /** "Adjust artwork": the app being adjusted and where its picture is now. */
     private var adjusting: GamingLibrary.App? = null
     private var adjustFrame = Framing.CENTRED
@@ -622,6 +624,7 @@ class GamingSpaceActivity : Activity() {
         screen.visibility = View.VISIBLE
         artwork.showArtwork(null)
         video.play(null)
+        trailerShowing = false
         val cat = GamingLibrary.order[category]
         val app = if (inApps) appsOf(category).getOrNull(appFocus[category]) else null
         if (app == null) setCover(screen, cat.emoji, cat.ordinal * 31L)
@@ -651,7 +654,20 @@ class GamingSpaceActivity : Activity() {
                 val now = appsOf(category).getOrNull(appFocus[category])
                 if (!isDestroyed && now?.packageName == app.packageName) {
                     video.framing = framingOf(app.packageName)
-                    video.onPlaying = { ok -> if (ok) screen.visibility = View.INVISIBLE }
+                    video.onPlaying = { ok ->
+                        trailerShowing = ok
+                        if (ok) {
+                            // Only the trailer: the icon and the artwork under it would show
+                            // through its glass, which is not fully opaque (0.70.3, Dr.Essence:
+                            // the cover "lightly visible, transparent" while the video played).
+                            screen.visibility = View.INVISIBLE
+                            artwork.visibility = View.INVISIBLE
+                        } else if (artwork.hasPicture) {
+                            artwork.visibility = View.VISIBLE // the trailer failed: its artwork
+                        } else {
+                            screen.visibility = View.VISIBLE // or the icon
+                        }
+                    }
                     video.play(url)
                 }
             }
@@ -678,6 +694,8 @@ class GamingSpaceActivity : Activity() {
                     artwork.framing = framingOf(app.packageName)
                     artwork.showArtwork(picture)
                     screen.visibility = View.INVISIBLE // nothing behind the artwork
+                    // Artwork that arrives after the trailer started stays under it, hidden.
+                    if (trailerShowing) artwork.visibility = View.INVISIBLE
                 }
             }
         }
