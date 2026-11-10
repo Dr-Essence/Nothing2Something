@@ -24,6 +24,10 @@
   have not been tested on a phone yet, which tests are pending (and what evidence they need),
   and the bugs fixed. A change is not finished while the Status section still describes the
   build before it.
+- **Versions while in alpha:** every build raises only the last number (0.70.1, 0.70.2, ...),
+  with versionCode + 1. The middle number changes only when Dr.Essence calls a milestone, and
+  1.0.0 is never reached while the module is an alpha (until 0.70.0 each feature raised the
+  middle number, which would have reached 1.0 within the alpha).
 - The module must never crash or stall what it hooks: guard everything handed to the host,
   never block the main thread, and never make the launcher delete or lose the user's items.
 

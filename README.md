@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.0, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.1, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.0** (CMF Phone 1, Nothing OS 4.1, Android 16): Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.1** (CMF Phone 1, Nothing OS 4.1, Android 16): Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,34 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.1, Gaming Space's dot screen lit like the folders' covers; finer banner dots; the
+  category animations removed.** Dr.Essence on 0.70.0: the banner, the boxes and the
+  categories should act as a screen like the drawer folders, glowing, because "black colour
+  makes the pixel illusion disappear"; the banner's dots finer; the category animations cheap.
+  - **The cause:** the folder engine (anim.DotMatrix) draws faint unlit dots everywhere and a
+    dark part of its emoji is simply a dot left unlit. Gaming Space's banner and trailer views
+    painted the picture over the unlit dots instead, so a black part painted opaque black dots
+    that hid them: the screen became a flat hole. They also had none of the folder glow.
+  - **The fix, one renderer for both (`DotScreen`):** glass, unlit dots, glow, then the lit
+    dots in a layer **added** as light (PorterDuff ADD): black adds nothing and the unlit
+    dots stay. Animated banners are now one colour per dot too (drawn each frame into a
+    picture of one pixel per dot, `DotArtworkView`), as still ones were. The trailer's glow
+    comes from a small copy of its picture (`TextureView.getBitmap`, at most 15 a second;
+    if a phone refuses it, the video plays on without glow).
+  - **The glow under a full picture is weaker than the folders'** (30 and 50 out of 255,
+    not 70 and 120): picked from renders of a microtrailer frame at four strengths; the
+    folders' strength filled the gaps between dots and blurred the picture.
+  - **The boxes** get the same glow baked into each side (`DotFace`); their dark cells were
+    already unlit dots.
+  - **Finer banner dots:** the artwork and trailer use half the emoji screen's dot spacing
+    (`BANNER_PITCH`), twice the dots each way; the category's emoji keeps 32 across.
+  - **Category animations removed** (Pong, invaders, globe, equaliser, film, TV, wave): a
+    category now shows its animated emoji from the folder engine. `DotAnimationView` became
+    `DotArtworkView`, the artwork only; `CATEGORY_SHOW_MS` and `showSelection`'s parameter
+    are gone.
+  - **Versions:** from now on a build raises only the last number (CLAUDE.md).
+  Compiled; the screen checked by rendering the old and new drawing of a Steam microtrailer
+  frame. Not seen on the phone yet: the glow strength and the dot size need Dr.Essence's eyes.
 - **0.70.0, Gaming Space: Steam's microtrailers, and your own clip.** Asked by Dr.Essence:
   more video sources, ideally short animated clips.
   - **Microtrailers.** Steam keeps one beside every trailer, in the same folder as its

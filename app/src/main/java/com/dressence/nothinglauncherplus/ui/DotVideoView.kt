@@ -4,9 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Matrix
-import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
 import android.graphics.SurfaceTexture
 import android.media.MediaPlayer
@@ -19,18 +16,20 @@ import android.widget.FrameLayout
  * through the screen's round dots.
  *
  * Android's own player ([MediaPlayer], which plays Steam's HLS streams and mp4 files) draws
- * into a [TextureView]; this frame draws that view through a mask of round dots at the screen's
- * dot size (`dispatchDraw`: the video in a layer, then the mask with DST_IN), over the unlit
- * dots, as the folders' dot engine shows its pictures. The picture covers the dots' area and
- * follows the game's "Adjust artwork" setting ([Framing]).
+ * into a [TextureView]; this frame draws that view through the round dots of [DotScreen]
+ * (glass, unlit dots, glow, the video added as light, as the folders' dot engine shows its
+ * covers), so black parts of the video leave the unlit dots showing. The glow is made from a
+ * small copy of the video's picture, one pixel per dot ([TextureView.getBitmap] into a bitmap
+ * that size, at most [GLOW_EVERY_MS] apart; the copy has the view's transform applied, so it
+ * follows the game's "Adjust artwork" setting, [Framing], as the video does). If the copy
+ * cannot be made the video still plays, without glow.
  */
 internal class DotVideoView(context: Context) : FrameLayout(context),
         TextureView.SurfaceTextureListener {
 
     companion object {
-        private const val UNLIT = 0x1AFFFFFF
-        private const val GLASS = 0xF0000000.toInt()
-        private const val DOT = 0.8f
+        /** The glow's copy of the picture is renewed at most this often (about 15 a second). */
+        private const val GLOW_EVERY_MS = 66L
     }
 
     private val texture = TextureView(context)
@@ -45,18 +44,13 @@ internal class DotVideoView(context: Context) : FrameLayout(context),
             fit()
         }
 
+    private val screen = DotScreen()
     private var pitch = 0f
     private var corner = 0f
-    private var mask: Bitmap? = null
-    private var cols = 0
-    private var rows = 0
-    private var gridLeft = 0f
-    private var gridTop = 0f
-    private val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG).also { it.color = GLASS }
-    private val unlitPaint = Paint().also { it.color = UNLIT }
-    private val maskPaint = Paint().also {
-        it.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
-    }
+    /** The video's picture, one pixel per dot: the glow's source. */
+    private var small: Bitmap? = null
+    private var smallAt = 0L
+    private var smallWorks = true
 
     /** Called back when the trailer starts showing (true) or cannot play (false). */
     var onPlaying: ((Boolean) -> Unit)? = null
@@ -130,9 +124,9 @@ internal class DotVideoView(context: Context) : FrameLayout(context),
 
     /** The video scaled to cover the dots' area, placed as the game's framing says. */
     private fun fit() {
-        if (videoW == 0 || videoH == 0 || width == 0 || cols == 0) return
-        val area = framing.place(videoW.toFloat(), videoH.toFloat(), gridLeft, gridTop,
-            cols * pitch, rows * pitch)
+        if (videoW == 0 || videoH == 0 || width == 0 || screen.cols == 0) return
+        val area = framing.place(videoW.toFloat(), videoH.toFloat(), screen.left, screen.top,
+            screen.cols * pitch, screen.rows * pitch)
         // TextureView stretches the video over the whole view; this maps it to `area`.
         val matrix = Matrix()
         matrix.setRectToRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), area,
@@ -147,37 +141,36 @@ internal class DotVideoView(context: Context) : FrameLayout(context),
     }
 
     private fun layoutGrid() {
-        if (pitch <= 0f || width == 0 || height == 0) return
-        cols = ((width - pitch) / pitch).toInt()
-        rows = ((height - pitch) / pitch).toInt()
-        gridLeft = (width - cols * pitch) / 2f
-        gridTop = (height - rows * pitch) / 2f
-        val m = Bitmap.createBitmap(width, height, Bitmap.Config.ALPHA_8)
-        val c = Canvas(m)
-        val p = Paint(Paint.ANTI_ALIAS_FLAG)
-        val r = pitch * DOT / 2f
-        for (y in 0 until rows) for (x in 0 until cols) {
-            c.drawCircle(gridLeft + (x + 0.5f) * pitch, gridTop + (y + 0.5f) * pitch, r, p)
-        }
-        mask = m
+        if (!screen.layout(width, height, pitch)) return
+        small = Bitmap.createBitmap(screen.cols, screen.rows, Bitmap.Config.ARGB_8888)
         fit()
     }
 
     override fun dispatchDraw(canvas: Canvas) {
-        val dots = mask
-        if (dots == null) {
+        if (screen.mask == null) {
             super.dispatchDraw(canvas)
             return
         }
-        canvas.drawRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), corner, corner,
-            glassPaint)
-        canvas.drawBitmap(dots, 0f, 0f, unlitPaint)
-        val layer = canvas.saveLayer(0f, 0f, width.toFloat(), height.toFloat(), null)
-        canvas.clipRect(gridLeft, gridTop, gridLeft + cols * pitch, gridTop + rows * pitch)
-        super.dispatchDraw(canvas) // the video
-        canvas.drawBitmap(dots, 0f, 0f, maskPaint)
-        canvas.restoreToCount(layer)
+        screen.draw(canvas, glowFrame(), corner) { super.dispatchDraw(it) } // the video
         postInvalidateOnAnimation() // every frame the video gives
+    }
+
+    /** The glow's small copy of the video, renewed at most every [GLOW_EVERY_MS]; null if none. */
+    private fun glowFrame(): Bitmap? {
+        val copy = small ?: return null
+        if (!smallWorks || player == null) return null
+        val now = android.os.SystemClock.uptimeMillis()
+        if (now - smallAt >= GLOW_EVERY_MS) {
+            smallAt = now
+            try {
+                // The view's picture scaled into the small bitmap, its transform applied.
+                texture.getBitmap(copy)
+            } catch (t: Throwable) {
+                smallWorks = false // no glow on this phone; the video plays on
+                return null
+            }
+        }
+        return copy
     }
 
     override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {

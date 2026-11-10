@@ -223,6 +223,9 @@ internal object DotFace {
     private const val RIM = 0xFF2A2B2A.toInt()
     /** Darker than this (0-255 brightness), a dot stays unlit. */
     private const val DARK = 24
+    /** The glow's strength near and wide (out of 255): as the big screen's ([DotScreen]). */
+    private const val GLOW_NEAR = 30
+    private const val GLOW_FAR = 50
 
     fun of(icon: Drawable): Bitmap = dots(fullIcon(icon))
 
@@ -255,6 +258,14 @@ internal object DotFace {
         paint.color = GLASS
         canvas.drawRoundRect(0f, 0f, SIZE.toFloat(), SIZE.toFloat(), corner, corner, paint)
         val pitch = SIZE / GRID.toFloat()
+        // The glow stays on the glass: clipped to the face's rounded square.
+        val clip = canvas.save()
+        canvas.clipPath(android.graphics.Path().also {
+            it.addRoundRect(RectF(0f, 0f, SIZE.toFloat(), SIZE.toFloat()), corner, corner,
+                android.graphics.Path.Direction.CW)
+        })
+        glow(canvas, cells)
+        canvas.restoreToCount(clip)
         for (y in 0 until GRID) for (x in 0 until GRID) {
             val c = cells[y * GRID + x]
             val r = Color.red(c)
@@ -271,6 +282,30 @@ internal object DotFace {
         canvas.drawRoundRect(2f, 2f, SIZE - 2f, SIZE - 2f, corner, corner, paint)
         art.recycle()
         return out
+    }
+
+    /**
+     * The glow of the lit dots in the glass round them, as the folder engine's (anim.DotMatrix
+     * drawGlow): the dots' colours stretched smoothly over the face, once at one pixel per dot
+     * and once at half that, added as light (dark cells add nothing, so the unlit dots stay).
+     */
+    private fun glow(canvas: Canvas, cells: IntArray) {
+        val lit = IntArray(cells.size) { i ->
+            val c = cells[i]
+            val bright = (Color.red(c) * 299 + Color.green(c) * 587 + Color.blue(c) * 114) / 1000
+            if (bright < DARK) 0 else c
+        }
+        val near = Bitmap.createBitmap(lit, GRID, GRID, Bitmap.Config.ARGB_8888)
+        val wide = Bitmap.createScaledBitmap(near, GRID / 2, GRID / 2, true)
+        val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+        paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.ADD)
+        paint.alpha = GLOW_NEAR
+        canvas.drawBitmap(near, null, RectF(0f, 0f, SIZE.toFloat(), SIZE.toFloat()), paint)
+        paint.alpha = GLOW_FAR
+        val spread = SIZE / GRID.toFloat()
+        canvas.drawBitmap(wide, null, RectF(-spread, -spread, SIZE + spread, SIZE + spread), paint)
+        near.recycle()
+        wide.recycle()
     }
 
     /**

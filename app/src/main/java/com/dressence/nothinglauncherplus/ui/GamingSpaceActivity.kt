@@ -86,8 +86,13 @@ class GamingSpaceActivity : Activity() {
         private const val PAN_STEP = 0.1f
         private const val ZOOM_STEP = 0.1f
         private const val MOVE_MS = 180L
-        /** How long a category's emoji stays after its animation, before its app comes up. */
-        private const val CATEGORY_SHOW_MS = 900L
+        /**
+         * The banner's dots (artwork and trailers) in the emoji screen's dot spacing: half,
+         * so twice as many dots each way, half the size (Dr.Essence on 0.70.0: "higher
+         * resolution, more NDot pixels, smaller"). The category's emoji keeps the folder
+         * engine's 32 dots across, which it is drawn for.
+         */
+        private const val BANNER_PITCH = 0.5f
         private const val INTRO_IN_MS = 1200L
         private const val INTRO_HOLD_MS = 1400L
         private const val INTRO_OUT_MS = 600L
@@ -116,10 +121,8 @@ class GamingSpaceActivity : Activity() {
     private lateinit var root: FrameLayout
     /** The top part: one dot screen, edge to edge. */
     private lateinit var screen: AnimatedEmojiView
-    /** A category's animation, played over the whole screen when it is selected. */
-    private lateinit var animation: DotAnimationView
     /** A game's artwork from SteamGridDB, when that is on (see [SteamGridArt]). */
-    private lateinit var artwork: DotAnimationView
+    private lateinit var artwork: DotArtworkView
     private val art by lazy { SteamGridArt(this) }
     /** A game's trailer from Steam, when that is on (see [SteamTrailers]). */
     private lateinit var video: DotVideoView
@@ -342,7 +345,7 @@ class GamingSpaceActivity : Activity() {
         screen = AnimatedEmojiView(this)
         screen.setDotMatrix(true)
         page.addView(screen, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
-        artwork = DotAnimationView(this)
+        artwork = DotArtworkView(this)
         artwork.visibility = View.GONE
         page.addView(artwork, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
         video = DotVideoView(this)
@@ -352,9 +355,6 @@ class GamingSpaceActivity : Activity() {
         adjustHint.visibility = View.GONE
         page.addView(adjustHint, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT))
-        animation = DotAnimationView(this)
-        animation.visibility = View.GONE
-        page.addView(animation, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
         bar = FrameLayout(this)
         bar.clipChildren = false
         page.addView(bar, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -381,12 +381,12 @@ class GamingSpaceActivity : Activity() {
      * title, no bezel, nothing behind it). The folders' engine puts a bezel inside its panel's
      * edge (DotMatrix.layout: the larger of 1.2 dots and 4.5% of the panel's smaller side), so
      * the panel is made larger than the screen by that much: the bezel falls outside the view
-     * and only dots show. Artwork, trailers and the category animations use the same dots.
+     * and only dots show. Artwork and trailers use finer dots of their own ([BANNER_PITCH]).
      */
     private fun place(width: Int, height: Int) {
         pageHeight = height
         screenHeight = (height * SCREEN_SHARE).toInt()
-        for (view in listOf(screen, animation, artwork, video)) {
+        for (view in listOf(screen, artwork, video)) {
             view.layoutParams = FrameLayout.LayoutParams(width, screenHeight)
         }
         val side = (screenHeight * 0.8f).toInt()
@@ -399,13 +399,12 @@ class GamingSpaceActivity : Activity() {
         screen.setDotLabel(null, 0, null, null, 0f)
         screen.setDotPanel(Rect(left, top, left + side, top + side),
             Rect(-bezel, -bezel, width + bezel, screenHeight + bezel), 0f)
-        animation.setGeometry(pitch, 0f)
-        artwork.setGeometry(pitch, 0f)
-        video.setGeometry(pitch, 0f)
+        artwork.setGeometry(pitch * BANNER_PITCH, 0f)
+        video.setGeometry(pitch * BANNER_PITCH, 0f)
         // The cards and boxes are sized from the lower half, known only now.
         buildCards()
         buildColumn()
-        showSelection(false)
+        showSelection()
     }
 
     private fun reloadApps() {
@@ -417,7 +416,7 @@ class GamingSpaceActivity : Activity() {
                 apps = loaded
                 buildCards()
                 buildColumn()
-                showSelection(false)
+                showSelection()
             }
         }
     }
@@ -582,7 +581,7 @@ class GamingSpaceActivity : Activity() {
         if (inApps || appsOf(category).isEmpty()) return
         inApps = true
         layoutCross()
-        showSelection(false)
+        showSelection()
     }
 
     /** Back up to the categories. */
@@ -590,7 +589,7 @@ class GamingSpaceActivity : Activity() {
         if (!inApps) return
         inApps = false
         layoutCross()
-        showSelection(false)
+        showSelection()
     }
 
     private fun setCategory(index: Int) {
@@ -598,7 +597,7 @@ class GamingSpaceActivity : Activity() {
         if (next == category && column.childCount > 0) return
         category = next
         buildColumn()
-        showSelection(true)
+        showSelection()
     }
 
     private fun setApp(index: Int) {
@@ -608,15 +607,16 @@ class GamingSpaceActivity : Activity() {
         if (next == appFocus[category]) return
         appFocus[category] = next
         layoutCross()
-        showSelection(false)
+        showSelection()
     }
 
     /**
-     * The big screen: on the categories, the selected category's emoji; in the apps, the
-     * selected app. A new category plays its animation first (in the apps, the selected app
-     * comes up after it); moving between apps shows the app at once.
+     * The big screen: on the categories, the selected category's animated emoji (the folder
+     * engine's, with its own motion); in the apps, the selected app. (Until 0.70.1 a new
+     * category first played a short animation of its own over the screen; removed, see
+     * [DotArtworkView].)
      */
-    private fun showSelection(categoryFirst: Boolean) {
+    private fun showSelection() {
         main.removeCallbacks(showApp)
         if (adjusting != null) endAdjust(false)
         screen.visibility = View.VISIBLE
@@ -624,20 +624,8 @@ class GamingSpaceActivity : Activity() {
         video.play(null)
         val cat = GamingLibrary.order[category]
         val app = if (inApps) appsOf(category).getOrNull(appFocus[category]) else null
-        if (categoryFirst) {
-            // Its animation over the whole screen; under it the emoji and name wait, and stay
-            // a moment once it fades, before the selected app comes up.
-            setCover(screen, cat.emoji, cat.ordinal * 31L)
-            animation.play(cat) {
-                if (inApps && appsOf(category).isNotEmpty()) main.postDelayed(showApp, CATEGORY_SHOW_MS)
-            }
-        } else if (app == null) {
-            animation.stop()
-            setCover(screen, cat.emoji, cat.ordinal * 31L)
-        } else {
-            animation.stop()
-            showApp.run()
-        }
+        if (app == null) setCover(screen, cat.emoji, cat.ordinal * 31L)
+        else showApp.run()
     }
 
     private val showApp = Runnable {
@@ -661,8 +649,7 @@ class GamingSpaceActivity : Activity() {
             val url = trailers.find(app.packageName, app.label) ?: return@execute
             main.post {
                 val now = appsOf(category).getOrNull(appFocus[category])
-                if (!isDestroyed && now?.packageName == app.packageName &&
-                    animation.visibility != View.VISIBLE) {
+                if (!isDestroyed && now?.packageName == app.packageName) {
                     video.framing = framingOf(app.packageName)
                     video.onPlaying = { ok -> if (ok) screen.visibility = View.INVISIBLE }
                     video.play(url)
@@ -687,8 +674,7 @@ class GamingSpaceActivity : Activity() {
                 store.config.gamingArtworkAnimated) ?: return@execute
             main.post {
                 val now = appsOf(category).getOrNull(appFocus[category])
-                if (!isDestroyed && now?.packageName == app.packageName &&
-                    animation.visibility != View.VISIBLE) {
+                if (!isDestroyed && now?.packageName == app.packageName) {
                     artwork.framing = framingOf(app.packageName)
                     artwork.showArtwork(picture)
                     screen.visibility = View.INVISIBLE // nothing behind the artwork
@@ -961,7 +947,7 @@ class GamingSpaceActivity : Activity() {
                                 main.post { sheet.message("Artwork", "Could not download it.") }
                                 return@execute
                             }
-                            main.post { showSelection(false) }
+                            main.post { showSelection() }
                         }
                     }
                 }
@@ -999,7 +985,7 @@ class GamingSpaceActivity : Activity() {
                             }
                             main.post {
                                 if (isDestroyed) return@post
-                                if (ok) { sheet.close(); showSelection(false) }
+                                if (ok) { sheet.close(); showSelection() }
                                 else sheet.message("Trailer", "Could not download it.")
                             }
                         }
