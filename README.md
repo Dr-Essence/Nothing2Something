@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.68.0, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.68.1, what is pending, what still needs testing</summary>
 
-**Current build: 0.68.0** (CMF Phone 1, Nothing OS 4.1, Android 16): Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.68.1** (CMF Phone 1, Nothing OS 4.1, Android 16): Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,22 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.68.1, Gaming Space: renaming really saves, and the boxes stay whole.** Dr.Essence on
+  0.68.0: SAVE did nothing to a tap, a box was cut off at some points of its turn, and its top
+  was still empty.
+  - **Renaming never saved, by touch or controller, since it was added.** The name sheet set
+    its field and what to do with the name, then opened its card; opening starts by closing
+    any sheet before, which cleared both. SAVE, Enter and A then found nothing to save (the
+    0.68.0 button called the same cleared step). They are now set after the card opens. This
+    also fixes "Search another name" for artwork and trailers.
+  - **The box went past its view and was cut off.** It was sized for a reach of 1.55 half
+    sides every way; turned and leant with perspective it reaches 1.60 across and 1.81 up and
+    down (measured over every degree of the turn). The reach is now measured once and the box
+    sized and centred to fit it at every angle.
+  - **The top is a dot screen too**, a little darker as lit from the front (it was a plain
+    dark lid).
+  Compiled; the turning box checked by drawing the same projection at six angles in a frame
+  the view's size (no corner leaves it, the top shows the dots). Not seen on the phone yet.
 - **0.68.0, Gaming Space: the lower half as on the XMB, and typing that saves by touch.**
   Asked by Dr.Essence: the categories much bigger; going down into a category, the categories
   go away and the selected app is a big box; the whole box a dot screen (the round dot icon on

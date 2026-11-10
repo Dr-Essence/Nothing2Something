@@ -53,6 +53,52 @@ internal class DotCubeView(context: Context) : View(context) {
             intArrayOf(4, 0, 3, 7), // left
         )
         private val TOP = intArrayOf(4, 5, 1, 0)
+
+        /**
+         * How far the turning box reaches, over a whole turn, in half box sides: left, right,
+         * up, down. Measured once by turning the corners through every degree, so the box is
+         * sized to fit its view at every angle. (Until 0.68.1 it was sized for a reach of
+         * 1.55 every way; it really reaches 1.60 across and 1.81 up and down, so at some
+         * angles its corners went past the view's edge and were cut off.)
+         */
+        private val REACH: FloatArray by lazy {
+            val r = floatArrayOf(0f, 0f, 0f, 0f)
+            val x = FloatArray(8); val y = FloatArray(8); val z = FloatArray(8)
+            for (deg in 0 until 360) {
+                turn(deg.toFloat(), x, y, z)
+                for (i in 0 until 8) {
+                    r[0] = minOf(r[0], x[i]); r[1] = maxOf(r[1], x[i])
+                    r[2] = minOf(r[2], y[i]); r[3] = maxOf(r[3], y[i])
+                }
+            }
+            r
+        }
+
+        /**
+         * The eight corners of a box two units wide, turned [angle] degrees round the vertical
+         * axis, leant by [TILT] and projected with perspective: x and y in half box sides, and
+         * depth.
+         */
+        private fun turn(angle: Float, x: FloatArray, y: FloatArray, z: FloatArray) {
+            val a = Math.toRadians(angle.toDouble())
+            val t = Math.toRadians(TILT.toDouble())
+            val ca = cos(a).toFloat(); val sa = sin(a).toFloat()
+            val ct = cos(t).toFloat(); val st = sin(t).toFloat()
+            for (i in 0 until 8) {
+                val x0 = if (i == 1 || i == 2 || i == 5 || i == 6) 1f else -1f
+                val y0 = if (i == 2 || i == 3 || i == 6 || i == 7) 1f else -1f
+                val z0 = if (i >= 4) 1f else -1f
+                // Round the vertical axis, then the lean.
+                val x1 = x0 * ca + z0 * sa
+                val z1 = -x0 * sa + z0 * ca
+                val y2 = y0 * ct - z1 * st
+                val z2 = y0 * st + z1 * ct
+                val p = EYE / (EYE + z2)
+                x[i] = x1 * p
+                y[i] = y2 * p
+                z[i] = z2
+            }
+        }
     }
 
     private var face: Bitmap? = null
@@ -65,7 +111,6 @@ internal class DotCubeView(context: Context) : View(context) {
         }
 
     private val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
-    private val topPaint = Paint(Paint.ANTI_ALIAS_FLAG).also { it.color = 0xFF101110.toInt() }
     private val matrix = Matrix()
     private val src = FloatArray(8)
     private val dst = FloatArray(8)
@@ -73,7 +118,6 @@ internal class DotCubeView(context: Context) : View(context) {
     private val px = FloatArray(8)
     private val py = FloatArray(8)
     private val pz = FloatArray(8)
-    private val path = android.graphics.Path()
 
     /** The picture on each side: the app's dot screen ([DotFace]). */
     fun setFace(bitmap: Bitmap?) {
@@ -98,24 +142,22 @@ internal class DotCubeView(context: Context) : View(context) {
         src[4] = picture.width.toFloat(); src[5] = picture.height.toFloat()
         src[6] = 0f; src[7] = picture.height.toFloat()
         val dim = if (lit) 1f else 0.7f
-        for (side in order) {
-            for (k in 0 until 4) {
-                dst[k * 2] = px[side[k]]
-                dst[k * 2 + 1] = py[side[k]]
-            }
-            matrix.setPolyToPoly(src, 0, dst, 0, 4)
-            val light = (dim * (0.45f + 0.55f * frontness(side))).coerceIn(0f, 1f)
-            paint.colorFilter = SHADES[(light * 32).toInt()]
-            canvas.drawBitmap(picture, matrix, paint)
-        }
-        if (facing(TOP)) {
-            path.reset()
-            path.moveTo(px[TOP[0]], py[TOP[0]])
-            for (k in 1 until 4) path.lineTo(px[TOP[k]], py[TOP[k]])
-            path.close()
-            canvas.drawPath(path, topPaint)
-        }
+        for (side in order) drawFace(canvas, picture, side, dim * (0.45f + 0.55f * frontness(side)))
+        // The top is a dot screen too (it was a dark plain lid until 0.68.1), a little darker,
+        // as lit from the front.
+        if (facing(TOP)) drawFace(canvas, picture, TOP, dim * 0.75f)
         if (isShown) postInvalidateOnAnimation()
+    }
+
+    /** The face picture mapped onto one side's four projected corners, at [light] (0 to 1). */
+    private fun drawFace(canvas: Canvas, picture: Bitmap, side: IntArray, light: Float) {
+        for (k in 0 until 4) {
+            dst[k * 2] = px[side[k]]
+            dst[k * 2 + 1] = py[side[k]]
+        }
+        matrix.setPolyToPoly(src, 0, dst, 0, 4)
+        paint.colorFilter = SHADES[(light.coerceIn(0f, 1f) * 32).toInt()]
+        canvas.drawBitmap(picture, matrix, paint)
     }
 
     override fun onVisibilityAggregated(isVisible: Boolean) {
@@ -124,28 +166,19 @@ internal class DotCubeView(context: Context) : View(context) {
         if (isVisible) invalidate()
     }
 
-    /** Turns the box's corners and projects them into the view, centred, filling it. */
+    /**
+     * Turns the box's corners and places them in the view: as large as fits at every angle of
+     * the turn ([REACH]), and centred on that reach, so no corner ever leaves the view.
+     */
     private fun project() {
-        val half = 1f
-        val a = Math.toRadians(angle.toDouble())
-        val t = Math.toRadians(TILT.toDouble())
-        val ca = cos(a).toFloat(); val sa = sin(a).toFloat()
-        val ct = cos(t).toFloat(); val st = sin(t).toFloat()
-        // Scale so the turning box stays inside the view: its widest diagonal is 2 * sqrt(2).
-        val scale = minOf(width, height) / 2f / 1.55f
+        turn(angle, px, py, pz)
+        val r = REACH
+        val scale = minOf(width / (r[1] - r[0]), height / (r[3] - r[2]))
+        val cx = width / 2f - (r[0] + r[1]) / 2 * scale
+        val cy = height / 2f - (r[2] + r[3]) / 2 * scale
         for (i in 0 until 8) {
-            val x0 = if (i == 1 || i == 2 || i == 5 || i == 6) half else -half
-            val y0 = if (i == 2 || i == 3 || i == 6 || i == 7) half else -half
-            val z0 = if (i >= 4) half else -half
-            // Round the vertical axis, then the lean.
-            val x1 = x0 * ca + z0 * sa
-            val z1 = -x0 * sa + z0 * ca
-            val y2 = y0 * ct - z1 * st
-            val z2 = y0 * st + z1 * ct
-            val p = EYE / (EYE + z2)
-            px[i] = width / 2f + x1 * p * scale
-            py[i] = height / 2f + y2 * p * scale
-            pz[i] = z2
+            px[i] = cx + px[i] * scale
+            py[i] = cy + py[i] * scale
         }
     }
 
@@ -161,7 +194,8 @@ internal class DotCubeView(context: Context) : View(context) {
         val w = RectF()
         w.left = minOf(px[f[0]], px[f[1]], px[f[2]], px[f[3]])
         w.right = maxOf(px[f[0]], px[f[1]], px[f[2]], px[f[3]])
-        val full = minOf(width, height) / 1.55f
+        val r = REACH
+        val full = 2f * minOf(width / (r[1] - r[0]), height / (r[3] - r[2])) // a side, straight on
         return (w.width() / full).coerceIn(0f, 1f)
     }
 }

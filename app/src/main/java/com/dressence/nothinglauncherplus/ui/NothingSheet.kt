@@ -148,9 +148,11 @@ internal class NothingSheet(private val context: Context, private val host: Fram
             if (search) "" else "   ·   EMPTY: THE APP'S OWN NAME", 11f, 0xFF8A8A8A.toInt())
         hint.setPadding(0, dp(10), 0, 0)
         card.addView(hint)
+        // After open(): it starts by closing any sheet before, which clears the field and
+        // [done] (until 0.68.1 they were set first, so nothing typed was ever saved).
+        open(card, emptyList(), 0, false, null)
         field = edit
         onText = done
-        open(card, emptyList(), 0, false, null)
         edit.requestFocus()
         edit.post {
             context.getSystemService(InputMethodManager::class.java)
