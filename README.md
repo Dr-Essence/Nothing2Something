@@ -1931,10 +1931,8 @@ phone at runtime and are not part of this work.
 
 This project exists because [Nothing](https://nothing.tech) builds phones that can be opened up:
 owners may unlock the bootloader, and Nothing publishes its phones' kernel and device sources
-([NothingOSS](https://github.com/NothingOSS) on GitHub). Those sources are where this project's
-companion kernel work found, for example, the CMF Phone 1's FM radio settings. And Nothing OS
-itself, its dot-matrix design and its NDot font, is what every feature here sets out to extend
-rather than replace. Nothing2Something is an independent project, not made or endorsed by Nothing.
+([NothingOSS](https://github.com/NothingOSS) on GitHub). And Nothing OS itself, its dot-matrix
+design and its NDot font, is what every feature here sets out to extend rather than replace. Nothing2Something is an independent project, not made or endorsed by Nothing.
 
 The tools this is built on: [LSPosed](https://github.com/LSPosed/LSPosed) (hooking framework)
 and [Magisk](https://github.com/topjohnwu/Magisk) (root).
