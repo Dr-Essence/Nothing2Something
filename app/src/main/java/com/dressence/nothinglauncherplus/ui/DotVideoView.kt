@@ -1,7 +1,6 @@
 package com.dressence.nothinglauncherplus.ui
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.RectF
@@ -17,20 +16,17 @@ import android.widget.FrameLayout
  *
  * Android's own player ([MediaPlayer], which plays Steam's HLS streams and mp4 files) draws
  * into a [TextureView]; this frame draws that view through the round dots of [DotScreen]
- * (glass, unlit dots, glow, the video added as light, as the folders' dot engine shows its
- * covers), so black parts of the video leave the unlit dots showing. The glow is made from a
- * small copy of the video's picture, one pixel per dot ([TextureView.getBitmap] into a bitmap
- * that size, at most [GLOW_EVERY_MS] apart; the copy has the view's transform applied, so it
- * follows the game's "Adjust artwork" setting, [Framing], as the video does). If the copy
- * cannot be made the video still plays, without glow.
+ * (glass, unlit dots, then the video added as light, as the folders' dot engine shows its
+ * covers), so black parts of the video leave the unlit dots showing.
+ *
+ * No glow for video. 0.70.1 made one from a second, small copy of the picture
+ * ([TextureView.getBitmap], 15 times a second); on the phone it showed as a ghost, a shifted,
+ * blurred second image beside the dots (Dr.Essence: "weird duplicated artifacts"; his
+ * screenshots show each bright road marking twice): the copy did not line up with the video
+ * and lagged behind it. It was removed rather than tuned blind.
  */
 internal class DotVideoView(context: Context) : FrameLayout(context),
         TextureView.SurfaceTextureListener {
-
-    companion object {
-        /** The glow's copy of the picture is renewed at most this often (about 15 a second). */
-        private const val GLOW_EVERY_MS = 66L
-    }
 
     private val texture = TextureView(context)
     private var player: MediaPlayer? = null
@@ -47,10 +43,6 @@ internal class DotVideoView(context: Context) : FrameLayout(context),
     private val screen = DotScreen()
     private var pitch = 0f
     private var corner = 0f
-    /** The video's picture, one pixel per dot: the glow's source. */
-    private var small: Bitmap? = null
-    private var smallAt = 0L
-    private var smallWorks = true
 
     /** Called back when the trailer starts showing (true) or cannot play (false). */
     var onPlaying: ((Boolean) -> Unit)? = null
@@ -142,7 +134,6 @@ internal class DotVideoView(context: Context) : FrameLayout(context),
 
     private fun layoutGrid() {
         if (!screen.layout(width, height, pitch)) return
-        small = Bitmap.createBitmap(screen.cols, screen.rows, Bitmap.Config.ARGB_8888)
         fit()
     }
 
@@ -151,26 +142,8 @@ internal class DotVideoView(context: Context) : FrameLayout(context),
             super.dispatchDraw(canvas)
             return
         }
-        screen.draw(canvas, glowFrame(), corner) { super.dispatchDraw(it) } // the video
+        screen.draw(canvas, null, corner) { super.dispatchDraw(it) } // the video, no glow
         postInvalidateOnAnimation() // every frame the video gives
-    }
-
-    /** The glow's small copy of the video, renewed at most every [GLOW_EVERY_MS]; null if none. */
-    private fun glowFrame(): Bitmap? {
-        val copy = small ?: return null
-        if (!smallWorks || player == null) return null
-        val now = android.os.SystemClock.uptimeMillis()
-        if (now - smallAt >= GLOW_EVERY_MS) {
-            smallAt = now
-            try {
-                // The view's picture scaled into the small bitmap, its transform applied.
-                texture.getBitmap(copy)
-            } catch (t: Throwable) {
-                smallWorks = false // no glow on this phone; the video plays on
-                return null
-            }
-        }
-        return copy
     }
 
     override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {

@@ -28,6 +28,14 @@ internal class DotArtworkView(context: Context) : View(context) {
 
     private val screen = DotScreen()
     private var corner = 0f
+    /**
+     * The dot spacing asked for, kept here: it is given before the view is measured, and the
+     * screen is laid out only once the size is known. (Mistake recorded, 0.70.1: the spacing
+     * was handed straight to [DotScreen.layout], which refused it at size 0 without keeping
+     * it, so the screen was never laid out and every game's artwork stayed black, with the
+     * icon hidden under it.)
+     */
+    private var dotPitch = 0f
     /** The frame: one pixel per dot. */
     private var frame: Bitmap? = null
     /** A still picture, as given. */
@@ -45,18 +53,19 @@ internal class DotArtworkView(context: Context) : View(context) {
         }
 
     /** Sets the dot spacing (the big screen's own) and the rounded screen it covers. */
-    fun setGeometry(dotPitch: Float, screenCorner: Float) {
+    fun setGeometry(pitch: Float, screenCorner: Float) {
+        dotPitch = pitch
         corner = screenCorner
-        layoutScreen(dotPitch)
+        layoutScreen()
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        layoutScreen(screen.pitch)
+        layoutScreen()
     }
 
-    private fun layoutScreen(pitch: Float) {
-        if (!screen.layout(width, height, pitch)) return
+    private fun layoutScreen() {
+        if (!screen.layout(width, height, dotPitch)) return
         if (frame?.width != screen.cols || frame?.height != screen.rows) {
             frame = Bitmap.createBitmap(screen.cols, screen.rows, Bitmap.Config.ARGB_8888)
         }

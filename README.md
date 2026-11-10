@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.1, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.2, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.1** (CMF Phone 1, Nothing OS 4.1, Android 16): Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.2** (CMF Phone 1, Nothing OS 4.1, Android 16): Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,30 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.2, Gaming Space: artwork shows again, no ghost on trailers, searches say why they
+  fail.** Dr.Essence on 0.70.1 (five screenshots, an LSPosed zip): games without a video
+  showed a black screen, searching for a video was broken, and videos had "weird duplicated
+  artifacts".
+  - **Black artwork, a mistake in 0.70.1.** Gaming Space sets the banner's dot spacing before
+    the view is measured; `DotScreen.layout` refused it at size 0 without keeping it, so when
+    the size came there was no spacing to lay out with, the screen was never laid out and
+    every artwork stayed black, with the icon hidden under it (KartPad's screenshot). The
+    view now keeps the spacing itself and lays out once it has a size, as the trailer view
+    already did.
+  - **The ghost on trailers was the glow.** Zoomed in, each bright road marking in the GTA V
+    screenshots shows twice, the second copy shifted and blurred: the glow made from a second,
+    small copy of the video (`TextureView.getBitmap`, 15 times a second) did not line up with
+    the video and lagged behind it. Removed; a trailer is now its lit dots added over the
+    unlit dots, no glow.
+  - **Searching:** the log has nothing from it, because every failure was dropped: a failed
+    search looked like an empty one (only "Search another name" offered), a failed download
+    said only "Could not download it." Checked from here, Steam answers each step for GTA V
+    (the search finds "Grand Theft Auto V Enhanced", 10 trailers, each with a stream), also
+    with the app's own User-Agent; KartPad and Liberty Recompiled are not on Steam, so they
+    have no trailer there. Every step now shows the reason on screen ("search failed:
+    IOException: HTTP 403", "no match for ...", "Could not load the trailers: ..."). Pending:
+    Dr.Essence's next try, with that message.
+  Compiled. Not run on the phone yet.
 - **0.70.1, Gaming Space's dot screen lit like the folders' covers; finer banner dots; the
   category animations removed.** Dr.Essence on 0.70.0: the banner, the boxes and the
   categories should act as a screen like the drawer folders, glowing, because "black colour

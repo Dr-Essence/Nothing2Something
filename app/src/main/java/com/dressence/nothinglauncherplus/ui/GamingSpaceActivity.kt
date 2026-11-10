@@ -927,13 +927,19 @@ class GamingSpaceActivity : Activity() {
         chooseGame("Artwork", name, { art.games(it) }, { chooseArtwork(app, it) }) { game ->
             sheet.message("Artwork", "Loading the pictures of \"${game.second}\"…")
             worker.execute {
+                var failed: Throwable? = null
                 val previews = try {
                     art.choicesFor(game.first).take(14).map { it to art.preview(it) }
                 } catch (t: Throwable) {
+                    failed = t
                     emptyList()
                 }
                 main.post {
                     if (isDestroyed) return@post
+                    failed?.let {
+                        sheet.message("Artwork", "Could not load the pictures: ${why(it)}")
+                        return@post
+                    }
                     if (previews.isEmpty()) {
                         sheet.message("Artwork", "\"${game.second}\" has no artwork yet.")
                         return@post
@@ -944,7 +950,9 @@ class GamingSpaceActivity : Activity() {
                             try {
                                 art.save(app.packageName, previews[which].first)
                             } catch (t: Throwable) {
-                                main.post { sheet.message("Artwork", "Could not download it.") }
+                                main.post {
+                                    sheet.message("Artwork", "Could not download it: ${why(t)}")
+                                }
                                 return@execute
                             }
                             main.post { showSelection() }
@@ -963,9 +971,19 @@ class GamingSpaceActivity : Activity() {
         chooseGame("Trailer", name, { trailers.games(it) }, { chooseTrailer(app, it) }) { game ->
             sheet.message("Trailer", "Loading the trailers of \"${game.second}\"…")
             worker.execute {
-                val movies = try { trailers.movies(game.first) } catch (t: Throwable) { emptyList() }
+                var failed: Throwable? = null
+                val movies = try {
+                    trailers.movies(game.first)
+                } catch (t: Throwable) {
+                    failed = t
+                    emptyList()
+                }
                 main.post {
                     if (isDestroyed) return@post
+                    failed?.let {
+                        sheet.message("Trailer", "Could not load the trailers: ${why(it)}")
+                        return@post
+                    }
                     if (movies.isEmpty()) {
                         sheet.message("Trailer", "\"${game.second}\" has no trailer on Steam.")
                         return@post
@@ -978,15 +996,18 @@ class GamingSpaceActivity : Activity() {
                         }
                         sheet.message("Trailer", "Saving \"${movies[which].first}\"…")
                         worker.execute {
+                            var failed: Throwable? = null
                             val ok = try {
                                 trailers.use(app.packageName, movies[which].second)
                             } catch (t: Throwable) {
+                                failed = t
                                 false
                             }
                             main.post {
                                 if (isDestroyed) return@post
                                 if (ok) { sheet.close(); showSelection() }
-                                else sheet.message("Trailer", "Could not download it.")
+                                else sheet.message("Trailer", "Could not download it" +
+                                    (failed?.let { ": ${why(it)}" } ?: " (empty or too big)."))
                             }
                         }
                     }
@@ -1017,11 +1038,24 @@ class GamingSpaceActivity : Activity() {
             again: (String) -> Unit, chosen: (Pair<Int, String>) -> Unit) {
         sheet.message(what, "Searching for \"$name\"…")
         worker.execute {
-            val games = try { find(name).take(12) } catch (t: Throwable) { emptyList() }
+            var failed: Throwable? = null
+            val games = try {
+                find(name).take(12)
+            } catch (t: Throwable) {
+                failed = t
+                emptyList()
+            }
             main.post {
                 if (isDestroyed) return@post
+                // Until 0.70.2 a failed search looked like an empty one: only "Search another
+                // name" was offered, with no word of why. Now the reason is in the title.
+                val title = when {
+                    failed != null -> "$what · search failed: ${why(failed!!)}"
+                    games.isEmpty() -> "$what · no match for \"$name\""
+                    else -> "$what · which game?"
+                }
                 val options = games.map { it.second } + "Search another name…"
-                sheet.list("$what · which game?", options, 0) { which ->
+                sheet.list(title, options, 0) { which ->
                     if (which < games.size) chosen(games[which])
                     else sheet.text("Search another name", name, "SEARCH", search = true) { typed ->
                         if (typed.isNotEmpty()) again(typed)
@@ -1030,6 +1064,9 @@ class GamingSpaceActivity : Activity() {
             }
         }
     }
+
+    /** A failure in words, for the screen: its kind and message (for example "IOException: HTTP 403"). */
+    private fun why(t: Throwable): String = t.javaClass.simpleName + (t.message?.let { ": $it" } ?: "")
 
     // -------------------------------------------------------------------------------------
     // Leaving when the controller goes
