@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.4, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.5, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.4** (CMF Phone 1, Nothing OS 4.1, Android 16): Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.5** (CMF Phone 1, Nothing OS 4.1, Android 16): Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,28 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.5, Gaming Space: Android games get their Google Play banner.** Asked by Dr.Essence:
+  sources for phone games too, not only ROMs. `PlayStore` reads a game's banner (the
+  1024 x 500 "feature graphic") from its Google Play page, found by package name, so it is
+  always the right game and needs no key.
+  - How it was found, in the real pages of 8 Ball Pool, GTA San Andreas and Among Us: the
+    page's data sits in script blocks (`AF_initDataCallback({key: 'ds:N'})`), images written
+    with their size; block `ds:5` (the app's own details) held exactly one 500/1024 image in
+    each, the game's own banner (looked at for 8 Ball Pool and GTA San Andreas). Other
+    blocks' wide images are the "similar games". The page's one wide `<img>` was a Play
+    event card, not the banner. The store's video is YouTube: not used. The same pattern was
+    run on the three pages with Java's regex engine, as the app's Kotlin uses it.
+  - Artwork order: SteamGridDB's animated banner (with a key and "Animated artwork first"),
+    then the Play banner, then SteamGridDB's still banner or cover. "Game artwork" works
+    without a SteamGridDB key now (the switch no longer asks for one).
+  - A game's menu has "Use Play Store banner"; "Choose artwork" (SteamGridDB) shows only
+    with a key. The settings line says where artwork comes from.
+  Compiled. Not run on the phone yet. To test: a phone game (8 Ball Pool) with "Game
+  artwork" on and no key: its Play banner on the big screen; "Use Play Store banner" on a
+  game with other artwork.
+  Pending (asked by Dr.Essence): SteamGridDB animated icons on the boxes (needs the key on
+  this side to check SteamGridDB's answers), the game's case (front, back, spine) on the
+  boxes from ScreenScraper, and listing ROMs in Gaming Space at all.
 - **0.70.4, Gaming Space: a trailer no longer shows its artwork through it.** Dr.Essence on
   0.70.3 (screenshot, GTA V): while the video plays, the cover art is faintly visible under
   it. The big screen stacks the icon, the artwork and the trailer; the trailer's glass is 94%

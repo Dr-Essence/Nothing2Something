@@ -450,15 +450,13 @@ public class SettingsActivity extends Activity {
         ui.row("Nothing Gaming Space (alpha) (demo)", "The module's own gaming launcher, in dot-matrix style:"
                         + " pick it above as the gaming launcher · tap to open it now",
                 null, ui.chevron(), v -> GamingSpaceActivity.Companion.open(this));
-        ui.switchRow("Game artwork (SteamGridDB)", "Games and emulators show their artwork on"
-                        + " the big dot screen, looked up once by name and saved on the phone ·"
-                        + " uses the internet · needs your own SteamGridDB API key",
+        ui.switchRow("Game artwork", "Games and emulators show their artwork on the big dot"
+                        + " screen, looked up once and saved on the phone: the game's banner"
+                        + " from Google Play (no key needed), or SteamGridDB's with your own"
+                        + " API key (animated banners) · uses the internet",
                 config.gamingArtwork, checked -> {
                     config.gamingArtwork = checked;
                     store.save(this);
-                    if (checked && SteamGridArt.Companion.key(this).isEmpty()) {
-                        askSteamGridKey();
-                    }
                 });
         ui.switchRow("Game trailers from Steam (video)", "A game's trailer from Steam's"
                         + " store plays on the big dot screen, muted, while it is selected ·"

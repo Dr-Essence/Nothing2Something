@@ -131,27 +131,35 @@ internal class SteamGridArt(context: Context) {
     }
 
     /**
-     * The app's artwork: saved, or looked up by its name and saved; null if there is none.
-     * With [animated] an animated banner is taken first when the game has one.
+     * The app's artwork: saved, or looked up and saved; null if there is none. In this order
+     * (0.70.5): an animated banner from SteamGridDB when [animated] and a key is set; the
+     * game's banner from its Google Play page ([PlayStore], found by package, so never the
+     * wrong game, and without a key); then SteamGridDB's still banner or cover.
      */
     fun fetch(pkg: String, label: String, animated: Boolean): Drawable? {
         cached(pkg)?.let { return it }
         val key = prefs.getString(KEY, "") ?: ""
-        if (key.isEmpty()) return null
         val missed = prefs.getLong(NO_MATCH + pkg, 0L)
         if (missed != 0L && System.currentTimeMillis() - missed < RETRY_MS) return null
         return try {
-            val game = search(key, label)
-            val pick = game?.let { choices(key, it.first, if (animated) 1 else 0).firstOrNull() }
+            val game = if (key.isEmpty()) null else search(key, label)
+            var pick: Choice? = null
+            if (game != null && animated) {
+                pick = list(key, "heroes/game/${game.first}?types=animated&$FILTERS", true,
+                    "Animated banner").firstOrNull()
+            }
+            if (pick == null) pick = playBanner(pkg)
+            if (pick == null && game != null) pick = choices(key, game.first, 0).firstOrNull()
             if (pick == null) {
                 prefs.edit().putLong(NO_MATCH + pkg, System.currentTimeMillis())
-                    .putString(LAST, if (game == null) "No match for \"$label\""
-                        else "\"${game.second}\" has no artwork yet").apply()
+                    .putString(LAST, "No artwork for \"$label\" (SteamGridDB" +
+                        (if (key.isEmpty()) ": no key" else if (game == null) ": no match" else
+                            ": none") + "; Google Play: none)").apply()
                 return null
             }
             save(pkg, pick)
-            prefs.edit().putString(LAST, "Found \"${game.second}\"" +
-                (if (pick.animated) " (animated)" else "") + " for \"$label\"").apply()
+            prefs.edit().putString(LAST, "Found ${pick.kind.lowercase()}" +
+                (game?.let { " of \"${it.second}\"" } ?: "") + " for \"$label\"").apply()
             cached(pkg)
         } catch (e: HttpError) {
             prefs.edit().putString(LAST, "\"$label\": SteamGridDB answered HTTP ${e.code}").apply()
@@ -186,6 +194,10 @@ internal class SteamGridArt(context: Context) {
         val key = prefs.getString(KEY, "") ?: ""
         return if (key.isEmpty()) emptyList() else choices(key, game, 4, 8, 6)
     }
+
+    /** The game's Google Play banner as a choice, or null (see [PlayStore]). Blocking. */
+    fun playBanner(pkg: String): Choice? =
+        PlayStore.banner(pkg)?.let { Choice(it, it, false, "Play Store banner") }
 
     /** Saves [choice] as the app's artwork (the full picture: animated ones move). Blocking. */
     fun save(pkg: String, choice: Choice) {

@@ -823,14 +823,14 @@ class GamingSpaceActivity : Activity() {
     private fun menu() {
         if (!inApps) return
         val app = appsOf(category).getOrNull(appFocus[category]) ?: return
-        val canArt = store.config.gamingArtwork && SteamGridArt.key(this).isNotEmpty() &&
-            (app.category == GamingLibrary.Category.GAMES ||
-                app.category == GamingLibrary.Category.EMULATORS)
+        val canArt = store.config.gamingArtwork && isGame(app)
+        val hasKey = SteamGridArt.key(this).isNotEmpty()
         val actions = ArrayList<Pair<String, () -> Unit>>()
         actions += "Play" to { launch() }
         actions += "Move to another category" to { moveTo(app) }
         actions += "Rename" to { rename(app) }
-        if (canArt) actions += "Choose artwork" to { chooseArtwork(app) }
+        if (canArt && hasKey) actions += "Choose artwork" to { chooseArtwork(app) }
+        if (canArt) actions += "Use Play Store banner" to { usePlayBanner(app) }
         if (store.config.gamingTrailers && isGame(app)) {
             actions += "Choose trailer" to { chooseTrailer(app) }
         }
@@ -977,6 +977,25 @@ class GamingSpaceActivity : Activity() {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    /** The game's banner from its Google Play page, saved as its artwork ([PlayStore]). */
+    private fun usePlayBanner(app: GamingLibrary.App) {
+        sheet.message("Artwork", "Looking on Google Play…")
+        worker.execute {
+            val result = try {
+                val choice = art.playBanner(app.packageName)
+                if (choice == null) "\"${app.label}\" has no banner on Google Play."
+                else { art.save(app.packageName, choice); null }
+            } catch (t: Throwable) {
+                "Could not get it: ${why(t)}"
+            }
+            main.post {
+                if (isDestroyed) return@post
+                if (result != null) sheet.message("Artwork", result)
+                else { sheet.close(); showSelection() }
             }
         }
     }
