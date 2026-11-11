@@ -1,10 +1,10 @@
 # Nothing2Something (Nothing-Launcher-Plus) — every dependency on Nothing Launcher 4.0.20
 
 > **Status (0.70.21):** acted on: F1 (the landscape grid installs only after its safety parts),
-> F3 (the loader's idle wait finds its names at install and falls back to Nothing's own), F4
+> F2 (folder categories only once the order hook is in, 0.70.24), F3 (the loader's idle wait finds its names at install and falls back to Nothing's own), F4
 > (the icon pack entry takes the class of an existing entry), F6 (the folder menu checks the
 > database method before adding). Still open: the resolver work (DexKit or reflection by
-> signature) for the obfuscated names, F2, F5, F7 and the per-unit all-or-nothing installs.
+> signature) for the obfuscated names, F5 (types checked in 0.70.23; same-type swaps not), F7 and the per-unit all-or-nothing installs.
 
 Scope: the code that runs inside `com.nothing.launcher` 4.0.20 (versionCode 40020216): `launcher/*`,
 `xposed/ModuleEntry.java` (launcher branch), `xposed/Hooks.java` (install semantics),

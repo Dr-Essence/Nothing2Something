@@ -192,7 +192,12 @@ final class SmartDrawer {
             @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 String original = (String) param.getResult();
-                if (CATEGORY_HIDDEN.equals(original)) {
+                if (CATEGORY_HIDDEN.equals(original) || !orderHooked) {
+                    // Not until the drawer's category order is hooked too: an app moved into
+                    // a folder's category that the order never lists is shown nowhere (the
+                    // order is found when Nothing makes its list, and not at all if another
+                    // launcher build has two candidates; dependency map, F2). Until then the
+                    // apps stay in Nothing's own categories.
                     return;
                 }
                 Config c = store.get();
@@ -276,6 +281,9 @@ final class SmartDrawer {
         return found;
     }
 
+    /** True once a smart list's category order is hooked (the folders' categories are listed). */
+    private static volatile boolean orderHooked;
+
     private void hookSmartListClass(Class<?> listClass, Method orderMethod) {
         XposedBridge.hookMethod(orderMethod, new XC_MethodHook() {
             @Override
@@ -284,6 +292,7 @@ final class SmartDrawer {
                 param.setResult(mergeOrder((List<String>) param.getResult(), store.get()));
             }
         });
+        orderHooked = true; // Only now: the folders' categories are listed from here on.
         XposedHelpers.findAndHookMethod(listClass, "onAppsUpdated", new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {
