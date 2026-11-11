@@ -270,7 +270,7 @@ internal object DualStatusBar {
             || clock.layoutParams !is LinearLayout.LayoutParams
             || area.layoutParams !is LinearLayout.LayoutParams
         ) {
-            Hooks.log("dual status bar: the status bar is not laid out as expected; left as is")
+            Hooks.skipped("dual status bar", "the status bar is not laid out as expected; left as is")
             return
         }
         clockFace = clock.typeface
@@ -566,7 +566,7 @@ internal class CrashGuard(private val key: String, private val name: String) {
             }
         }
     } catch (t: Throwable) {
-        Hooks.log("$name guard unavailable, left off: $t") // Without a guard it stays off.
+        Hooks.skipped("$name guard unavailable, left off", "$t") // Without a guard it stays off.
         false
     }
 

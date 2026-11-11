@@ -52,5 +52,7 @@ internal object SettingsReload {
         context.registerReceiver(receiver, IntentFilter(Config.ACTION_RELOAD), null,
             Handler(thread.looper), Context.RECEIVER_EXPORTED)
         Hooks.log("settings reload: listening")
+        // system_server's hook health report, now that it has a context (HookReport).
+        com.dressence.nothinglauncherplus.xposed.HookReport.schedule(context)
     }
 }

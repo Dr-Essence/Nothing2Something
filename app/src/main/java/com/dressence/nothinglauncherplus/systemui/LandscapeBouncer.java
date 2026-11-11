@@ -130,7 +130,7 @@ final class LandscapeBouncer {
         Class<?> flags = XposedHelpers.findClassIfExists(CLS_FLAGS, cl);
         Class<?> flipper = XposedHelpers.findClassIfExists(CLS_FLIPPER, cl);
         if (flags == null || flipper == null) {
-            Hooks.log("lock screen bouncer: classes not found, Nothing's layouts kept");
+            Hooks.skipped("lock screen bouncer", "classes not found, Nothing's layouts kept");
             return;
         }
         Object flag = XposedHelpers.getStaticObjectField(flags, "LOCKSCREEN_ENABLE_LANDSCAPE");

@@ -34,13 +34,44 @@ public final class Hooks {
         }
     }
 
+    /**
+     * Each feature's result in this process, for the hook health report ({@link HookReport}):
+     * {name, ""} when it installed, {name, why} when it did not or skipped a part.
+     */
+    private static final java.util.List<String[]> RESULTS =
+            new java.util.concurrent.CopyOnWriteArrayList<>();
+
     /** Installs one feature; if it fails it is logged and skipped, the others still work. */
     public static void install(String name, Installer installer) {
         try {
             installer.run();
+            RESULTS.add(new String[] {name, ""});
         } catch (Throwable t) {
             log("failed to install " + name + ": " + t);
+            RESULTS.add(new String[] {name, t.toString()});
         }
+    }
+
+    /**
+     * A part of a feature left out because what it needs is not in this build of the app (a
+     * class, method or view not found): logged, and listed in the hook health report, so an
+     * update of Nothing OS that moves something shows which part stopped.
+     */
+    public static void skipped(String what, String why) {
+        log(what + ": " + why);
+        String reason = "skipped: " + why;
+        // Listed once: some parts check again on every layout, and the list must not grow.
+        for (String[] r : RESULTS) {
+            if (r[0].equals(what) && r[1].equals(reason)) {
+                return;
+            }
+        }
+        RESULTS.add(new String[] {what, reason});
+    }
+
+    /** This process's results so far (a copy). */
+    static java.util.List<String[]> results() {
+        return new java.util.ArrayList<>(RESULTS);
     }
 
     /** {@code task}, made safe to hand to the app: what it throws is logged, not raised. */

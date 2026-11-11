@@ -127,7 +127,7 @@ final class LockScreenTurn {
     static void install(ClassLoader cl, ConfigStore store) {
         Class<?> state = XposedHelpers.findClassIfExists(CLS_KEYGUARD_STATE, cl);
         if (state == null) {
-            Hooks.log("lock screen rotation: no " + CLS_KEYGUARD_STATE);
+            Hooks.skipped("lock screen rotation", "no " + CLS_KEYGUARD_STATE);
             return;
         }
         int hooked = XposedBridge.hookAllMethods(state, "isKeyguardScreenRotationAllowed",
@@ -187,7 +187,7 @@ final class LockScreenTurn {
         Class<?> clock = XposedHelpers.findClassIfExists(CLS_CLOCK_SECTION, cl);
         Class<?> widgets = XposedHelpers.findClassIfExists(CLS_WIDGET_SECTION, cl);
         if (blueprints == null || clock == null || widgets == null) {
-            Hooks.log("lock screen layout: classes not found, layout left to SystemUI");
+            Hooks.skipped("lock screen layout", "classes not found, layout left to SystemUI");
             return;
         }
         XposedBridge.hookAllMethods(blueprints, "applyBlueprint", new XC_MethodHook() {
@@ -359,7 +359,7 @@ final class LockScreenTurn {
         }
         Class<?> entry = XposedHelpers.findClassIfExists(CLS_ENTRY_SECTION, cl);
         if (entry == null) {
-            Hooks.log("lock screen fingerprint: no " + CLS_ENTRY_SECTION);
+            Hooks.skipped("lock screen fingerprint", "no " + CLS_ENTRY_SECTION);
             return;
         }
         for (java.lang.reflect.Method m : entry.getDeclaredMethods()) {
@@ -536,7 +536,7 @@ final class LockScreenTurn {
         Class<?> utils = XposedHelpers.findClassIfExists(
                 "com.android.systemui.biometrics.UdfpsUtils", cl);
         if (utils == null) {
-            Hooks.log("fingerprint touch: no UdfpsUtils");
+            Hooks.skipped("fingerprint touch", "no UdfpsUtils");
             return;
         }
         XC_MethodHook turnTouch = new XC_MethodHook() {
@@ -650,7 +650,7 @@ final class LockScreenTurn {
                 cl);
         if (container == null || dependency == null || stateClass == null
                 || listenerClass == null) {
-            Hooks.log("lock screen notifications: classes not found");
+            Hooks.skipped("lock screen notifications", "classes not found");
             return;
         }
         boolean[] listening = {false};
@@ -818,7 +818,7 @@ final class LockScreenTurn {
         Class<?> interactor = XposedHelpers.findClassIfExists(CLS_BLUEPRINT_INTERACTOR, cl);
         Class<?> type = XposedHelpers.findClassIfExists(CLS_TRANSITION_TYPE, cl);
         if (interactor == null || type == null) {
-            Hooks.log("lock screen flip: classes not found");
+            Hooks.skipped("lock screen flip", "classes not found");
             return;
         }
         XposedBridge.hookAllMethods(interactor, "start", new XC_MethodHook() {
@@ -905,7 +905,7 @@ final class LockScreenTurn {
     private static void layOutWithTurn(ClassLoader cl, ConfigStore store) {
         Class<?> window = XposedHelpers.findClassIfExists(CLS_SHADE_WINDOW, cl);
         if (window == null) {
-            Hooks.log("lock screen turn: no " + CLS_SHADE_WINDOW);
+            Hooks.skipped("lock screen turn", "no " + CLS_SHADE_WINDOW);
             return;
         }
         XposedHelpers.findAndHookMethod(window, "onConfigurationChanged", Configuration.class,

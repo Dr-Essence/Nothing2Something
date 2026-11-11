@@ -42,6 +42,11 @@ public final class ModuleEntry implements IXposedHookLoadPackage {
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
         String pkg = lpparam.packageName;
         ClassLoader cl = lpparam.classLoader;
+        if (!Config.MODULE_PKG.equals(pkg) && !"android".equals(pkg)
+                && lpparam.isFirstApplication) {
+            // Each hooked app reports which features installed (HookReport, Diagnostics).
+            Hooks.install("hook report", HookReport::install);
+        }
         if (Config.MODULE_PKG.equals(pkg)) {
             // The settings app shows whether the module is active.
             XposedHelpers.findAndHookMethod(Config.SETTINGS_ACTIVITY, cl, "isModuleActive",

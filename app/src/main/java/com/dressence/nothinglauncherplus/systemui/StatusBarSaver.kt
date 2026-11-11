@@ -170,7 +170,7 @@ internal object StatusBarSaver {
         val repository = XposedHelpers.findClassIfExists(CLS_MODE, cl)
         val listener = XposedHelpers.findClassIfExists(CLS_MODE_LISTENER, cl)
         if (repository == null || listener == null) {
-            Hooks.log("status bar saver: no transient bar state; full-screen swipes left as is")
+            Hooks.skipped("status bar saver", "no transient bar state; full-screen swipes left as is")
             return
         }
         val after = object : XC_MethodHook() {
@@ -207,7 +207,7 @@ internal object StatusBarSaver {
         val id = bar.resources.getIdentifier("status_bar_contents", "id", Config.SYSTEMUI_PKG)
         val contents = if (id == 0) null else bar.findViewById<ViewGroup>(id)
         if (contents == null) {
-            Hooks.log("status bar saver: no status_bar_contents; left as is")
+            Hooks.skipped("status bar saver", "no status_bar_contents; left as is")
             return
         }
         savers.getOrPut(bar) { Saver(contents) }.start()

@@ -902,6 +902,7 @@ public class SettingsActivity extends Activity {
     }
 
     private void renderDiagnostics(Ui ui, Config config) {
+        hookHealth(ui);
         ui.section("Logging");
         ui.switchRow("Diagnostic logging", "Writes what is needed to fix problems to the LSPosed"
                 + " log: orientation changes, lock screen layout, fingerprint events, portrait-only"
@@ -926,6 +927,43 @@ public class SettingsActivity extends Activity {
             TestNotifications.clear(this);
             Toast.makeText(this, "Test notifications cleared", Toast.LENGTH_SHORT).show();
         });
+    }
+
+    /**
+     * Which features each hooked app installed at its last start, and which not (with why):
+     * after an update of Nothing OS or of an app, what stopped working shows here first.
+     */
+    private void hookHealth(Ui ui) {
+        ui.section("Hook health");
+        java.util.List<HookHealth.Report> reports = HookHealth.reports(this);
+        if (reports.isEmpty()) {
+            ui.note("No report yet: each hooked app sends one when it starts (restart the"
+                    + " phone once after installing this version).");
+            return;
+        }
+        java.text.DateFormat when = java.text.DateFormat.getDateTimeInstance(
+                java.text.DateFormat.SHORT, java.text.DateFormat.SHORT);
+        for (HookHealth.Report report : reports) {
+            int ok = report.getTotal() - report.getProblems().size();
+            String summary = (report.getVersion().isEmpty() ? "" : report.getVersion() + " · ")
+                    + ok + " of " + report.getTotal() + " installed"
+                    + (report.getProblems().isEmpty() ? "" : " · " + report.getProblems().size()
+                            + " not") + " · " + when.format(new java.util.Date(report.getTime()));
+            ui.row(report.getProcess(), summary, null,
+                    report.getProblems().isEmpty() ? null : ui.chevron(),
+                    report.getProblems().isEmpty() ? null : v -> {
+                        StringBuilder text = new StringBuilder();
+                        for (kotlin.Pair<String, String> p : report.getProblems()) {
+                            text.append(p.getFirst()).append('\n').append(p.getSecond())
+                                    .append("\n\n");
+                        }
+                        Dialogs.builder(this)
+                                .setTitle(report.getProcess())
+                                .setMessage(text.toString().trim())
+                                .setPositiveButton("OK", null)
+                                .show();
+                    });
+        }
     }
 
     private static final int[] TEST_COUNTS = {1, 3, TestNotifications.KINDS, 12};

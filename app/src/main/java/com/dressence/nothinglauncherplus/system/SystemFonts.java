@@ -164,7 +164,7 @@ public final class SystemFonts {
                 // Not this release's name: try the next.
             }
         }
-        Hooks.log("system font map cannot be rewritten on this release");
+        Hooks.skipped("system font map", "cannot be rewritten on this release");
     }
 
     /** Marks {@code spec} as newly in use, until system_server has run with it a while. */

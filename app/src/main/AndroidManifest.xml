@@ -203,6 +203,17 @@
             </intent-filter>
         </receiver>
 
+        <!-- The hook health report from each hooked app (xposed/HookReport, ui/HookHealth):
+             exported, as the hooked apps send it; it keeps only a report the sending app
+             made about itself (Android tells who sent it). -->
+        <receiver
+            android:name=".ui.HookHealth"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.dressence.nothinglauncherplus.HOOK_REPORT" />
+            </intent-filter>
+        </receiver>
+
         <!-- Restarts Nothing Launcher after an update so the new hooks load without a reboot. -->
         <receiver
             android:name=".UpdateReceiver"

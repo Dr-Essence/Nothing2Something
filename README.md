@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.18, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.19, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.18** (CMF Phone 1, Nothing OS 4.1, Android 16): games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.19** (CMF Phone 1, Nothing OS 4.1, Android 16): games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,20 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.19, Hook health (new, Diagnostics).** The first step to a module that is ready for
+  updates of Nothing OS: each app the module hooks (Nothing Launcher, System UI, the system,
+  Settings, HeliBoard...) now tells the module app at its start which of its features
+  installed and which did not, with why; Diagnostics → Hook health lists each app with its
+  version, "N of M installed", and a tap shows what failed. Parts that a feature leaves out
+  because something is missing in that build (16 places: lock screen, saver, dual status bar,
+  landscape padding, drawer scrim, system font map) are listed too. Until now a renamed method
+  after an update only left a line in the LSPosed log. Built from: Hooks.install, which every
+  feature already goes through (99 places), a report sent once the app has started (from
+  Instrumentation.callApplicationOnCreate; system_server at systemReady), carrying who sent it,
+  and a receiver in the module app that keeps a report only from the app it is about.
+  Checked: the build compiles; not run on a phone. To test: restart the phone, open
+  Diagnostics → Hook health: every hooked app listed, its version, and what (if anything) did
+  not install; send a screenshot.
 - **0.70.18, open audit items that needed no phone evidence.**
   - *Who may ask the system*: the module's receivers in system_server were open to every app,
     so any installed app could make the system open the playing media app from the background

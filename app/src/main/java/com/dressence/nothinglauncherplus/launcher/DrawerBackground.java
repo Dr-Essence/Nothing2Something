@@ -136,7 +136,7 @@ final class DrawerBackground {
         java.lang.reflect.Method method = colours == null ? null
                 : XposedHelpers.findMethodExactIfExists(colours, "e", Context.class);
         if (method == null || method.getReturnType() != int.class) {
-            Hooks.log("drawer scrim colour: not found, background faded by its state");
+            Hooks.skipped("drawer scrim colour", "not found, background faded by its state");
             return false;
         }
         XposedBridge.hookMethod(method, new XC_MethodHook() {

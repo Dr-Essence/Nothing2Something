@@ -1138,14 +1138,14 @@ final class LandscapeGrid {
             if (m.getReturnType() == Rect.class && Modifier.isPublic(m.getModifiers())
                     && types.length == 2 && types[0] == int.class && types[1] == int.class) {
                 if (padding != null) {
-                    Hooks.log("landscape widget padding: more than one candidate, left as is");
+                    Hooks.skipped("landscape widget padding", "more than one candidate, left as is");
                     return;
                 }
                 padding = m;
             }
         }
         if (padding == null) {
-            Hooks.log("landscape widget padding: no Rect(int, int) method on "
+            Hooks.skipped("landscape widget padding", "no Rect(int, int) method on "
                     + profileClass.getName());
             return;
         }
