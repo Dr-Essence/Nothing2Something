@@ -1,5 +1,6 @@
 package com.dressence.nothinglauncherplus.keyboard;
 
+import com.dressence.nothinglauncherplus.Controllers;
 import android.app.Dialog;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
@@ -185,8 +186,7 @@ public final class HeliBoardGamepad {
         }
         InputDevice device = event.getDevice();
         int sources = device != null ? device.getSources() : event.getSource();
-        return (sources & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
-                || (sources & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK;
+        return Controllers.isController(sources);
     }
 
     private boolean onKeyDown(InputMethodService service, KeyEvent event) {

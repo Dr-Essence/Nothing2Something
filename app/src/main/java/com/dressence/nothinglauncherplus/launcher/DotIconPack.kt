@@ -1,5 +1,6 @@
 package com.dressence.nothinglauncherplus.launcher
 
+import com.dressence.nothinglauncherplus.Config
 import android.app.Activity
 import android.content.Context
 import android.database.ContentObserver
@@ -56,7 +57,7 @@ internal object DotIconPack {
     fun install(cl: ClassLoader, onChange: Runnable) {
         Hooks.install("dot matrix icon pack: entry") { addEntry(cl) }
         Hooks.install("dot matrix icon pack: preview") { dotPreview(cl) }
-        XposedHelpers.findAndHookMethod("com.android.launcher3.Launcher", cl, "onCreate",
+        XposedHelpers.findAndHookMethod(Config.CLS_LAUNCHER, cl, "onCreate",
             Bundle::class.java, object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     val activity = param.thisObject as Activity

@@ -37,8 +37,6 @@ final class Landscape {
     private static final String CLS_SMART_CONTAINER = SmartDrawer.SMART_PKG + "SmartFolderContainer";
     private static final String CLS_UTILITIES = "com.android.launcher3.Utilities";
     private static final String CLS_ROTATION_HELPER = "com.android.launcher3.states.RotationHelper";
-    private static final String CLS_LAUNCHER = "com.android.launcher3.Launcher";
-    private static final String CLS_NT_LAUNCHER = "com.nothing.launcher.NTLauncher";
     private static final String CLS_IDP = "com.android.launcher3.InvariantDeviceProfile";
 
     /** Nothing's portrait reference size, transposed for landscape. */
@@ -102,7 +100,7 @@ final class Landscape {
                 }
             }
         });
-        Class<?> launcherClass = XposedHelpers.findClass(CLS_LAUNCHER, cl);
+        Class<?> launcherClass = XposedHelpers.findClass(Config.CLS_LAUNCHER, cl);
         store.addChangeListener(() -> {
             Object launcher = XposedHelpers.callMethod(
                     XposedHelpers.getStaticObjectField(launcherClass, "ACTIVITY_TRACKER"),
@@ -138,7 +136,7 @@ final class Landscape {
      * are left out.
      */
     private void hookShapeHold() {
-        Class<?> launcherClass = XposedHelpers.findClass(CLS_LAUNCHER, cl);
+        Class<?> launcherClass = XposedHelpers.findClass(Config.CLS_LAUNCHER, cl);
         XposedHelpers.findAndHookMethod(launcherClass, "onCreate", android.os.Bundle.class,
                 new XC_MethodHook() {
                     @Override
@@ -216,7 +214,7 @@ final class Landscape {
                 }
             }
         });
-        Class<?> launcherClass = XposedHelpers.findClass(CLS_LAUNCHER, cl);
+        Class<?> launcherClass = XposedHelpers.findClass(Config.CLS_LAUNCHER, cl);
         XposedHelpers.findAndHookMethod(idp, "getDeviceProfile", Context.class,
                 new XC_MethodHook() {
                     @Override
@@ -263,7 +261,7 @@ final class Landscape {
      * (StatefulActivity) does instead: relayout when the config or rotation changed.
      */
     private void hookConfigChange() {
-        XposedHelpers.findAndHookMethod(CLS_NT_LAUNCHER, cl, "handleConfigurationChanged",
+        XposedHelpers.findAndHookMethod(Config.CLS_NT_LAUNCHER, cl, "handleConfigurationChanged",
                 Configuration.class, new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {

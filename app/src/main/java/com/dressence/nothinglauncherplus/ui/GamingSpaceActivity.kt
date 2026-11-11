@@ -15,7 +15,6 @@ import android.os.Looper
 import android.util.LruCache
 import android.util.TypedValue
 import android.view.Gravity
-import android.view.InputDevice
 import android.view.GestureDetector
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -28,6 +27,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.dressence.nothinglauncherplus.anim.AnimatedEmojiView
 import com.dressence.nothinglauncherplus.anim.DotEffect
+import com.dressence.nothinglauncherplus.Controllers
 import com.dressence.nothinglauncherplus.Palette
 import com.dressence.nothinglauncherplus.xposed.NdotFont
 import java.util.concurrent.ExecutorService
@@ -1200,12 +1200,7 @@ class GamingSpaceActivity : Activity() {
         finish()
     }
 
-    private fun controllerConnected(): Boolean = InputDevice.getDeviceIds().any { id ->
-        val device = InputDevice.getDevice(id) ?: return@any false
-        val sources = device.sources
-        !device.isVirtual && (sources and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD ||
-            sources and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK)
-    }
+    private fun controllerConnected(): Boolean = Controllers.connected(this)
 
     // -------------------------------------------------------------------------------------
     // Helpers

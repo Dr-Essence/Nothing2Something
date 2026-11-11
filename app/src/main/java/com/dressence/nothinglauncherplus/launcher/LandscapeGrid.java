@@ -1,5 +1,6 @@
 package com.dressence.nothinglauncherplus.launcher;
 
+import com.dressence.nothinglauncherplus.Config;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Handler;
@@ -69,7 +70,6 @@ final class LandscapeGrid {
     private static final String CLS_LAYOUT_PARAMS =
             "com.android.launcher3.celllayout.CellLayoutLayoutParams";
     private static final String CLS_DEVICE_PROFILE = "com.android.launcher3.DeviceProfile";
-    private static final String CLS_LAUNCHER = "com.android.launcher3.Launcher";
     private static final String CLS_ACTIVITY_CONTEXT = "com.android.launcher3.views.ActivityContext";
     /** Nothing's widget views, which take their padding from the span they are told. */
     private static final String[] CLS_WIDGET_VIEWS = {
@@ -195,7 +195,7 @@ final class LandscapeGrid {
 
     void install() {
         Hooks.install("landscape grid", () -> {
-            launcherClass = XposedHelpers.findClass(CLS_LAUNCHER, cl);
+            launcherClass = XposedHelpers.findClass(Config.CLS_LAUNCHER, cl);
             activityContext = XposedHelpers.findClass(CLS_ACTIVITY_CONTEXT, cl);
             cellPos = XposedHelpers.findConstructorExact(CLS_CELL_POS, cl,
                     int.class, int.class, int.class);

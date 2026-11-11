@@ -1,5 +1,6 @@
 package com.dressence.nothinglauncherplus.launcher;
 
+import com.dressence.nothinglauncherplus.Config;
 import android.content.Context;
 import android.graphics.Color;
 import android.view.View;
@@ -20,7 +21,6 @@ final class DrawerBackground {
 
     private static final String CLS_ALL_APPS_STATE =
             "com.android.launcher3.uioverrides.states.AllAppsState";
-    private static final String CLS_LAUNCHER = "com.android.launcher3.Launcher";
     private static final String CLS_LAUNCHER_STATE = "com.android.launcher3.LauncherState";
     /** Nothing's launcher colours (ThemeColors), and the drawer scrim colour it gives. */
     private static final String CLS_THEME_COLOURS = "p7.e";
@@ -28,7 +28,7 @@ final class DrawerBackground {
 
     static void install(ClassLoader cl, ConfigStore store) {
         Class<?> allAppsState = XposedHelpers.findClass(CLS_ALL_APPS_STATE, cl);
-        Class<?> launcherClass = XposedHelpers.findClass(CLS_LAUNCHER, cl);
+        Class<?> launcherClass = XposedHelpers.findClass(Config.CLS_LAUNCHER, cl);
         boolean atSource = hookScrimColour(cl, store);
         if (!atSource) {
             XposedHelpers.findAndHookMethod(allAppsState, "getWorkspaceScrimColor",

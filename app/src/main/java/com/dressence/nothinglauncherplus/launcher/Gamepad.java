@@ -1,5 +1,6 @@
 package com.dressence.nothinglauncherplus.launcher;
 
+import com.dressence.nothinglauncherplus.Controllers;
 import android.app.Activity;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetProviderInfo;
@@ -51,7 +52,6 @@ import de.robv.android.xposed.XposedHelpers;
  */
 final class Gamepad {
 
-    private static final String CLS_LAUNCHER = "com.android.launcher3.Launcher";
     private static final String CLS_LAUNCHER_STATE = "com.android.launcher3.LauncherState";
     private static final String CLS_FLOATING_VIEW = "com.android.launcher3.AbstractFloatingView";
     private static final String CLS_BUBBLE_TEXT = "com.android.launcher3.BubbleTextView";
@@ -102,7 +102,7 @@ final class Gamepad {
 
     static void install(ClassLoader cl, ConfigStore store) {
         Gamepad gamepad = new Gamepad(cl, store);
-        Class<?> launcher = XposedHelpers.findClass(CLS_LAUNCHER, cl);
+        Class<?> launcher = XposedHelpers.findClass(Config.CLS_LAUNCHER, cl);
         XposedHelpers.findAndHookMethod(launcher, "dispatchKeyEvent", KeyEvent.class,
                 new XC_MethodHook() {
                     @Override
@@ -289,9 +289,7 @@ final class Gamepad {
     }
 
     private static boolean fromController(KeyEvent event) {
-        int source = event.getSource();
-        return (source & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
-                || (source & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
+        return Controllers.isController(event.getSource())
                 || KeyEvent.isGamepadButton(event.getKeyCode());
     }
 

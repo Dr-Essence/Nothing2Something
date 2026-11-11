@@ -60,7 +60,6 @@ import kotlin.math.roundToInt
  */
 internal object DualStatusBar {
 
-    private const val SYSUI = "com.android.systemui"
     private const val CLS_UTILS = "com.android.internal.policy.SystemBarUtils"
     private const val CLS_BAR = "com.android.systemui.statusbar.phone.PhoneStatusBarView"
     private const val CLS_CLOCK = "com.android.systemui.statusbar.policy.Clock"
@@ -231,7 +230,7 @@ internal object DualStatusBar {
     }
 
     private fun dimen(ctx: Context, name: String): Int = try {
-        val id = ctx.resources.getIdentifier(name, "dimen", SYSUI)
+        val id = ctx.resources.getIdentifier(name, "dimen", Config.SYSTEMUI_PKG)
         if (id == 0) 0 else ctx.resources.getDimensionPixelSize(id)
     } catch (e: RuntimeException) {
         0 // Not System UI's resources: leave the height alone.
@@ -253,7 +252,7 @@ internal object DualStatusBar {
     // ---- the rows ----------------------------------------------------------------------
 
     private fun find(root: View, name: String): View? {
-        val id = root.resources.getIdentifier(name, "id", SYSUI)
+        val id = root.resources.getIdentifier(name, "id", Config.SYSTEMUI_PKG)
         return if (id == 0) null else root.findViewById(id)
     }
 
@@ -582,10 +581,10 @@ internal class CrashGuard(private val key: String, private val name: String) {
         val am = Class.forName("android.app.ActivityManager").getMethod("getService").invoke(null)
         val slice = am.javaClass.getMethod("getHistoricalProcessExitReasons", String::class.java,
             Int::class.javaPrimitiveType, Int::class.javaPrimitiveType,
-            Int::class.javaPrimitiveType).invoke(am, SYSUI, 0, 8, 0)
+            Int::class.javaPrimitiveType).invoke(am, Config.SYSTEMUI_PKG, 0, 8, 0)
         val list = slice.javaClass.getMethod("getList").invoke(slice) as List<*>
         list.filterIsInstance<android.app.ApplicationExitInfo>()
-            .filter { it.processName == SYSUI }
+            .filter { it.processName == Config.SYSTEMUI_PKG }
             .maxByOrNull { it.timestamp }
             ?.takeIf { System.currentTimeMillis() - it.timestamp < LOOP_MS }
             ?.reason
@@ -605,7 +604,6 @@ internal class CrashGuard(private val key: String, private val name: String) {
         /** The note the module app writes before it restarts System UI (ms since 1970). */
         const val PLANNED = "nlplus_planned_restart"
         private const val PLANNED_MS = 60_000L
-        private const val SYSUI = "com.android.systemui"
         /** Exits that count towards a loop: crashes, ANRs and a failed start. */
         private val CRASHES = setOf(android.app.ApplicationExitInfo.REASON_CRASH,
             android.app.ApplicationExitInfo.REASON_CRASH_NATIVE,

@@ -59,7 +59,6 @@ internal object FullScreenApps {
     const val EXTRA_PACKAGE = "package"
     /** Held by System UI: only it can tell apps the bar faded out. */
     const val SENDER_PERMISSION = "android.permission.STATUS_BAR_SERVICE"
-    private const val SYSUI = "com.android.systemui"
 
     /** What a window was before the module hid its bar, to put back. */
     private class Saved(val cutoutMode: Int, val behavior: Int)
@@ -122,7 +121,7 @@ internal object FullScreenApps {
         context.registerReceiver(receiver, IntentFilter(ACTION_STATE), SENDER_PERMISSION, null,
             Context.RECEIVER_EXPORTED)
         listening = true // only once registered: a failure is tried again on the next resume
-        context.sendBroadcast(Intent(ACTION_QUERY).setPackage(SYSUI)
+        context.sendBroadcast(Intent(ACTION_QUERY).setPackage(Config.SYSTEMUI_PKG)
             .putExtra(EXTRA_PACKAGE, context.packageName))
     }
 

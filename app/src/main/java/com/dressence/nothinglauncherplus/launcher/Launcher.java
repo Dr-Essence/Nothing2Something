@@ -18,7 +18,6 @@ import de.robv.android.xposed.XposedHelpers;
 /** Everything the module does in Nothing Launcher. */
 public final class Launcher {
 
-    private static final String CLS_LAUNCHER = "com.android.launcher3.Launcher";
     private static final String CLS_LOADER_TASK = "com.android.launcher3.model.LoaderTask";
     /** The longest the loader waits for an idle main thread between its steps. */
     private static final int IDLE_WAIT_SECONDS = 3;
@@ -65,7 +64,7 @@ public final class Launcher {
      * it was before it.
      */
     private static void hookTurnLifecycle(ClassLoader cl) {
-        XposedHelpers.findAndHookMethod(CLS_LAUNCHER, cl, "onHandleConfigurationChanged",
+        XposedHelpers.findAndHookMethod(Config.CLS_LAUNCHER, cl, "onHandleConfigurationChanged",
                 new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {
@@ -106,7 +105,7 @@ public final class Launcher {
     private static void hookHomeShown(ClassLoader cl) {
         for (String method : new String[] {"onResume", "onPause"}) {
             boolean shown = "onResume".equals(method);
-            XposedHelpers.findAndHookMethod(CLS_LAUNCHER, cl, method, new XC_MethodHook() {
+            XposedHelpers.findAndHookMethod(Config.CLS_LAUNCHER, cl, method, new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) {
                     Hooks.guard("home shown", () -> {
@@ -151,7 +150,7 @@ public final class Launcher {
 
     /** The settings app's changes, applied at once (it sends this broadcast after each). */
     private static void hookReloadReceiver(ClassLoader cl, ConfigStore store) {
-        XposedHelpers.findAndHookMethod(CLS_LAUNCHER, cl, "onCreate", Bundle.class,
+        XposedHelpers.findAndHookMethod(Config.CLS_LAUNCHER, cl, "onCreate", Bundle.class,
                 new XC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) {

@@ -1,5 +1,6 @@
 package com.dressence.nothinglauncherplus.system;
 
+import com.dressence.nothinglauncherplus.Controllers;
 import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -10,7 +11,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.UserHandle;
 import android.provider.Settings;
-import android.view.InputDevice;
 import android.view.KeyEvent;
 
 import com.dressence.nothinglauncherplus.Config;
@@ -231,18 +231,6 @@ public final class ControllerHome {
     }
 
     private static boolean controllerConnected() {
-        InputManager input = context.getSystemService(InputManager.class);
-        for (int id : input.getInputDeviceIds()) {
-            InputDevice device = input.getInputDevice(id);
-            if (device == null || device.isVirtual() || !device.isExternal()) {
-                continue;
-            }
-            int sources = device.getSources();
-            if ((sources & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
-                    || (sources & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK) {
-                return true;
-            }
-        }
-        return false;
+        return Controllers.connected(context);
     }
 }

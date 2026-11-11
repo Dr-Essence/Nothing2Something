@@ -23,6 +23,9 @@ public final class Config {
     public static final String MODULE_PKG = "com.dressence.nothinglauncherplus";
     public static final String LAUNCHER_PKG = "com.nothing.launcher";
     public static final String SYSTEMUI_PKG = "com.android.systemui";
+    /** Nothing Launcher's activity: Launcher3's class, and Nothing's subclass of it. */
+    public static final String CLS_LAUNCHER = "com.android.launcher3.Launcher";
+    public static final String CLS_NT_LAUNCHER = "com.nothing.launcher.NTLauncher";
     public static final String SETTINGS_ACTIVITY = MODULE_PKG + ".ui.SettingsActivity";
     /** Settings page to open (an extra of {@link #SETTINGS_ACTIVITY}); without it, the menu. */
     public static final String EXTRA_SETTINGS_PAGE = "page";

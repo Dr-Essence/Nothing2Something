@@ -27,7 +27,6 @@ import de.robv.android.xposed.XposedHelpers;
  */
 final class FolderMenu {
 
-    private static final String CLS_LAUNCHER = "com.android.launcher3.Launcher";
     private static final String CLS_OPTIONS_POPUP = "com.android.launcher3.views.OptionsPopupView";
     private static final String CLS_LAUNCHER_EVENT =
             "com.android.launcher3.logging.StatsLogManager$LauncherEvent";
@@ -49,7 +48,7 @@ final class FolderMenu {
     /** Resolves everything up front so a missing class disables the menu instead of crashing. */
     FolderMenu(ClassLoader cl, ConfigStore store) {
         this.store = store;
-        launcherClass = XposedHelpers.findClass(CLS_LAUNCHER, cl);
+        launcherClass = XposedHelpers.findClass(Config.CLS_LAUNCHER, cl);
         popupClass = XposedHelpers.findClass(CLS_OPTIONS_POPUP, cl);
         optionItemClass = XposedHelpers.findClass(CLS_OPTIONS_POPUP + "$OptionItem", cl);
         ignoreEvent = XposedHelpers.getStaticObjectField(

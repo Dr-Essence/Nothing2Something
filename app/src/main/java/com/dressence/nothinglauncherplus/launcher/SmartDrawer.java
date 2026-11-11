@@ -112,7 +112,7 @@ final class SmartDrawer {
         store.addChangeListener(this::rebind);
         // Rotation changes the tile count; Nothing's drawer does not ask again by itself.
         Hooks.install("smart grid rotation", () -> XposedHelpers.findAndHookMethod(
-                XposedHelpers.findClass("com.android.launcher3.Launcher", cl),
+                XposedHelpers.findClass(Config.CLS_LAUNCHER, cl),
                 "dispatchDeviceProfileChanged", new XC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) {
@@ -125,7 +125,7 @@ final class SmartDrawer {
     private void hookCoverGreeting() {
         Class<?> states = XposedHelpers.findClass("com.android.launcher3.LauncherState", cl);
         Object allApps = XposedHelpers.getStaticObjectField(states, "ALL_APPS");
-        XposedHelpers.findAndHookMethod("com.android.launcher3.Launcher", cl, "onStateSetStart",
+        XposedHelpers.findAndHookMethod(Config.CLS_LAUNCHER, cl, "onStateSetStart",
                 states, new XC_MethodHook() {
                     private Object last;
 

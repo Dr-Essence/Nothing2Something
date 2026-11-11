@@ -20,7 +20,6 @@ import de.robv.android.xposed.XposedHelpers;
  */
 final class LauncherSounds {
 
-    private static final String CLS_LAUNCHER = "com.android.launcher3.Launcher";
     private static final String CLS_STATE = "com.android.launcher3.LauncherState";
     private static final String CLS_FOLDER = "com.android.launcher3.folder.Folder";
     private static final String CLS_WORKSPACE = "com.android.launcher3.Workspace";
@@ -70,7 +69,7 @@ final class LauncherSounds {
     // -------------------------------------------------------------------------------------
 
     private void hookLifecycle() {
-        Class<?> launcher = XposedHelpers.findClass(CLS_LAUNCHER, cl);
+        Class<?> launcher = XposedHelpers.findClass(Config.CLS_LAUNCHER, cl);
         XposedHelpers.findAndHookMethod(launcher, "onCreate", Bundle.class, new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
@@ -117,7 +116,7 @@ final class LauncherSounds {
         Class<?> states = XposedHelpers.findClass(CLS_STATE, cl);
         Object normal = XposedHelpers.getStaticObjectField(states, "NORMAL");
         Object allApps = XposedHelpers.getStaticObjectField(states, "ALL_APPS");
-        XposedHelpers.findAndHookMethod(CLS_LAUNCHER, cl, "onStateSetStart", states,
+        XposedHelpers.findAndHookMethod(Config.CLS_LAUNCHER, cl, "onStateSetStart", states,
                 new XC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) {
@@ -133,7 +132,7 @@ final class LauncherSounds {
     }
 
     private void hookLaunch() {
-        XposedHelpers.findAndHookMethod(CLS_LAUNCHER, cl, "startActivitySafely",
+        XposedHelpers.findAndHookMethod(Config.CLS_LAUNCHER, cl, "startActivitySafely",
                 android.view.View.class, android.content.Intent.class,
                 XposedHelpers.findClass("com.android.launcher3.model.data.ItemInfo", cl),
                 new XC_MethodHook() {

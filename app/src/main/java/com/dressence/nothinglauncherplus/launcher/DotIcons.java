@@ -1,5 +1,6 @@
 package com.dressence.nothinglauncherplus.launcher;
 
+import com.dressence.nothinglauncherplus.Config;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -164,7 +165,7 @@ final class DotIcons {
                         }
                     }
                 });
-        XposedHelpers.findAndHookMethod("com.android.launcher3.Launcher", cl, "onCreate",
+        XposedHelpers.findAndHookMethod(Config.CLS_LAUNCHER, cl, "onCreate",
                 Bundle.class, new XC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) {

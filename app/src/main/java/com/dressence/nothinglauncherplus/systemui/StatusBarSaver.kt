@@ -1,5 +1,6 @@
 package com.dressence.nothinglauncherplus.systemui
 
+import com.dressence.nothinglauncherplus.Config
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -59,7 +60,6 @@ import java.util.WeakHashMap
  */
 internal object StatusBarSaver {
 
-    private const val SYSUI = "com.android.systemui"
     private const val CLS_BAR = "com.android.systemui.statusbar.phone.PhoneStatusBarView"
     private const val CLS_LISTENER = "com.android.systemui.statusbar.NotificationListener"
     private const val CLS_SHADE = "com.android.systemui.shade.ShadeExpansionStateManager"
@@ -204,7 +204,7 @@ internal object StatusBarSaver {
     }
 
     private fun attach(bar: ViewGroup) {
-        val id = bar.resources.getIdentifier("status_bar_contents", "id", SYSUI)
+        val id = bar.resources.getIdentifier("status_bar_contents", "id", Config.SYSTEMUI_PKG)
         val contents = if (id == 0) null else bar.findViewById<ViewGroup>(id)
         if (contents == null) {
             Hooks.log("status bar saver: no status_bar_contents; left as is")
