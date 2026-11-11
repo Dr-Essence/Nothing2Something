@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.19, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.20, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.19** (CMF Phone 1, Nothing OS 4.1, Android 16): games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.20** (CMF Phone 1, Nothing OS 4.1, Android 16): games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,21 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.20, from the phone's own system_server code.** The phone's services.jar (in an
+  earlier debug report) was decompiled and every system_server hook of the module checked
+  against it (docs/reverse-engineering/system_server_hooks.md): all targets exist with the
+  signatures used. Fixed from it: the system font listened twice (Android's font manager has
+  two constructors, one calling the other, both hooked), so every font change was done twice;
+  and its map rewrite ran on system_server's main thread without the lock Android holds for it
+  (now on its own thread, under that lock). Corrected: the system font's description (where
+  the updatable font folder exists, system_server also loads the chosen font for itself, which
+  is why its boot guard matters) and two comments naming the wrong thread. The debug report now
+  records the launcher's frame count over the capture: Nothing's drawer tile sets a new
+  background on every draw, which may keep the drawer redrawing every frame (to be settled
+  before any fix: capture with the drawer open and still, then gfxinfo_end.txt, "Total frames
+  rendered"). Research for the Dot Matrix Display engine: docs/reverse-engineering/
+  dot_matrix_engine.md. Checked: the build compiles; not run on a phone. To test: choose a
+  system font (it applies once, apps opened after use it), and one debug report as above.
 - **0.70.19, Hook health (new, Diagnostics).** The first step to a module that is ready for
   updates of Nothing OS: each app the module hooks (Nothing Launcher, System UI, the system,
   Settings, HeliBoard...) now tells the module app at its start which of its features
@@ -2325,6 +2340,12 @@ drawing text with it would crash.
 
 <details>
 <summary><b>How it works</b> · reverse-engineering notes, Nothing Launcher 4.0.20</summary>
+
+The reverse-engineering notes from the phone's own code are in
+[docs/reverse-engineering](docs/reverse-engineering): every system_server hook checked against
+the phone's decompiled services.jar (`system_server_hooks.md`), and the research for the Nothing
+Dot Matrix Display engine (`dot_matrix_engine.md`).
+
 
 The launcher is built on AOSP Launcher3 (`com.android.launcher3.*`, unobfuscated). Nothing's own
 code is in `com.nothing.launcher.*`, and R8 has obfuscated most of it.

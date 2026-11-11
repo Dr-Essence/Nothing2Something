@@ -15,8 +15,10 @@ import de.robv.android.xposed.XposedHelpers
 /**
  * Keeps system_server's copy of the settings current: every save in the settings app sends
  * [Config.ACTION_RELOAD] to "android", and this reads the settings again on a thread of its
- * own, so the hooks that run inside the window manager's lock (RotationSensor) only ever read
- * the copy, never the file.
+ * own, so the hooks on busy system threads only ever read the copy, never the file:
+ * CardOrientation runs inside the window manager's lock as an activity is made, and
+ * RotationSensor on system_server's UI thread at every screen-on (both checked in the
+ * phone's decompiled system_server, 0.70.19).
  *
  * Why a class of its own (0.70.17): from 0.70.15 RotationSensor relied on ControllerHome's
  * receiver for this, but ControllerHome is left out in "Launcher only" (and could fail to

@@ -41,11 +41,14 @@ public final class RotationSensor {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {
                 try {
-                    // Read, not reloaded: the window manager calls this with its global lock
-                    // held, on every screen-on, and a reload reads and parses the settings
-                    // file (it did, after every save, 0.70.14 audit). The store is kept
-                    // current off the lock: every save sends ACTION_RELOAD, which
-                    // SettingsReload's receiver (installed in every mode) reloads it on.
+                    // Read, not reloaded: this runs on system_server's UI thread (android.ui)
+                    // at every screen-on, and a reload reads and parses the settings file (it
+                    // did, after every save, 0.70.14 audit). The store is kept current
+                    // elsewhere: every save sends ACTION_RELOAD, which SettingsReload's
+                    // receiver (installed in every mode) reloads it on, on a thread of its
+                    // own. (Until 0.70.19 this comment said the window manager's lock is held
+                    // here; the phone's decompiled system_server shows it is not:
+                    // DisplayRotation only posts the switch to android.ui.)
                     if (!(store.get().lockRotation || store.get().allowRotation)) {
                         return;
                     }

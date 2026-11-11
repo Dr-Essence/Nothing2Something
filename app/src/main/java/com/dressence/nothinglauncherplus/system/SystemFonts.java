@@ -28,9 +28,15 @@ import de.robv.android.xposed.XposedHelpers;
 /**
  * The chosen system font, applied the way Android applies its own: in system_server, where
  * the font manager writes the one font map every app receives when it starts. Apps are given
- * a copy of that map with the sans-serif families set in the chosen font; system_server's own
- * map, which it draws with itself, is never touched. When the choice changes the map is
- * written again at once, so every app opened from then on draws in it, without a reboot.
+ * a copy of that map with the sans-serif families set in the chosen font. When the choice
+ * changes the map is written again at once, so every app opened from then on draws in it,
+ * without a reboot.
+ *
+ * <p>Mistake recorded (until 0.70.19 this said system_server's own map is never touched;
+ * found in its decompiled code, FontManagerService): where the updatable font folder exists,
+ * system_server also loads that map for itself at boot (setSystemFontMap from the map written
+ * here). So a font that breaks text drawing can break system_server at every start, and the
+ * guard below is what keeps the phone booting.
  *
  * <p>Only font files of the system's font folders are used, checked to be fonts first. And
  * because a font that breaks system_server breaks the whole phone at every start, a guard
@@ -129,11 +135,18 @@ public final class SystemFonts {
                 || name.equals("system-ui");
     }
 
+    /** Listening already: both of the font manager's constructors are hooked (one calls the other). */
+    private static boolean listening;
+
     /** Writes the map again when the choice changes (the settings send this broadcast). */
     private static void listen(ConfigStore store) {
-        if (context == null) {
+        // Once: the font manager has two constructors, one calling the other, and both are
+        // hooked, so it registered twice and did every change twice (0.70.19, from the
+        // phone's decompiled system_server).
+        if (context == null || listening) {
             return;
         }
+        listening = true;
         context.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context c, Intent intent) {
@@ -151,20 +164,35 @@ public final class SystemFonts {
         }, new IntentFilter(Config.ACTION_FONT), Context.RECEIVER_EXPORTED);
     }
 
+    /**
+     * Has the font manager write the map again, off system_server's main thread and holding
+     * the lock Android holds for it (mUpdatableFontDirLock: its own font updates write the map
+     * under it). It rebuilds every font family, which ran on the main thread, unlocked, beside
+     * Android's own writers (0.70.19, from the phone's decompiled system_server).
+     */
     private static void rewriteMap() {
-        if (service == null) {
+        Object fonts = service;
+        if (fonts == null) {
             return;
         }
-        for (String method : new String[] {"updateSerializedFontMap", "updateFontMap",
-                "updateSerializedFontMapLocked"}) {
-            try {
-                XposedHelpers.callMethod(service, method);
-                return;
-            } catch (NoSuchMethodError e) {
-                // Not this release's name: try the next.
+        new Thread(() -> {
+            Object lock = XposedHelpers.getObjectField(fonts, "mUpdatableFontDirLock");
+            synchronized (lock) {
+                for (String method : new String[] {"updateSerializedFontMap", "updateFontMap",
+                        "updateSerializedFontMapLocked"}) {
+                    try {
+                        XposedHelpers.callMethod(fonts, method);
+                        return;
+                    } catch (NoSuchMethodError e) {
+                        // Not this release's name: try the next.
+                    } catch (Throwable t) {
+                        Hooks.log("system font map rewrite failed: " + t);
+                        return;
+                    }
+                }
             }
-        }
-        Hooks.skipped("system font map", "cannot be rewritten on this release");
+            Hooks.skipped("system font map", "cannot be rewritten on this release");
+        }, "nlplus-font-map").start();
     }
 
     /** Marks {@code spec} as newly in use, until system_server has run with it a while. */

@@ -53,6 +53,10 @@ final class DebugReport {
             + "waited=0\n"
             + "while [ $waited -lt $DELAY ] && [ ! -e $STOP ]; do sleep 1;"
             + " waited=$((waited+1)); done\n"
+            // The launcher's frame count from here to the end: whether it draws while nothing
+            // moves (Nothing's drawer tile sets a new background on every draw, which may
+            // keep it redrawing every frame; 0.70.19, to be settled with this).
+            + "dumpsys gfxinfo com.nothing.launcher reset > $D/gfxinfo_start.txt 2>&1\n"
             // The screen, in parts of at most 3 minutes (screenrecord's limit), at 2 Mbit/s
             // (about 15 MB a minute) so a report stays small enough to send.
             + "( n=1; left=$DUR; while [ $left -gt 0 ] && [ ! -e $STOP ]; do t=$left;"
@@ -242,6 +246,7 @@ final class DebugReport {
             + "ls -laR /data/adb/perfmtk* /sdcard/PerfMTK* /data/local/tmp/*perf* >"
             + " $D/perfmtk_data.txt 2>&1\n"
             + "getprop ro.build.fingerprint > $D/build.txt 2>&1\n"
+            + "dumpsys gfxinfo com.nothing.launcher > $D/gfxinfo_end.txt 2>&1\n"
             + "kill $LOG 2>/dev/null\n"
             + "cp -r /data/adb/lspd/log $D/lsposed 2>/dev/null\n"
             + "rm -f $STOP\n"
