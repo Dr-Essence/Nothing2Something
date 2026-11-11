@@ -52,7 +52,6 @@ final class Backup {
         }
     }
 
-    /** Restores cover files and returns the imported configuration (not yet saved). */
     /**
      * The largest backup read: far above a real one (the settings and a few cover images), so
      * a wrong file picked (a video) is refused instead of filling the memory and crashing the
@@ -60,6 +59,7 @@ final class Backup {
      */
     private static final int MAX_BACKUP_BYTES = 64 * 1024 * 1024;
 
+    /** Restores cover files and returns the imported configuration (not yet saved). */
     static Config restore(Context context, Uri source) throws IOException, JSONException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (InputStream in = context.getContentResolver().openInputStream(source)) {

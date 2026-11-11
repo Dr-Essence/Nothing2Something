@@ -31,6 +31,11 @@ final class NetworkSpeed {
     }
 
     /** {@code image} (part of the indicator) green when {@code on}, as Nothing drew it if not. */
+    /** True if {@code image} carries this class's green (only it sets that filter). */
+    static boolean isLit(ImageView image) {
+        return image.getColorFilter() == GREEN;
+    }
+
     static void light(ImageView image, boolean on) {
         if (on && image.getColorFilter() != GREEN) {
             image.setColorFilter(GREEN);

@@ -196,7 +196,9 @@ final class SmartDrawer {
                     return;
                 }
                 Config c = store.get();
-                if (c.folders.isEmpty()) {
+                // With no folders only "Hide automatic categories" can apply: it returned here
+                // first, so that switch did nothing until a folder existed (0.70.16 audit).
+                if (c.folders.isEmpty() && !c.hideBuiltin) {
                     return;
                 }
                 Config.Folder folder = c.folderForComponent(

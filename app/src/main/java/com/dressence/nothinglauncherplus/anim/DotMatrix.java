@@ -201,6 +201,8 @@ final class DotMatrix {
 
     /** After the glyph changed: the resting frame, its box, and a forced redraw. */
     private void rest() {
+        splitKey = null; // Another glyph: its split is not this one's.
+        splitLayers = null;
         sphere = null;
         sphereFrame = null;
         // The resting frame, once: what effects find their regions in and paint over.
@@ -458,6 +460,11 @@ final class DotMatrix {
                 drawSphere();
             } else if (p == null || scene.partCount == 0 && !scene.detached) {
                 renderCanvas.drawBitmap(glyph, pose, glyphPaint);
+                // No piece lifted now: this view lets its split go (about 440 KB), which it
+                // otherwise kept for its whole life; the shared cache may still have it
+                // (found by the audit's fourth pass).
+                splitKey = null;
+                splitLayers = null;
             } else {
                 drawParts();
             }

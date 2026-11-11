@@ -142,21 +142,23 @@ final class HomeRestore {
         // ids, and items added afterwards are numbered on from the highest kept one, so they
         // can have the id of an item it dropped. Matched by id alone, such a dropped item
         // counted as present and was skipped (0.70.14 audit).
-        Map<Integer, String> items = new HashMap<>();
+        Map<Integer, Item> items = new HashMap<>();
         Set<String> intents = new HashSet<>();
         Map<Integer, boolean[][]> taken = new HashMap<>();
         int maxId = 0;
         try (Cursor c = db.rawQuery("SELECT _id, container, screen, cellX, cellY, spanX, spanY,"
-                + " intent, itemType, title FROM favorites", null)) {
+                + " intent, itemType, title, profileId, appWidgetProvider FROM favorites",
+                null)) {
             while (c.moveToNext()) {
                 int id = c.getInt(0);
                 ids.add(id);
-                items.put(id, signature(c.getInt(8), c.isNull(7) ? null : c.getString(7),
-                        c.isNull(9) ? null : c.getString(9)));
+                items.put(id, new Item(c.getInt(8), text(c, 7), text(c, 9), c.getLong(10),
+                        text(c, 11), c.getInt(2) + ":" + c.getInt(3) + "," + c.getInt(4)));
                 maxId = Math.max(maxId, id);
                 int container = c.getInt(1);
                 if ((container == DESKTOP || container == HOTSEAT) && !c.isNull(7)) {
-                    intents.add(component(c.getString(7)));
+                    // With its profile: the personal app and its work or cloned copy are two.
+                    intents.add(component(c.getString(7)) + "|" + c.getLong(10));
                 }
                 if (container == DESKTOP) {
                     mark(taken, c.getInt(2), c.getInt(3), c.getInt(4), c.getInt(5), c.getInt(6),
@@ -168,14 +170,15 @@ final class HomeRestore {
         Map<Integer, Integer> newIds = new HashMap<>();
         List<String> titles = new ArrayList<>();
         try (Cursor c = src.rawQuery("SELECT _id, screen, cellX, cellY, spanX, spanY, itemType,"
-                + " title, intent, appWidgetProvider FROM favorites WHERE container = "
+                + " title, intent, appWidgetProvider, profileId FROM favorites WHERE container = "
                 + DESKTOP + " ORDER BY screen, cellY, cellX", null)) {
             while (c.moveToNext()) {
                 int id = c.getInt(0);
                 int type = c.getInt(6);
-                String title = c.isNull(7) ? null : c.getString(7);
-                String intent = c.isNull(8) ? null : c.getString(8);
-                if (signature(type, intent, title).equals(items.get(id))) {
+                String title = text(c, 7);
+                Item item = new Item(type, text(c, 8), title, c.getLong(10), text(c, 9),
+                        c.getInt(1) + ":" + c.getInt(2) + "," + c.getInt(3));
+                if (item.same(items.get(id))) {
                     continue; // The same item, still there.
                 }
                 if (!RESTORED_TYPES.contains(type)) {
@@ -184,7 +187,8 @@ final class HomeRestore {
                             ? provider.substring(provider.lastIndexOf('.') + 1) : "a widget");
                     continue;
                 }
-                if (!c.isNull(8) && intents.contains(component(c.getString(8)))) {
+                if (!c.isNull(8) && intents.contains(component(c.getString(8)) + "|"
+                        + c.getLong(10))) {
                     continue; // That app is on the home screen already.
                 }
                 int screen = c.getInt(1);
@@ -213,12 +217,12 @@ final class HomeRestore {
         for (Integer id : newIds.keySet()) {
             folders.append(folders.length() == 0 ? "" : ",").append(id);
         }
-        try (Cursor c = src.rawQuery("SELECT _id, container, itemType, intent, title"
+        try (Cursor c = src.rawQuery("SELECT _id, container, itemType, intent, title, profileId"
                 + " FROM favorites WHERE container IN (" + folders + ")", null)) {
             while (c.moveToNext()) {
                 int type = c.getInt(2);
-                boolean same = signature(type, c.isNull(3) ? null : c.getString(3),
-                        c.isNull(4) ? null : c.getString(4)).equals(items.get(c.getInt(0)));
+                boolean same = new Item(type, text(c, 3), text(c, 4), c.getLong(5), null, null)
+                        .same(items.get(c.getInt(0)));
                 if (!same && RESTORED_TYPES.contains(type) && type != FOLDER) {
                     children.put(c.getInt(0), c.getInt(1));
                 }
@@ -243,14 +247,42 @@ final class HomeRestore {
     }
 
     /**
-     * What an item is, to tell two items with one id apart: its type and what it opens. A
-     * folder by its type alone: one renamed since must not come back a second time.
+     * What an item is, to tell two items with one id apart (one the grid change dropped, one
+     * added since that took its id): its kind, and for an app or shortcut what it opens and
+     * for whom (profile), for a widget its provider. A folder is the same if its title or its
+     * place (page and cell, which the change keeps) is: one renamed since must not come back a
+     * second time, and another folder that took its id must not hide it (found by the audit's
+     * fourth pass: folders matched by kind alone).
      */
-    private static String signature(int type, String intent, String title) {
-        if (type == FOLDER) {
-            return String.valueOf(FOLDER);
+    private static final class Item {
+        final int type;
+        final String what;
+        final String title;
+        final String place;
+
+        Item(int type, String intent, String title, long profile, String provider,
+                String place) {
+            this.type = type;
+            this.what = (intent != null ? component(intent) : String.valueOf(provider)) + "|"
+                    + profile;
+            this.title = title;
+            this.place = place;
         }
-        return type + "|" + (intent != null ? component(intent) : String.valueOf(title));
+
+        boolean same(Item other) {
+            if (other == null || other.type != type) {
+                return false;
+            }
+            if (type == FOLDER) {
+                return java.util.Objects.equals(title, other.title)
+                        || (place != null && place.equals(other.place));
+            }
+            return what.equals(other.what);
+        }
+    }
+
+    private static String text(Cursor c, int column) {
+        return c.isNull(column) ? null : c.getString(column);
     }
 
     /** One row of the other grid's database, as Nothing's insert takes it. */

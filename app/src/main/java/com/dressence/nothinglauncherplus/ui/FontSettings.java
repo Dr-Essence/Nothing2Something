@@ -109,8 +109,8 @@ final class FontSettings {
             add(choice);
             return;
         }
-        store.config.systemFont = choice == null ? ""
-                : choice.path != null ? "file:" + choice.path : "res:" + choice.title;
+        // A font file by now: one with no path needs adding, and add() handles it above.
+        store.config.systemFont = choice == null ? "" : "file:" + choice.path;
         store.save(activity);
         activity.sendBroadcast(new android.content.Intent(Config.ACTION_FONT)
                 .setPackage("android"));

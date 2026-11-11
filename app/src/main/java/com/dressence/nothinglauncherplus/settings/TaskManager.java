@@ -147,25 +147,31 @@ public final class TaskManager {
                 worker().postDelayed(tick[0], TICK_MS);
             }
         };
-        page.getViewTreeObserver().addOnWindowVisibilityChangeListener(visibility -> {
+        // On the window's observer, which outlives this page: added on attach and taken off on
+        // detach, or a page made again in the same Settings screen left its listener behind,
+        // each one running a full refresh on every visibility change (0.70.16 audit).
+        android.view.ViewTreeObserver.OnWindowVisibilityChangeListener visible = visibility -> {
             worker().removeCallbacks(tick[0]);
-            if (visibility == View.VISIBLE) {
+            if (visibility == View.VISIBLE && page.isAttachedToWindow()) {
                 worker().post(tick[0]);
             }
-        });
+        };
         page.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override
             public void onViewAttachedToWindow(View v) {
+                v.getViewTreeObserver().addOnWindowVisibilityChangeListener(visible);
                 worker().removeCallbacks(tick[0]);
                 worker().post(tick[0]);
             }
 
             @Override
             public void onViewDetachedFromWindow(View v) {
+                v.getViewTreeObserver().removeOnWindowVisibilityChangeListener(visible);
                 worker().removeCallbacks(tick[0]);
             }
         });
         if (page.isAttachedToWindow()) {
+            page.getViewTreeObserver().addOnWindowVisibilityChangeListener(visible);
             worker().post(tick[0]);
         }
     }

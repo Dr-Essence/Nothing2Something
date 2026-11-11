@@ -124,15 +124,14 @@ final class LabelScroll {
                 posted = false; // Drawn again later, it starts over.
                 at = 0;
                 label.setScrollX(start());
-                if (!label.isAttachedToWindow()) {
-                    // Out of the map: this Scroller holds its label, the map's key, so an
-                    // entry left behind kept the label and its launcher (with all its views)
-                    // after the launcher was made again (0.70.14 audit). Drawn again, update
-                    // makes a new one.
-                    // Stopped first: its ellipsis back, as a label that does not scroll has.
-                    stop();
-                    SCROLLING.remove(label);
-                }
+                // Out of the map: this Scroller holds its label, the map's key, so an entry
+                // left behind kept the label and its launcher (with all its views) after the
+                // launcher was made again (0.70.14 audit). Hidden too, not only detached: a
+                // closed drawer's labels stay attached and get no more draws or steps, so
+                // their entries stayed (found by the audit's fourth pass). Stopped first, its
+                // ellipsis back; drawn again, update makes a new one.
+                stop();
+                SCROLLING.remove(label);
                 return;
             }
             int step = Math.max(1, Math.round(label.getTextSize() * STEP_EM));

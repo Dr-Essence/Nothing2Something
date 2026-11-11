@@ -83,9 +83,13 @@
         <!-- Nothing Gaming Space: a home screen for playing with a controller. It is a home
              app (so it can be picked as the gaming launcher that ControllerHome makes Android's
              home while a controller is connected), always in landscape, kept out of recents. -->
+        <!-- Back as a key and onBackPressed (sheets, adjusting, the intro, leaving the apps):
+             apps targeting Android 16 get predictive back by default, which delivers
+             neither, so Back did nothing here (found in the 0.70.16 audit). -->
         <activity
             android:name=".gaming.GamingSpaceActivity"
             android:exported="true"
+            android:enableOnBackInvokedCallback="false"
             android:label="Nothing Gaming Space (alpha) (demo)"
             android:launchMode="singleTask"
             android:stateNotNeeded="true"

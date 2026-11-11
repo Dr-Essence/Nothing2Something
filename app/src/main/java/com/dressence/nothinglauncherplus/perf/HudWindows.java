@@ -60,6 +60,13 @@ public final class HudWindows {
     private static final android.os.Handler MAIN =
             new android.os.Handler(android.os.Looper.getMainLooper());
     private static Runnable stale;
+    /**
+     * The debug report's pill the same way, given longer (its saving phase looks every 2 s
+     * plus a root call): left on screen when the module app died mid-capture (an update, a
+     * force stop), it stayed over every screen until System UI restarted (0.70.16 audit).
+     */
+    private static final long PILL_STALE_MS = 15000;
+    private static Runnable pillStale;
     private static WindowManager.LayoutParams hudParams;
     private static TextView pill;
 
@@ -139,10 +146,21 @@ public final class HudWindows {
                 if (pill == null) {
                     return;
                 }
+                if (pillStale == null) {
+                    pillStale = Hooks.guard("module pill timeout", () -> {
+                        remove(windows, pill);
+                        pill = null;
+                    });
+                }
+                MAIN.removeCallbacks(pillStale);
+                MAIN.postDelayed(pillStale, PILL_STALE_MS);
                 pill.setText(intent.getStringExtra(EXTRA_TEXT));
                 pill.setTextColor(intent.getIntExtra(EXTRA_COLOR, 0xFFFFFFFF));
                 break;
             default:
+                if (pillStale != null) {
+                    MAIN.removeCallbacks(pillStale);
+                }
                 remove(windows, pill);
                 pill = null;
                 break;

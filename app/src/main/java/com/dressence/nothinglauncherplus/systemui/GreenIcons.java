@@ -53,6 +53,15 @@ final class GreenIcons {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {
                         ImageView view = (ImageView) param.thisObject;
+                        if (!store.get().ndotStatusBar && !store.get().ndotQuickSettings) {
+                            // Both off: only a network speed icon still lit green needs undoing
+                            // (one look at its filter); no walk up the tree for every icon of
+                            // System UI on every draw (0.70.16 audit).
+                            if (NetworkSpeed.isLit(view)) {
+                                NetworkSpeed.light(view, false);
+                            }
+                            return;
+                        }
                         if (NetworkSpeed.contains(view)) {
                             NetworkSpeed.light(view, store.get().ndotStatusBar);
                             return;

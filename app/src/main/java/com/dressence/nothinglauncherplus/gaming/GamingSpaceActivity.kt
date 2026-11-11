@@ -707,7 +707,10 @@ class GamingSpaceActivity : Activity() {
             val url = trailers.find(app.packageName, app.label) ?: return@work
             main.post {
                 val now = appsOf(category).getOrNull(appFocus[category])
-                if (!isDestroyed && now?.packageName == app.packageName) {
+                // Still this selection, in the apps: after Back to the categories the
+                // focus still names the game, and its banner showed over them (0.70.16 audit).
+                if (!isDestroyed && inApps && mine == selection &&
+                    now?.packageName == app.packageName) {
                     video.framing = framingOf(app.packageName)
                     video.onPlaying = { ok ->
                         trailerShowing = ok
@@ -747,7 +750,10 @@ class GamingSpaceActivity : Activity() {
                 store.config.gamingArtworkAnimated) ?: return@work
             main.post {
                 val now = appsOf(category).getOrNull(appFocus[category])
-                if (!isDestroyed && now?.packageName == app.packageName) {
+                // Still this selection, in the apps: after Back to the categories the
+                // focus still names the game, and its banner showed over them (0.70.16 audit).
+                if (!isDestroyed && inApps && mine == selection &&
+                    now?.packageName == app.packageName) {
                     artwork.framing = framingOf(app.packageName)
                     artwork.showArtwork(picture)
                     screen.visibility = View.INVISIBLE // nothing behind the artwork
@@ -1015,6 +1021,7 @@ class GamingSpaceActivity : Activity() {
     private fun chooseArtwork(app: GamingLibrary.App, name: String = app.label) {
         chooseGame("Artwork", name, { art.games(it) }, { chooseArtwork(app, it) }) { game ->
             sheet.message("Artwork", "Loading the pictures of \"${game.second}\"…")
+            val asked = sheet.generation // closed or replaced meanwhile: the answer is dropped
             work {
                 var failed: Throwable? = null
                 val previews = try {
@@ -1024,7 +1031,7 @@ class GamingSpaceActivity : Activity() {
                     emptyList()
                 }
                 main.post {
-                    if (isDestroyed) return@post
+                    if (isDestroyed || sheet.generation != asked) return@post
                     failed?.let {
                         sheet.message("Artwork", "Could not load the pictures: ${why(it)}")
                         return@post
@@ -1060,6 +1067,7 @@ class GamingSpaceActivity : Activity() {
     private fun chooseIcon(app: GamingLibrary.App, name: String = app.label) {
         chooseGame("Icon", name, { art.games(it) }, { chooseIcon(app, it) }) { game ->
             sheet.message("Icon", "Loading the icons of \"${game.second}\"…")
+            val asked = sheet.generation // closed or replaced meanwhile: the answer is dropped
             work {
                 var failed: Throwable? = null
                 val previews = try {
@@ -1069,7 +1077,7 @@ class GamingSpaceActivity : Activity() {
                     emptyList()
                 }
                 main.post {
-                    if (isDestroyed) return@post
+                    if (isDestroyed || sheet.generation != asked) return@post
                     failed?.let {
                         sheet.message("Icon", "Could not load the icons: ${why(it)}")
                         return@post
@@ -1125,6 +1133,7 @@ class GamingSpaceActivity : Activity() {
     private fun chooseTrailer(app: GamingLibrary.App, name: String = app.label) {
         chooseGame("Trailer", name, { trailers.games(it) }, { chooseTrailer(app, it) }) { game ->
             sheet.message("Trailer", "Loading the trailers of \"${game.second}\"…")
+            val asked = sheet.generation // closed or replaced meanwhile: the answer is dropped
             work {
                 var failed: Throwable? = null
                 val movies = try {
@@ -1134,7 +1143,7 @@ class GamingSpaceActivity : Activity() {
                     emptyList()
                 }
                 main.post {
-                    if (isDestroyed) return@post
+                    if (isDestroyed || sheet.generation != asked) return@post
                     failed?.let {
                         sheet.message("Trailer", "Could not load the trailers: ${why(it)}")
                         return@post
@@ -1192,6 +1201,7 @@ class GamingSpaceActivity : Activity() {
     private fun chooseGame(what: String, name: String, find: (String) -> List<Pair<Int, String>>,
             again: (String) -> Unit, chosen: (Pair<Int, String>) -> Unit) {
         sheet.message(what, "Searching for \"$name\"…")
+        val asked = sheet.generation // closed or replaced meanwhile: the answer is dropped
         work {
             var failed: Throwable? = null
             val games = try {
@@ -1201,7 +1211,7 @@ class GamingSpaceActivity : Activity() {
                 emptyList()
             }
             main.post {
-                if (isDestroyed) return@post
+                if (isDestroyed || sheet.generation != asked) return@post
                 // Until 0.70.2 a failed search looked like an empty one: only "Search another
                 // name" was offered, with no word of why. Now the reason is in the title.
                 val title = when {

@@ -80,11 +80,11 @@ final class LockScreenTurn {
             "com.android.systemui.keyguard.domain.interactor.KeyguardBlueprintInteractor";
     private static final String CLS_TRANSITION_TYPE = "com.android.systemui.keyguard.ui.view"
             + ".layout.blueprints.transitions.IntraBlueprintTransition$Type";
-    /** Nothing's lock screen pieces kept to the left half beside the notifications. */
     /** The lock screen's charging / status line (Nothing's indication area). */
     private static final String INDICATION = "keyguard_indication_area";
     /** ConstraintSet's MATCH_PARENT width, as Nothing gives the indication area. */
     private static final int MATCH_PARENT = -1;
+    /** Nothing's lock screen pieces kept to the left half beside the notifications. */
     private static final String[] LEFT_HALF = {"lockscreen_clock_view", "keyguard_slice_view",
             "nt_widget_host_view_container"};
     /** ConstraintSet sides and guideline orientation. */

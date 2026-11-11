@@ -63,6 +63,7 @@ public final class OverlayService extends Service {
             // ("pkg/activity#N", or a system window's title, such as NotificationShade#N). It
             // ends with the main shell ($$).
             + "( L=\"\"; m=0; while kill -0 $$ 2>/dev/null; do\n"
+            + "  [ -e \"$PAUSE\" ] && { sleep 1; continue; }\n"
             + "  if [ $((m % 8)) = 0 ]; then W=$(dumpsys window | grep mCurrentFocus"
             + " | grep -v =null | head -1 | sed 's/.* u0 //; s/}.*//');"
             + " [ -z \"$W\" ] && W=NotificationShade; P=${W%%/*};"
@@ -76,6 +77,7 @@ public final class OverlayService extends Service {
             + "  m=$((m+1)); sleep 0.25\n"
             + "done ) &\n"
             + "while :; do\n"
+            + "  while [ -e \"$PAUSE\" ]; do sleep 1; done\n"
             + "  f=\"\"; for c in 0 1 2 3 4 5 6 7; do d=/sys/devices/system/cpu/cpu$c;"
             + " if [ \"$(cat $d/online 2>/dev/null)\" = 0 ]; then f=\"$f 0\";"
             + " else f=\"$f $(cat $d/cpufreq/scaling_cur_freq 2>/dev/null || echo 0)\"; fi;"
@@ -98,24 +100,38 @@ public final class OverlayService extends Service {
             + "  echo E\n"
             + "done\n";
 
-    // Written by the reading thread, destroyed from the main thread (onDestroy, screen off).
+    // Written by the reading thread, destroyed from the main thread (onDestroy).
     private volatile Process reader;
     private volatile boolean running;
-    /** Set while the screen is off: the shell is stopped on purpose, the overlay stays on. */
-    private volatile boolean paused;
     private BroadcastReceiver screen;
-    /**
-     * Which reading thread is the current one: a thread from before a screen-off may still be
-     * finishing when the screen comes on again, and must not act on the new one's state.
-     */
-    private volatile int generation;
+
+    static final String ACTION_STOP = "com.dressence.nothinglauncherplus.STOP_OVERLAY";
+    /** Asked to start and not yet destroyed (main thread). */
+    private static boolean requested;
 
     public static void start(Context context) {
+        requested = true;
         context.startForegroundService(new Intent(context, OverlayService.class));
     }
 
+    /**
+     * Ends the overlay through the service itself: a stopService right after the start (the
+     * switch tapped on and off quickly), before the service had called startForeground, made
+     * Android end the app with "did not then call startForeground" (found in the 0.70.16
+     * audit). As a start command it comes after the start, and onStartCommand first calls
+     * startForeground, then stops.
+     */
     public static void stop(Context context) {
-        context.stopService(new Intent(context, OverlayService.class));
+        if (requested) {
+            context.startForegroundService(new Intent(context, OverlayService.class)
+                    .setAction(ACTION_STOP));
+        }
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        requested = true; // Also when the Game Bar started it, not start().
     }
 
     @Override
@@ -127,6 +143,10 @@ public final class OverlayService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         startForeground(NOTIFICATION, notification(),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+        if (intent != null && ACTION_STOP.equals(intent.getAction())) {
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         boolean toggle = intent != null && ACTION_TOGGLE.equals(intent.getAction());
         if (toggle && running) {
             // From the Game Bar: it was showing, so off.
@@ -143,29 +163,36 @@ public final class OverlayService extends Service {
     }
 
     /**
-     * Stops the root shell while the screen is off, and starts it again when it comes on: with
-     * the screen off but the phone awake (charging, music) it went on running dumpsys,
-     * simpleperf and about 30 reads a round, for a panel nobody sees (0.70.14 audit).
+     * The shell's pause, in this app's own folder (the root shell reads it): while the file is
+     * there, the script sleeps instead of reading. With the screen off but the phone awake
+     * (charging, music) it went on running dumpsys, simpleperf and about 30 reads a round, for a
+     * panel nobody sees (0.70.14 audit).
+     *
+     * <p>Mistake recorded (0.70.15, found by the audit's fourth pass): the shell was stopped at
+     * screen off and a new one started at screen on, a new su on every wake: with Magisk's
+     * notice on, a "granted superuser rights" toast over the lock screen at each wake, and a
+     * prompt on a locked phone could turn the overlay off. One shell now, paused by this file.
      */
+    private java.io.File pauseFile() {
+        return new java.io.File(getFilesDir(), "overlay.pause");
+    }
+
     private void watchScreen() {
         if (screen != null) {
             return;
         }
+        pauseFile().delete();
         screen = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
-                    if (running) {
-                        paused = true;
-                        running = false;
-                        Process shell = reader;
-                        if (shell != null) {
-                            shell.destroy();
-                        }
+                try {
+                    if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
+                        pauseFile().createNewFile();
+                    } else {
+                        pauseFile().delete();
                     }
-                } else if (paused) {
-                    paused = false;
-                    readSensors();
+                } catch (java.io.IOException e) {
+                    // Not paused: it reads on, as before 0.70.14.
                 }
             }
         };
@@ -190,12 +217,13 @@ public final class OverlayService extends Service {
 
     @Override
     public void onDestroy() {
+        requested = false;
         running = false;
-        paused = false;
         if (screen != null) {
             unregisterReceiver(screen);
             screen = null;
         }
+        pauseFile().delete();
         Process shell = reader;
         if (shell != null) {
             shell.destroy();
@@ -220,7 +248,7 @@ public final class OverlayService extends Service {
     /** One root shell prints the readings twice a second; each round updates the panel. */
     private void readSensors() {
         running = true;
-        int mine = ++generation;
+        String pause = pauseFile().getAbsolutePath();
         new Thread(() -> {
             Reader parser = new Reader();
             Process shell = null;
@@ -228,14 +256,15 @@ public final class OverlayService extends Service {
                 shell = new ProcessBuilder("su").redirectErrorStream(true).start();
                 reader = shell;
                 if (!running) {
-                    return; // Turned off (or the screen went off) while su was starting.
+                    return; // Turned off while su was starting.
                 }
-                shell.getOutputStream().write(SENSORS.getBytes(StandardCharsets.UTF_8));
+                shell.getOutputStream().write(("PAUSE='" + pause + "'\n" + SENSORS)
+                        .getBytes(StandardCharsets.UTF_8));
                 shell.getOutputStream().flush();
                 BufferedReader in = new BufferedReader(new InputStreamReader(
                         shell.getInputStream(), StandardCharsets.UTF_8));
                 String line;
-                while (running && mine == generation && (line = in.readLine()) != null) {
+                while (running && (line = in.readLine()) != null) {
                     // Android's battery temperature is a binder call: only for the round's end
                     // ("E"), the one line that uses it, not for each of ~15 lines a second.
                     PerfHud.Sample sample = parser.line(line,
@@ -252,7 +281,7 @@ public final class OverlayService extends Service {
                 if (shell != null) {
                     shell.destroy(); // Never left running with nobody reading it.
                 }
-                if (running && mine == generation) {
+                if (running) {
                     // Ended by itself (root refused, the shell died), not turned off: the
                     // switch goes off and the service ends, instead of an empty "on".
                     running = false;

@@ -21,9 +21,13 @@ import java.util.Locale;
 final class TaskHeader extends View {
 
     private static final int RED = 0xFFD71921;
-    private static final int LIT = Color.WHITE;
-    private static final int DIM = 0x33FFFFFF;
-    private static final int LABEL = 0x99FFFFFF;
+    /**
+     * The text and dots in the page's own ink: white on Nothing's dark Settings, black on its
+     * light one (always white, it could not be read in light mode; 0.70.16 audit).
+     */
+    private final int lit;
+    private final int dim;
+    private final int labelColour;
     private static final int DOTS = 24;
 
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -35,14 +39,21 @@ final class TaskHeader extends View {
 
     TaskHeader(Context context, Typeface ndot) {
         super(context);
+        boolean night = (context.getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        int ink = night ? Color.WHITE : Color.BLACK;
+        lit = ink;
+        dim = (ink & 0x00FFFFFF) | 0x33000000;
+        labelColour = (ink & 0x00FFFFFF) | 0x99000000;
         dp = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1,
                 context.getResources().getDisplayMetrics());
         Typeface face = ndot != null ? ndot : Typeface.MONOSPACE;
         text.setTypeface(face);
-        text.setColor(LIT);
+        text.setColor(lit);
         text.setTextSize(14 * dp);
         label.setTypeface(face);
-        label.setColor(LABEL);
+        label.setColor(labelColour);
         label.setTextSize(11 * dp);
         lineHeight = 26 * dp;
         setPadding((int) (16 * dp), (int) (12 * dp), (int) (16 * dp), (int) (8 * dp));
@@ -146,7 +157,7 @@ final class TaskHeader extends View {
         float cy = baseline - 5 * dp;
         int lit = Math.round(Math.max(0, Math.min(1, share)) * DOTS);
         for (int i = 0; i < DOTS; i++) {
-            dot.setColor(i < lit ? (share >= 0.8f ? RED : LIT) : DIM);
+            dot.setColor(i < lit ? (share >= 0.8f ? RED : this.lit) : dim);
             canvas.drawCircle(x + step * (i + 0.5f), cy, radius, dot);
         }
     }

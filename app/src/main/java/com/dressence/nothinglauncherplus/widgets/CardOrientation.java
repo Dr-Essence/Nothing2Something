@@ -102,20 +102,23 @@ public final class CardOrientation {
         Hooks.log("widget cards: " + hooked + " activity record hooks");
     }
 
+    /**
+     * The settings are only read here, never reloaded: this runs as the activity is made,
+     * inside the window manager's lock, and a reload reads the settings file. SettingsReload
+     * keeps the store current off the lock (0.70.17; found by the audit's third pass).
+     */
     private static void unlock(ActivityInfo info, ConfigStore store) {
         if (!isPortraitLock(info.screenOrientation)) {
             return;
         }
         String screen = info.packageName + "/" + info.name;
         if (HOME.equals(screen)) {
-            store.reloadIfChanged();
             if (store.get().allowRotation) {
                 info.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
             }
             return;
         }
         if (!WidgetApps.handles(info.packageName)) {
-            store.reloadIfChanged();
             if (!store.get().systemScreens) {
                 return;
             }
@@ -133,7 +136,6 @@ public final class CardOrientation {
             }
             return;
         }
-        store.reloadIfChanged();
         if (store.get().allowRotation) {
             info.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
             // Turning keeps the card running (a breathing session, a playing photo): the app

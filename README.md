@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.16, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.17, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.16** (CMF Phone 1, Nothing OS 4.1, Android 16): games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.17** (CMF Phone 1, Nothing OS 4.1, Android 16): games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,47 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.17, full audit, passes 3 and 4.** The third pass tried each feature through scenarios
+  (switched on and off live, first install, no root, "Launcher only", a process killed, other
+  languages, light mode); the fourth reviewed this audit's own fixes and the contracts between
+  the app and its hooks. Fixed:
+  - *Mistakes in the audit's own fixes, found by its fourth pass*: from 0.70.15 the rotation
+    hooks in the system read settings that, in "Launcher only", nothing reloaded (SettingsReload
+    now keeps them current in every mode, off the window manager's lock, and the widget card
+    hook reads them the same way); the overlay's pause at screen off started a new root shell
+    at every wake (a superuser toast over the lock screen each time; one shell now, paused by a
+    file it checks); Gaming Space's "only files the module made" was fooled by the user's own
+    file put over one of the module's (the size and time are checked too); a hidden scrolling
+    label still kept the old launcher; the Running services page added a listener for every
+    page made; the split cache kept memory after an effect ended; Home restore matched folders
+    by kind alone (now by title or place) and apps without their profile (work, cloned apps).
+  - *Back did nothing in Gaming Space*: apps built for Android 16 get predictive back, which
+    delivers neither the Back key nor onBackPressed; Gaming Space opts out, so Back closes
+    sheets, cancels adjusting, skips the intro and leaves the apps again.
+  - *Crashes*: the overlay switched on and off quickly ended the app (stopped before it had
+    started its notification); it now stops through the service itself.
+  - *Home kept the gaming launcher*: with "Launcher only" turned on (or the module off) while
+    the gaming launcher was home, it stayed home with no controller; the controller home is now
+    kept in that mode to give the user's home back.
+  - *"Launcher only"*: the Home screen page showed rows whose hooks are left out in that mode
+    (gaming launcher, HeliBoard, task manager, wallpapers), which did nothing; hidden there now.
+  - *Gaming Space*: a search or pictures arriving after the sheet was closed popped up anyway;
+    a banner could land over the categories after Back; Restart System UI without root started
+    its cooldown all the same.
+  - *Smaller*: Hide automatic categories did nothing until a folder existed; one damaged folder
+    in the settings dropped every folder after it; a second debug capture could run beside the
+    first; the debug report's pill stayed on screen if the app died mid-capture; a backup
+    restored PerfMTK's old state; the task manager header was white on Nothing's light
+    Settings; the Ndot icons were looked up on every draw with the option off; the lock screen
+    rotation switch now says the PIN screen's layout follows after a System UI restart. Dead
+    code: the font's "res:" branch, which no choice reaches.
+  Checked: the build compiles; nothing of this was run on a phone.
+  Found and not changed yet (needs evidence from the phone or a decision): image covers after a
+  rotation, the drawer opacity reaching the drawer search live, right-to-left names on dot
+  labels, the controller home with several users, full-screen apps after a System UI restart,
+  the system receivers anyone can send to, music in silent mode, the landscape grid's model
+  lock, the landscape hooks running with rotation off, and the diagnostics kept from earlier
+  tests.
 - **0.70.16, full audit, part 3.** More confirmed findings fixed:
   - *Settings app*: the search index was laid out again (all eight pages, on the main thread)
     on every return to a page, now only when the settings changed; the app pickers never

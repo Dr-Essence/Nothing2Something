@@ -268,7 +268,11 @@ final class DebugReport {
                         .getBytes(StandardCharsets.UTF_8));
             }
             // A session of its own, so the capture outlives this app and the su call.
-            return Root.run("setsid sh " + script.getAbsolutePath() + " </dev/null >/dev/null 2>&1 &");
+            // Never two at once: both would use the same running and done files, and the first
+            // to end would report the second as saved (0.70.16 audit).
+            return Root.run("if ( " + RUNNING_CHECK + " ) >/dev/null; then echo A capture is"
+                    + " already running; exit 1; fi\nsetsid sh " + script.getAbsolutePath()
+                    + " </dev/null >/dev/null 2>&1 &");
         } catch (Exception e) {
             return e.getMessage() != null ? e.getMessage() : e.toString();
         }

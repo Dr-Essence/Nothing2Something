@@ -67,6 +67,7 @@ internal class SteamTrailers(context: Context) {
             val url = search(label)?.let { trailer(it) }
             val made = url?.let { save(it, clip) } ?: false
             prefs.edit().putString(pkg, if (made) clip.path else NONE)
+                .putString("$pkg#", if (made) stamp(clip) else null)
                 .putLong("$pkg@", System.currentTimeMillis()).apply()
             if (made) clip.path else null
         } catch (t: Throwable) {
@@ -107,6 +108,7 @@ internal class SteamTrailers(context: Context) {
         // only when it is complete, so a failed download keeps the clip the app had.
         val made = save(link, clip)
         prefs.edit().putString(pkg, if (made) clip.path else NONE)
+            .putString("$pkg#", if (made) stamp(clip) else null)
             .putLong("$pkg@", System.currentTimeMillis()).apply()
         return made
     }
@@ -119,9 +121,16 @@ internal class SteamTrailers(context: Context) {
      */
     fun forget(pkg: String) {
         val clip = java.io.File(dir, "$pkg.mp4")
-        if (prefs.getString(pkg, null) == clip.path) clip.delete()
-        prefs.edit().remove(pkg).remove("$pkg@").apply()
+        // And still that file: one the user put over it since (same name) is theirs (found
+        // by the audit's fourth pass: only the path was checked).
+        if (prefs.getString(pkg, null) == clip.path && prefs.getString("$pkg#", null) == stamp(clip)) {
+            clip.delete()
+        }
+        prefs.edit().remove(pkg).remove("$pkg@").remove("$pkg#").apply()
     }
+
+    /** A saved file as it was saved: its size and time, to know it is still that file. */
+    private fun stamp(file: java.io.File) = "${file.length()}:${file.lastModified()}"
 
     /**
      * Saves the trailer at [url] (an HLS master playlist, or an mp4) as a short clip in [clip]:

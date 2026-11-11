@@ -191,7 +191,9 @@ public final class ControllerHome {
     private static void apply() {
         Config config = store.get();
         String gaming = config.controllerHomeApp;
-        boolean want = config.controllerHome && !gaming.isEmpty() && controllerConnected();
+        // Never in "Launcher only": there it only puts the user's own home back.
+        boolean want = !config.launcherOnly && config.controllerHome && !gaming.isEmpty()
+                && controllerConnected();
         active = want;
         int userId = (Integer) XposedHelpers.callStaticMethod(ActivityManager.class,
                 "getCurrentUser");

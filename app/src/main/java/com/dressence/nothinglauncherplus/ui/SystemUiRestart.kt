@@ -48,9 +48,12 @@ internal object SystemUiRestart {
     @JvmStatic
     fun restart(context: android.content.Context): Boolean {
         if (waitSeconds(context) > 0) return false
-        prefs(context).edit().putLong(LAST, System.currentTimeMillis()).commit()
-        return Root.run(
+        val done = Root.run(
             "[ -d $DIR ] && echo \"\$(date +%s)000\" > $DIR/$NOTE; pkill -f com.android.systemui"
         ) == null
+        // Only a restart that happened starts the cooldown: with root refused it was set all
+        // the same, kept across app restarts since 0.70.16 (found in the same audit).
+        if (done) prefs(context).edit().putLong(LAST, System.currentTimeMillis()).commit()
+        return done
     }
 }

@@ -200,8 +200,9 @@ public final class Config {
     /** OLED saver: the status bar's content fades out after this many minutes (-1: never). */
     public int statusBarHideMinutes = -1;
     /**
-     * The font hooked apps draw their text in: "file:" and a font file's path, "res:" and a
-     * font of Nothing's widgets app, or empty for the phone's own.
+     * The font hooked apps draw their text in: "file:" and a font file's path, or empty for
+     * the phone's own. (A font of Nothing's widgets app is added to the system's fonts as a
+     * file first; the old "res:" form is refused by SystemFonts.load.)
      */
     public String systemFont = "";
     /** Quick settings tile icons drawn as dot-matrix icons. */
@@ -596,8 +597,14 @@ public final class Config {
 
     private void readFolders(JSONArray array) throws JSONException {
         for (int i = 0; i < array.length(); i++) {
-            JSONObject obj = array.getJSONObject(i);
-            Folder folder = new Folder(obj.getString("id"), obj.optString("name", "Folder"));
+            // One damaged entry skipped, not every folder after it: the next save would have
+            // written the shortened list (0.70.16 audit).
+            JSONObject obj = array.optJSONObject(i);
+            String id = obj != null ? obj.optString("id", "") : "";
+            if (id.isEmpty()) {
+                continue;
+            }
+            Folder folder = new Folder(id, obj.optString("name", "Folder"));
             folder.coverText = obj.optString("coverText", "");
             folder.coverMotion = obj.optString("coverMotion", "");
             folder.coverEffect = obj.optString("coverEffect", "");
@@ -605,7 +612,10 @@ public final class Config {
             JSONArray apps = obj.optJSONArray("apps");
             if (apps != null) {
                 for (int j = 0; j < apps.length(); j++) {
-                    folder.apps.add(apps.getString(j));
+                    String app = apps.optString(j, "");
+                    if (!app.isEmpty()) {
+                        folder.apps.add(app);
+                    }
                 }
             }
             folders.add(folder);

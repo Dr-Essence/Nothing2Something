@@ -430,6 +430,11 @@ public class SettingsActivity extends Activity {
         }
     }
 
+    /**
+     * The home screen page. In "Launcher only" the rows whose hooks are left out there
+     * (ModuleEntry: system_server's controller home, HeliBoard, Settings' task manager, the
+     * wallpapers) are not shown: they were, and did nothing (0.70.16 audit).
+     */
     private void renderHome(Ui ui, Config config) {
         ui.section("Icons");
         // An icon pack in Nothing's own picker now (launcher/DotIconPack.kt), not a switch here.
@@ -450,19 +455,21 @@ public class SettingsActivity extends Activity {
                     config.controllerNav = checked;
                     store.save(this);
                 });
-        ui.switchRow("Gaming launcher with a controller",
-                "While a controller is connected (USB or Bluetooth), home and the controller's"
-                        + " PS/Guide button open your gaming launcher; your home comes back"
-                        + " when it disconnects",
-                config.controllerHome, checked -> {
-                    config.controllerHome = checked;
-                    store.save(this);
-                    if (checked && config.controllerHomeApp.isEmpty()) {
-                        chooseGamingLauncher(config);
-                    }
-                });
-        ui.row("Gaming launcher", gamingLauncherLabel(config.controllerHomeApp), null,
-                ui.chevron(), v -> chooseGamingLauncher(config));
+        if (!config.launcherOnly) { // system_server part left out there
+            ui.switchRow("Gaming launcher with a controller",
+                    "While a controller is connected (USB or Bluetooth), home and the controller's"
+                            + " PS/Guide button open your gaming launcher; your home comes back"
+                            + " when it disconnects",
+                    config.controllerHome, checked -> {
+                        config.controllerHome = checked;
+                        store.save(this);
+                        if (checked && config.controllerHomeApp.isEmpty()) {
+                            chooseGamingLauncher(config);
+                        }
+                    });
+            ui.row("Gaming launcher", gamingLauncherLabel(config.controllerHomeApp), null,
+                    ui.chevron(), v -> chooseGamingLauncher(config));
+        }
         ui.row("Nothing Gaming Space (alpha) (demo)", "The module's own gaming launcher, in dot-matrix style:"
                         + " pick it above as the gaming launcher · tap to open it now",
                 null, ui.chevron(), v -> GamingSpaceActivity.Companion.open(this));
@@ -516,19 +523,21 @@ public class SettingsActivity extends Activity {
                 render();
             });
         }
-        ui.switchRow("Controller typing in HeliBoard", "Move over HeliBoard's keys, suggestions"
-                + " and panels with the controller · HeliBoard in the module's LSPosed scope",
-                config.heliboardController, checked -> {
-                    config.heliboardController = checked;
-                    store.save(this);
-                });
-        ui.switchRow("HeliBoard across the whole width", "In landscape the keyboard also covers"
-                + " the strip beside the camera that Android keeps it out of; from the next"
-                + " keyboard · HeliBoard in the module's LSPosed scope",
-                config.heliboardFullWidth, checked -> {
-                    config.heliboardFullWidth = checked;
-                    store.save(this);
-                });
+        if (!config.launcherOnly) { // HeliBoard is not hooked there
+            ui.switchRow("Controller typing in HeliBoard", "Move over HeliBoard's keys, suggestions"
+                    + " and panels with the controller · HeliBoard in the module's LSPosed scope",
+                    config.heliboardController, checked -> {
+                        config.heliboardController = checked;
+                        store.save(this);
+                    });
+            ui.switchRow("HeliBoard across the whole width", "In landscape the keyboard also covers"
+                    + " the strip beside the camera that Android keeps it out of; from the next"
+                    + " keyboard · HeliBoard in the module's LSPosed scope",
+                    config.heliboardFullWidth, checked -> {
+                        config.heliboardFullWidth = checked;
+                        store.save(this);
+                    });
+        }
 
         ui.section("Recents");
         ui.switchRow("Memory in recents", "Free and total memory beside Screenshot; tap it for"
@@ -537,56 +546,60 @@ public class SettingsActivity extends Activity {
                     config.recentsMemory = checked;
                     store.save(this);
                 });
-        ui.switchRow("Task manager in Running services", "CPU, temperatures,"
-                + " memory, swap and network on top; each process's CPU and network; long-press"
-                + " a process to stop it · Settings in the module's LSPosed scope",
-                config.taskManager, checked -> {
-                    config.taskManager = checked;
-                    store.save(this);
-                });
+        if (!config.launcherOnly) { // Settings is not hooked there
+            ui.switchRow("Task manager in Running services", "CPU, temperatures,"
+                    + " memory, swap and network on top; each process's CPU and network; long-press"
+                    + " a process to stop it · Settings in the module's LSPosed scope",
+                    config.taskManager, checked -> {
+                        config.taskManager = checked;
+                        store.save(this);
+                    });
+        }
         ui.switchRow("Running services shortcut", "A Running services icon to place on the home"
                 + " screen (in the widget list, like Settings shortcut) and on this app's"
                 + " long-press · the quick settings tile is in the tile editor",
                 RunningServices.shortcutsOn(this),
                 checked -> RunningServices.setShortcuts(this, checked));
 
-        ui.section("Wallpaper");
-        ui.switchRow("Living Worlds sounds", "Its ambient sounds play while its live wallpaper"
-                + " is on the home screen or app drawer, as in the app; never with other"
-                + " wallpapers · Living Worlds in the module's LSPosed scope",
-                config.livingWorldsSounds, checked -> {
-                    config.livingWorldsSounds = checked;
-                    store.save(this);
-                });
-        ui.switchRow("Palette Cycle sounds", "Each world's ambient sound from the Living"
-                + " Worlds web demo while it is on the home screen or app drawer; downloaded"
-                + " once · Palette Cycle in the module's LSPosed scope",
-                config.paletteCycleSounds, checked -> {
-                    config.paletteCycleSounds = checked;
-                    store.save(this);
-                });
-        addSliderRow(ui, "Living Worlds in landscape", config.livingWorldsLandscapeY,
-                value -> value <= 15 ? "Top of the scene (sky)"
-                        : value >= 85 ? "Bottom of the scene (water, ground)"
-                        : "Middle of the scene (" + value + "%)",
-                value -> {
-                    config.livingWorldsLandscapeY = value;
-                    store.save(this);
-                });
-        addSliderRow(ui, "Palette Cycle in landscape", config.paletteCycleLandscapeY,
-                value -> value <= 15 ? "Top of the picture (sky)"
-                        : value >= 85 ? "Bottom of the picture (water, ground)"
-                        : "Middle of the picture (" + value + "%)",
-                value -> {
-                    config.paletteCycleLandscapeY = value;
-                    store.save(this);
-                });
-        ui.switchRow("Living Worlds smooth turning", "The module frames the live wallpaper:"
-                + " turning only zooms it to the new screen, never black or starting over ·"
-                + " the landscape slider needs it", config.livingWorldsTurn, checked -> {
-                    config.livingWorldsTurn = checked;
-                    store.save(this);
-                });
+        if (!config.launcherOnly) { // the wallpapers are not hooked there
+            ui.section("Wallpaper");
+            ui.switchRow("Living Worlds sounds", "Its ambient sounds play while its live wallpaper"
+                    + " is on the home screen or app drawer, as in the app; never with other"
+                    + " wallpapers · Living Worlds in the module's LSPosed scope",
+                    config.livingWorldsSounds, checked -> {
+                        config.livingWorldsSounds = checked;
+                        store.save(this);
+                    });
+            ui.switchRow("Palette Cycle sounds", "Each world's ambient sound from the Living"
+                    + " Worlds web demo while it is on the home screen or app drawer; downloaded"
+                    + " once · Palette Cycle in the module's LSPosed scope",
+                    config.paletteCycleSounds, checked -> {
+                        config.paletteCycleSounds = checked;
+                        store.save(this);
+                    });
+            addSliderRow(ui, "Living Worlds in landscape", config.livingWorldsLandscapeY,
+                    value -> value <= 15 ? "Top of the scene (sky)"
+                            : value >= 85 ? "Bottom of the scene (water, ground)"
+                            : "Middle of the scene (" + value + "%)",
+                    value -> {
+                        config.livingWorldsLandscapeY = value;
+                        store.save(this);
+                    });
+            addSliderRow(ui, "Palette Cycle in landscape", config.paletteCycleLandscapeY,
+                    value -> value <= 15 ? "Top of the picture (sky)"
+                            : value >= 85 ? "Bottom of the picture (water, ground)"
+                            : "Middle of the picture (" + value + "%)",
+                    value -> {
+                        config.paletteCycleLandscapeY = value;
+                        store.save(this);
+                    });
+            ui.switchRow("Living Worlds smooth turning", "The module frames the live wallpaper:"
+                    + " turning only zooms it to the new screen, never black or starting over ·"
+                    + " the landscape slider needs it", config.livingWorldsTurn, checked -> {
+                        config.livingWorldsTurn = checked;
+                        store.save(this);
+                    });
+        }
 
         ui.section("Launcher");
         ui.row("Restart Nothing Launcher", "Applies everything immediately · needs root", null,
@@ -851,7 +864,8 @@ public class SettingsActivity extends Activity {
         restartSystemUiRow(ui);
         ui.section("Landscape");
         ui.switchRow("Lock screen rotation (test)",
-                "Lock screen, PIN screen and fingerprint follow auto-rotate",
+                "Lock screen, PIN screen and fingerprint follow auto-rotate · the PIN screen's"
+                        + " layout after a restart of System UI",
                 config.lockRotation, checked -> {
                     config.lockRotation = checked;
                     store.save(this);
@@ -1160,6 +1174,13 @@ public class SettingsActivity extends Activity {
                         Config[] imported = new Config[1];
                         runInBackground(() -> imported[0] = Backup.restore(this, uri),
                                 "Backup imported", () -> {
+                                    // PerfMTK's state and the overlay are this phone's state
+                                    // now, not settings: kept, not taken from the backup (a
+                                    // backup's "thermal off" made the Game Bar's first tap do
+                                    // nothing; 0.70.16 audit).
+                                    imported[0].perfProfile = store.config.perfProfile;
+                                    imported[0].thermalOff = store.config.thermalOff;
+                                    imported[0].perfOverlay = store.config.perfOverlay;
                                     store.config = imported[0];
                                     store.save(this);
                                     render();

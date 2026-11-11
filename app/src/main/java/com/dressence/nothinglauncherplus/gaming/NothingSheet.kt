@@ -52,6 +52,14 @@ internal class NothingSheet(private val context: Context, private val host: Fram
 
     val isOpen: Boolean get() = layer != null
 
+    /**
+     * Counts every open and close. An answer that arrives later (a search, the pictures)
+     * checks it is still for the sheet that asked: closed with B, or another sheet opened, it
+     * popped up all the same (0.70.16 audit).
+     */
+    var generation = 0
+        private set
+
     /** A list of choices; [selected] starts highlighted. */
     fun list(title: String, options: List<String>, selected: Int, pick: (Int) -> Unit) {
         val card = card(title)
@@ -176,6 +184,7 @@ internal class NothingSheet(private val context: Context, private val host: Fram
     }
 
     fun close() {
+        generation++
         // The keyboard first: a view's window token is null once it is removed, which left the
         // keyboard up after SAVE or SEARCH (0.70.14 audit).
         field?.let {
@@ -215,6 +224,7 @@ internal class NothingSheet(private val context: Context, private val host: Fram
 
     private fun open(card: LinearLayout, items: List<View>, start: Int, across: Boolean,
             pick: ((Int) -> Unit)?) {
+        generation++
         close()
         val dim = FrameLayout(context)
         dim.setBackgroundColor(DIM)

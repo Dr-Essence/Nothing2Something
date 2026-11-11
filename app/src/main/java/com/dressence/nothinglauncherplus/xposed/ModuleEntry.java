@@ -18,6 +18,7 @@ import com.dressence.nothinglauncherplus.system.ControllerHome;
 import com.dressence.nothinglauncherplus.wallpaper.LivingWorlds;
 import com.dressence.nothinglauncherplus.wallpaper.PaletteCycle;
 import com.dressence.nothinglauncherplus.system.RotationSensor;
+import com.dressence.nothinglauncherplus.system.SettingsReload;
 import com.dressence.nothinglauncherplus.system.BatterySaverSync;
 import com.dressence.nothinglauncherplus.system.SaverRefreshRate;
 import com.dressence.nothinglauncherplus.system.SystemShortcuts;
@@ -51,15 +52,20 @@ public final class ModuleEntry implements IXposedHookLoadPackage {
             Hooks.install("widget card orientation", () -> CardOrientation.install(cl, store));
             Hooks.install("orientation probe", () -> OrientationProbe.install(cl, store));
             Hooks.install("rotation sensor", () -> RotationSensor.install(cl, store));
+            // Keeps this store current for the hooks that only read it (RotationSensor).
+            Hooks.install("settings reload", () -> SettingsReload.install(cl, store));
             Hooks.install("wake orientation", () -> WakeOrientation.install(cl, store));
             // The module's own icon: kept in "Launcher only" (it changes only this app).
             Hooks.install("hidden app icon", () -> HiddenAppIcon.install(cl));
+            // Kept in "Launcher only" too, where it only gives the user's own home back: left
+            // out, a gaming launcher it had made home stayed home with no controller (found
+            // in the 0.70.16 audit).
+            Hooks.install("controller home", () -> ControllerHome.install(cl, store));
             if (launcherOnly(store)) {
                 Hooks.log("launcher only: the system's other changes left out");
                 return;
             }
             Hooks.install("system font", () -> SystemFonts.install(cl, store));
-            Hooks.install("controller home", () -> ControllerHome.install(cl, store));
             Hooks.install("system shortcuts", () -> SystemShortcuts.install(cl));
             Hooks.install("saver refresh rate", () -> SaverRefreshRate.install(cl, store));
             Hooks.install("battery saver sync", () -> BatterySaverSync.install(cl));

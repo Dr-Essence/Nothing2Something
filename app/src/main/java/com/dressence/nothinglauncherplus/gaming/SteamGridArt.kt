@@ -114,7 +114,13 @@ internal class SteamGridArt(context: Context) {
      * hand to replace one (found in the 0.70.14 audit: a rename deleted the user's own).
      */
     fun forget(pkg: String) {
-        prefs.getString(MADE + pkg, null)?.let { File(dir, it).delete() }
+        // "name|size|time": deleted only while it is still the file saved here; a picture the
+        // user dropped in over it (same name) is theirs (found by the audit's fourth pass).
+        prefs.getString(MADE + pkg, null)?.split('|')?.let { note ->
+            val file = File(dir, note[0])
+            if (note.size == 3 && note[1] == file.length().toString() &&
+                note[2] == file.lastModified().toString()) file.delete()
+        }
         prefs.edit().remove(NO_MATCH + pkg).remove(MADE + pkg).apply()
     }
 
@@ -309,8 +315,10 @@ internal class SteamGridArt(context: Context) {
             null)
         replace(pkg) // the previous picture, whatever its kind
         val name = "$pkg.${extension(bytes)}"
-        File(dir, name).writeBytes(bytes)
-        prefs.edit().remove(NO_MATCH + pkg).putString(MADE + pkg, name).apply()
+        val file = File(dir, name)
+        file.writeBytes(bytes)
+        prefs.edit().remove(NO_MATCH + pkg)
+            .putString(MADE + pkg, "$name|${file.length()}|${file.lastModified()}").apply()
     }
 
     /**
