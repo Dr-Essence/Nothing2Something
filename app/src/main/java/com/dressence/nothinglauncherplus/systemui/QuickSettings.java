@@ -28,6 +28,10 @@ final class QuickSettings {
 
     private static final String CLS_TILE_VIEW = "com.android.systemui.qs.tileimpl.QSTileViewImpl";
     private static final int STATE_ACTIVE = 2; // Tile.STATE_ACTIVE
+    /** Nothing's tile views that override getBackgroundColorForState without calling super. */
+    private static final String[] CLS_OWN_COLOUR_TILES = {
+            "com.nothing.systemui.qs.tiles.bt.BluetoothTileViewImpl",
+            "com.nothing.systemui.qs.tileimpl.RingerModeTileViewImpl"};
 
     /** The background of a tile that is on: the deep green of a retro display. */
     static final int RETRO_GREEN = 0xFF1C5230;
@@ -54,8 +58,7 @@ final class QuickSettings {
 
     /** The colour a tile view gives its background for each state: the source of the white. */
     private static void hookTileColours(ClassLoader cl, ConfigStore store) {
-        int hooked = XposedBridge.hookAllMethods(XposedHelpers.findClass(CLS_TILE_VIEW, cl),
-                "getBackgroundColorForState", new XC_MethodHook() {
+        XC_MethodHook colour = new XC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) {
                         if (!store.get().ndotQuickSettings || param.args.length == 0
@@ -68,7 +71,19 @@ final class QuickSettings {
                             Hooks.log("quick settings: tiles lit at the source");
                         }
                     }
-                }).size();
+                };
+        int hooked = XposedBridge.hookAllMethods(XposedHelpers.findClass(CLS_TILE_VIEW, cl),
+                "getBackgroundColorForState", colour).size();
+        // Nothing's own tiles that give this colour themselves, without asking the base class
+        // (Bluetooth; ringer mode when it is not 1x1): hooked too, or an active Bluetooth tile
+        // stayed white in the green and amber styles (System UI dependency map).
+        for (String own : CLS_OWN_COLOUR_TILES) {
+            Class<?> tile = XposedHelpers.findClassIfExists(own, cl);
+            if (tile != null) {
+                hooked += XposedBridge.hookAllMethods(tile, "getBackgroundColorForState",
+                        colour).size();
+            }
+        }
         Hooks.log("quick settings: " + hooked + " tile colour hooks");
     }
 

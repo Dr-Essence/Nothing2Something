@@ -54,7 +54,7 @@ final class Areas {
                 return TILE;
             }
             if (name.contains("StatusBar") || name.contains("StatusIcon")
-                    || name.contains("SystemIcons") || name.contains("ShadeHeader")
+                    || name.contains("ShadeHeader")
                     || name.contains("QuickStatusBarHeader")
                     || name.contains("NotificationIcon")) {
                 return STATUS_BAR;

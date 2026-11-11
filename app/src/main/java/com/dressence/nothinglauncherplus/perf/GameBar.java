@@ -46,6 +46,11 @@ public final class GameBar {
         Object button = XposedHelpers.getStaticObjectField(type, "BUTTON");
         // The grid's pairs are the Game Bar's own Kotlin pairs.
         Class<?> pair = XposedHelpers.findClass("kotlin.Pair", cl);
+        // The buttons' handler must be there before the buttons are: added without it, the
+        // Game Bar would get keys its own code does not know (dependency map). Found first,
+        // so a missing one throws here and nothing is added.
+        XposedHelpers.findMethodExact(XposedHelpers.findClass(CLS_HOLDER, cl), "setData",
+                String.class, type);
         XposedBridge.hookAllConstructors(XposedHelpers.findClass(CLS_PAGER, cl),
                 new XC_MethodHook() {
                     @Override

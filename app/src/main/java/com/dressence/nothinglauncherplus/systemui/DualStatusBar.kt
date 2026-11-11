@@ -110,7 +110,6 @@ internal object DualStatusBar {
         dateAtEnd = config.dualStatusBarDateAtEnd
         notificationsAtEnd = config.dualStatusBarNotificationsAtEnd
         ndot = config.ndotStatusBar
-        on = true
 
         // 1. The height, where every part of System UI reads it.
         val utils = XposedHelpers.findClass(CLS_UTILS, null)
@@ -187,6 +186,10 @@ internal object DualStatusBar {
                     }.onFailure { Hooks.log("dual status bar date: $it") }
                 }
             })
+        // On only now, with every hook in: each acts only while on, so one that failed on the
+        // way leaves Nothing's bar as it was, not its date hidden with nothing in its place
+        // (until 0.70.21 on was set first; System UI dependency map).
+        on = true
         Hooks.log("dual status bar on" + if (landscape) ", landscape too" else "")
     }
 

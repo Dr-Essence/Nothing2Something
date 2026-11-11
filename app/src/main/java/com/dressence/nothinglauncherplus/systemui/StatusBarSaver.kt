@@ -122,8 +122,12 @@ internal object StatusBarSaver {
                 guarded { savers.remove(param.thisObject as View)?.stop() }
             }
         })
-        if (hideMs >= 0) {
-            XposedBridge.hookAllMethods(bar, "onInterceptTouchEvent", object : XC_MethodHook() {
+        // Hiding only with all that brings the bar back (a tap, a new notification, a pull of
+        // the shade): if one of them did not install (another System UI build), the bar is
+        // never hidden, instead of hidden with only a tap to bring it back. Moving it, which
+        // needs none of them, stays (System UI dependency map, 0.70.21).
+        if (hideMs >= 0) try {
+            val woken = XposedBridge.hookAllMethods(bar, "onInterceptTouchEvent", object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     val event = param.args.firstOrNull() as? MotionEvent ?: return
                     if (event.actionMasked != MotionEvent.ACTION_DOWN) return
@@ -134,7 +138,7 @@ internal object StatusBarSaver {
                 }
             })
             // New notifications arrive on System UI's listener thread: back to the main one.
-            XposedBridge.hookAllMethods(XposedHelpers.findClass(CLS_LISTENER, cl),
+            val posted = XposedBridge.hookAllMethods(XposedHelpers.findClass(CLS_LISTENER, cl),
                 "onNotificationPosted", object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
                         val sbn = param.args.firstOrNull() as? StatusBarNotification
@@ -142,7 +146,7 @@ internal object StatusBarSaver {
                         main.post { guarded { if (isNew(sbn)) wakeAll("notification") } }
                     }
                 })
-            XposedBridge.hookAllMethods(XposedHelpers.findClass(CLS_SHADE, cl),
+            val pulled = XposedBridge.hookAllMethods(XposedHelpers.findClass(CLS_SHADE, cl),
                 "onPanelExpansionChanged", object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
                         val fraction = param.args.firstOrNull() as? Float ?: return
@@ -155,6 +159,14 @@ internal object StatusBarSaver {
                         }
                     }
                 })
+            if (woken.isEmpty() || posted.isEmpty() || pulled.isEmpty()) {
+                throw NoSuchMethodError("tap ${woken.size}, notification ${posted.size}," +
+                    " shade ${pulled.size}")
+            }
+        } catch (t: Throwable) {
+            hideMs = -1
+            Hooks.skipped("status bar saver", "what shows the bar again is missing, so it is" +
+                " not hidden (it still moves): $t")
         }
         if (hideMs >= 0) watchTransient(cl)
         Hooks.log("status bar saver on: move every ${shiftMs / 1000} s by $shiftDp dp, hide " +

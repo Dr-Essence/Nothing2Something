@@ -61,7 +61,6 @@ final class Battery {
         XposedBridge.hookAllMethods(battery, "updateShowPercent", percent);
         XposedBridge.hookAllMethods(battery, "updatePercentText", percent);
         XposedBridge.hookAllMethods(battery, "onDarkChanged", percent);
-        XposedBridge.hookAllMethods(battery, "onAttachedToWindow", percent);
         // Battery saver: Nothing draws the battery in its warning colours (getColorProfile:
         // power save -> ColorProfile.Warning, the yellow fill), which the green filter turned
         // green. While saver is on the battery is drawn without the filter, so Nothing's
@@ -150,7 +149,10 @@ final class Battery {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
                 View view = (View) param.thisObject;
-                if (!view.getClass().getName().contains("Battery")
+                String cls = view.getClass().getName();
+                // Not Nothing's battery widgets, also drawn in System UI (com.nothing.cardwidget,
+                // com.nothing.cardparser): the name matched them too (dependency map).
+                if (!cls.contains("Battery") || cls.startsWith("com.nothing.card")
                         || !store.get().ndotStatusBar) {
                     return;
                 }
