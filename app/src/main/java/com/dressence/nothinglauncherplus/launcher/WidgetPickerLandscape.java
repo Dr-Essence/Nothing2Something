@@ -48,6 +48,7 @@ final class WidgetPickerLandscape {
 
     void install() {
         Class<?> profile = XposedHelpers.findClass(PROFILE, cl);
+        checkShape(profile);
         Class<?> cache = XposedHelpers.findClass(PROFILE + "$a", cl);
         // The cached profile, for the orientation the picker opens in.
         XposedBridge.hookAllMethods(cache, "c", new XC_MethodHook() {
@@ -237,6 +238,31 @@ final class WidgetPickerLandscape {
         XposedBridge.hookAllMethods(sheetClass, "setContentViewVisible", dots);
         XposedBridge.hookAllMethods(sheetClass, "resetPageIndicator", dots);
         Hooks.log("widget picker landscape: ready");
+    }
+
+    /**
+     * The profile's fields, by their obfuscated names in Nothing Launcher 4.0.20, each checked
+     * for the type it must have, and its recompute method e(): another launcher build can give
+     * these names to other fields (of the same or another type), and writing them one by one
+     * would then lay the picker out wrong with no error. A name of another type, or missing,
+     * leaves the picker as Nothing has it (Hooks.install; dependency map, F5). Same-type
+     * swaps are not caught by this; they need the resolver the map describes.
+     */
+    private static void checkShape(Class<?> profile) {
+        Object[][] fields = {
+                {"c", int.class}, {"d", int.class}, {"e", Insets.class}, {"i", int.class},
+                {"l", float.class}, {"m", int.class}, {"n", float.class}, {"r", int.class},
+                {"B", Rect.class}, {"C", Rect.class}, {"D", Rect.class}, {"E", int.class},
+                {"G", float.class}, {"H", int.class}, {"I", Rect.class}, {"J", int.class},
+                {"K", int.class}};
+        for (Object[] f : fields) {
+            Class<?> found = XposedHelpers.findField(profile, (String) f[0]).getType();
+            if (found != f[1]) {
+                throw new NoSuchFieldError(PROFILE + "." + f[0] + " is a " + found.getName()
+                        + ", not a " + ((Class<?>) f[1]).getName() + " (launcher changed)");
+            }
+        }
+        XposedHelpers.findMethodExact(profile, "e");
     }
 
     /** The window size seen by Nothing's constructor while it runs (turned: width, height). */

@@ -83,6 +83,7 @@ public final class TaskManager {
     }
 
     public static void install(ClassLoader cl, ConfigStore store) {
+        checkShapes(cl);
         XposedHelpers.findAndHookMethod(CLS_VIEW, cl, "a", new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
@@ -104,6 +105,44 @@ public final class TaskManager {
                     }
                 });
         Hooks.log("task manager: ready");
+    }
+
+    /**
+     * Settings is shrunk by R8, so the names used here (RunningProcessesView.G, A1.d, K1.n,
+     * M1.p/q/r, J1.c/d) are short names that the next Settings update may give to other
+     * things. Each is checked now with the type it must have: if one is missing or of another
+     * type, the task manager is not installed at all (and Diagnostics → Hook health says
+     * which), instead of reading the wrong field into the page (0.70.22, Settings dependency
+     * map). The types themselves are Android's or Settings' own, which keep their meaning.
+     */
+    private static void checkShapes(ClassLoader cl) {
+        Class<?> view = XposedHelpers.findClass(CLS_VIEW, cl);
+        expect(view, "G", ListView.class);
+        expect(XposedHelpers.findClass(CLS_ROW, cl), "d", TextView.class);
+        Class<?> base = XposedHelpers.findClass("com.android.settings.applications.J1", cl);
+        expect(base, "c", PackageItemInfo.class);
+        expect(base, "d", CharSequence.class);
+        Class<?> item = XposedHelpers.findClass("com.android.settings.applications.K1", cl);
+        Class<?> process = XposedHelpers.findField(item, "n").getType();
+        // The process record: the class that holds Android's RunningAppProcessInfo.
+        boolean isProcess = false;
+        for (java.lang.reflect.Field f : process.getDeclaredFields()) {
+            isProcess |= f.getType() == android.app.ActivityManager.RunningAppProcessInfo.class;
+        }
+        if (!isProcess) {
+            throw new NoSuchFieldError("K1.n is no longer the process record");
+        }
+        expect(process, "p", int.class);
+        expect(process, "q", String.class);
+        expect(process, "r", int.class);
+    }
+
+    private static void expect(Class<?> owner, String name, Class<?> type) {
+        Class<?> found = XposedHelpers.findField(owner, name).getType();
+        if (!type.isAssignableFrom(found)) {
+            throw new NoSuchFieldError(owner.getName() + "." + name + " is a " + found.getName()
+                    + ", not a " + type.getName() + " (Settings changed)");
+        }
     }
 
     private static synchronized Handler worker() {
