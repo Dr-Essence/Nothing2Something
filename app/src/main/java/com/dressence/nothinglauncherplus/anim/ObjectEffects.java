@@ -1830,7 +1830,7 @@ final class ObjectEffects {
     static void ding(Scene s) {
         float t = s.since < 1f ? s.since : s.t % 2.6f;
         if (t > 0.06f && t < 0.9f) {
-            DotEffect.glow(s, 1 - (t - 0.06f) / 0.84f);
+            DotEffectParts.glow(s, 1 - (t - 0.06f) / 0.84f);
         }
     }
 

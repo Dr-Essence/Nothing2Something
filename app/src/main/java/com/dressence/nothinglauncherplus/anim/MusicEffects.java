@@ -425,7 +425,7 @@ final class MusicEffects {
             float sway = (float) Math.sin(life * 7 + n) * 1.2f;
             float x = bx + dx * life * 9 + sway * -dy;
             float y = by + dy * life * 9 + sway * dx;
-            note(s, x, y, color, Math.min(1, 1.4f * DotEffect.fade(life)));
+            note(s, x, y, color, Math.min(1, 1.4f * DotEffectParts.fade(life)));
         }
     }
 
