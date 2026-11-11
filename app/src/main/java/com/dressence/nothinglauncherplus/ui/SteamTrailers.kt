@@ -1,10 +1,9 @@
 package com.dressence.nothinglauncherplus.ui
 
 import android.content.Context
+import com.dressence.nothinglauncherplus.Http
 import org.json.JSONArray
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
 
 /**
@@ -45,7 +44,6 @@ internal class SteamTrailers(context: Context) {
         private const val PREFS = "steam_trailers"
         private const val NONE = "none"
         private const val KEEP_MS = 7L * 24 * 60 * 60 * 1000
-        private const val TIMEOUT_MS = 8000
         /** Chunks joined into the clip (3 s each). */
         private const val CHUNKS = 5
         /** No clip bigger than this is kept (a few MB of the phone's storage per game). */
@@ -186,20 +184,7 @@ internal class SteamTrailers(context: Context) {
         if (ref.startsWith("http")) ref
         else base.substringBefore('?').substringBeforeLast('/') + "/" + ref
 
-    private fun bytes(address: String): ByteArray {
-        val connection = URL(address).openConnection() as HttpURLConnection
-        try {
-            connection.connectTimeout = TIMEOUT_MS
-            connection.readTimeout = TIMEOUT_MS
-            connection.setRequestProperty("User-Agent", "Nothing2Something")
-            if (connection.responseCode !in 200..299) {
-                throw java.io.IOException("HTTP ${connection.responseCode}")
-            }
-            return connection.inputStream.use { it.readBytes() }
-        } finally {
-            connection.disconnect()
-        }
-    }
+    private fun bytes(address: String): ByteArray = Http.get(address)
 
     private fun search(label: String): Int? {
         val name = label.replace(Regex("[™®©]"), "").trim()
@@ -236,18 +221,5 @@ internal class SteamTrailers(context: Context) {
         }
     }
 
-    private fun get(address: String): String {
-        val connection = URL(address).openConnection() as HttpURLConnection
-        try {
-            connection.connectTimeout = TIMEOUT_MS
-            connection.readTimeout = TIMEOUT_MS
-            connection.setRequestProperty("User-Agent", "Nothing2Something")
-            if (connection.responseCode !in 200..299) {
-                throw java.io.IOException("HTTP ${connection.responseCode}")
-            }
-            return connection.inputStream.use { String(it.readBytes()) }
-        } finally {
-            connection.disconnect()
-        }
-    }
+    private fun get(address: String): String = String(Http.get(address))
 }

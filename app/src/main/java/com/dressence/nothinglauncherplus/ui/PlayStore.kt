@@ -1,7 +1,6 @@
 package com.dressence.nothinglauncherplus.ui
 
-import java.net.HttpURLConnection
-import java.net.URL
+import com.dressence.nothinglauncherplus.Http
 import java.net.URLEncoder
 
 /**
@@ -47,19 +46,10 @@ internal object PlayStore {
         return found.groupValues[1].substringBefore('=') + "=w1024"
     }
 
-    private fun get(address: String): String? {
-        val connection = URL(address).openConnection() as HttpURLConnection
-        try {
-            connection.connectTimeout = TIMEOUT_MS
-            connection.readTimeout = TIMEOUT_MS
-            connection.setRequestProperty("User-Agent", AGENT)
-            if (connection.responseCode == 404) return null // not on Google Play
-            if (connection.responseCode !in 200..299) {
-                throw java.io.IOException("Google Play answered HTTP ${connection.responseCode}")
-            }
-            return connection.inputStream.use { String(it.readBytes()) }
-        } finally {
-            connection.disconnect()
-        }
+    /** The page, or null if the app is not on Google Play (404). */
+    private fun get(address: String): String? = try {
+        String(Http.get(address, mapOf("User-Agent" to AGENT), TIMEOUT_MS))
+    } catch (e: Http.Error) {
+        if (e.code == 404) null else throw java.io.IOException("Google Play answered HTTP ${e.code}")
     }
 }

@@ -5,10 +5,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.graphics.drawable.Drawable
+import com.dressence.nothinglauncherplus.Http
 import org.json.JSONObject
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
 
 /**
@@ -46,7 +45,6 @@ internal class SteamGridArt(context: Context) {
         private const val LAST = "last_result"
         private const val RETRY_MS = 7L * 24 * 60 * 60 * 1000
         private const val FILTERS = "nsfw=false&humor=false&epilepsy=false"
-        private const val TIMEOUT_MS = 8000
         /** The names a saved picture may have, looked for in this order. */
         private val EXTENSIONS = listOf("png", "jpg", "jpeg", "webp", "gif", "img")
 
@@ -75,7 +73,7 @@ internal class SteamGridArt(context: Context) {
                     "$BASE/search/autocomplete/Portal%202", key)))
                 val n = json.optJSONArray("data")?.length() ?: 0
                 "The key works: a test search found $n games."
-            } catch (e: HttpError) {
+            } catch (e: Http.Error) {
                 when (e.code) {
                     401, 403 -> "SteamGridDB refused the key (HTTP ${e.code}). Check it was" +
                         " copied whole, from steamgriddb.com, Profile, Preferences, API."
@@ -166,7 +164,7 @@ internal class SteamGridArt(context: Context) {
             prefs.edit().putString(LAST, "Found ${pick.kind.lowercase()}" +
                 (game?.let { " of \"${it.second}\"" } ?: "") + " for \"$label\"").apply()
             cached(pkg)
-        } catch (e: HttpError) {
+        } catch (e: Http.Error) {
             prefs.edit().putString(LAST, "\"$label\": SteamGridDB answered HTTP ${e.code}").apply()
             null
         } catch (t: Throwable) {
@@ -321,7 +319,7 @@ internal class SteamGridArt(context: Context) {
     private fun list(key: String, path: String, animated: Boolean, kind: String): List<Choice> {
         val data = try {
             JSONObject(String(download("$BASE/$path", key))).optJSONArray("data")
-        } catch (e: HttpError) {
+        } catch (e: Http.Error) {
             if (e.code == 404) null else throw e // 404: the game has none of these
         } ?: return emptyList()
         return (0 until data.length()).mapNotNull { i ->
@@ -353,20 +351,7 @@ internal class SteamGridArt(context: Context) {
         return null
     }
 
-    /** An answer other than 2xx, with its code (401 or 403: the key was refused). */
-    class HttpError(val code: Int) : java.io.IOException("HTTP $code")
-
-    fun download(address: String, key: String?): ByteArray {
-        val connection = URL(address).openConnection() as HttpURLConnection
-        try {
-            connection.connectTimeout = TIMEOUT_MS
-            connection.readTimeout = TIMEOUT_MS
-            connection.setRequestProperty("User-Agent", "Nothing2Something")
-            if (key != null) connection.setRequestProperty("Authorization", "Bearer $key")
-            if (connection.responseCode !in 200..299) throw HttpError(connection.responseCode)
-            return connection.inputStream.use { it.readBytes() }
-        } finally {
-            connection.disconnect()
-        }
-    }
+    /** [address]'s body, with the user's key if given ([Http.get]: throws [Http.Error] for a refusal). */
+    private fun download(address: String, key: String?): ByteArray =
+        Http.get(address, if (key != null) mapOf("Authorization" to "Bearer $key") else emptyMap())
 }
