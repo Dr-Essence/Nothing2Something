@@ -54,13 +54,7 @@ public final class UpdateReceiver extends BroadcastReceiver {
      * runs as root and finishes regardless. Needs root; false if it could not be asked.
      */
     public static boolean moveToInternalStorage(String pkg) {
-        try {
-            Process p = Runtime.getRuntime().exec(new String[]{"su", "-c",
-                    "pm move-package " + pkg + " internal"});
-            return p.waitFor() == 0;
-        } catch (Exception e) {
-            return false;
-        }
+        return Root.run("pm move-package " + pkg + " internal") == null;
     }
 
     /** The "Force allow apps on external" developer option: installs ignore internalOnly. */
@@ -71,12 +65,6 @@ public final class UpdateReceiver extends BroadcastReceiver {
 
     /** Force-stops Nothing Launcher; Android brings home straight back. Needs root. */
     public static boolean restartLauncher() {
-        try {
-            Process p = Runtime.getRuntime().exec(new String[]{
-                    "su", "-c", "am force-stop " + Config.LAUNCHER_PKG});
-            return p.waitFor() == 0;
-        } catch (Exception e) {
-            return false;
-        }
+        return Root.run("am force-stop " + Config.LAUNCHER_PKG) == null;
     }
 }

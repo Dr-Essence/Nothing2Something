@@ -1,5 +1,6 @@
 package com.dressence.nothinglauncherplus.ui;
 
+import com.dressence.nothinglauncherplus.Root;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Typeface;
@@ -8,7 +9,6 @@ import android.graphics.fonts.FontFamily;
 
 import java.io.File;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -182,7 +182,7 @@ final class SystemFont {
                     + "chmod 0755 $M $M/system $M/system/fonts; chmod 0644 '" + file + "'\n"
                     + "chcon -R u:object_r:system_file:s0 $M/system 2>/dev/null\n"
                     + "[ -s '" + file + "' ] || { echo 'the font was not written'; exit 1; }\n";
-            return su(script);
+            return Root.run(script);
         } catch (Exception e) {
             return e.getMessage() != null ? e.getMessage() : e.toString();
         }
@@ -194,23 +194,6 @@ final class SystemFont {
      * system instead). Gone after the next reboot. Needs root; false without it.
      */
     static boolean removeOldModule() {
-        try {
-            return su("rm -rf " + OLD_MODULE) == null;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    /** Runs {@code script} as root; null on success, else the error. */
-    private static String su(String script) throws Exception {
-        Process p = new ProcessBuilder("su").redirectErrorStream(true).start();
-        try (OutputStream in = p.getOutputStream()) {
-            in.write(script.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            in.write("\nexit\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        }
-        String output = new String(p.getInputStream().readAllBytes(),
-                java.nio.charset.StandardCharsets.UTF_8).trim();
-        int code = p.waitFor();
-        return code == 0 ? null : output.isEmpty() ? "Root access was refused" : output;
+        return Root.run("rm -rf " + OLD_MODULE) == null;
     }
 }

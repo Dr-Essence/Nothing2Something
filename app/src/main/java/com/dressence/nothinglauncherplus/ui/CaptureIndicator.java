@@ -1,5 +1,6 @@
 package com.dressence.nothinglauncherplus.ui;
 
+import com.dressence.nothinglauncherplus.Root;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -99,7 +100,7 @@ public final class CaptureIndicator extends Service {
     /** The report script leaves the done file once it has saved the report (root-only). */
     private void checkDone() {
         new Thread(() -> {
-            boolean done = Device.su("[ -e " + DebugReport.DONE_FILE + " ] && rm -f "
+            boolean done = Root.run("[ -e " + DebugReport.DONE_FILE + " ] && rm -f "
                     + DebugReport.DONE_FILE) == null;
             main.post(() -> {
                 if (done) {

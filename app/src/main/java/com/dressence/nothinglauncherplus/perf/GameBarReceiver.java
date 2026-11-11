@@ -1,5 +1,6 @@
 package com.dressence.nothinglauncherplus.perf;
 
+import com.dressence.nothinglauncherplus.Root;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -40,13 +41,13 @@ public final class GameBarReceiver extends BroadcastReceiver {
                             next = PROFILES[(i + 1) % PROFILES.length];
                         }
                     }
-                    if (Device.su("perfmtk " + next) == null) {
+                    if (Root.run("perfmtk " + next) == null) {
                         config.perfProfile = next;
                         store.save(context);
                     }
                 } else if (GameBar.KEY_THERMAL.equals(key)) {
                     boolean off = !config.thermalOff;
-                    if (Device.su("perfmtk --thermal " + (off ? "disable" : "enable")) == null) {
+                    if (Root.run("perfmtk --thermal " + (off ? "disable" : "enable")) == null) {
                         config.thermalOff = off;
                         store.save(context);
                     }

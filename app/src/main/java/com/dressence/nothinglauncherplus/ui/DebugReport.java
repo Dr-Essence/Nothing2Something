@@ -1,5 +1,6 @@
 package com.dressence.nothinglauncherplus.ui;
 
+import com.dressence.nothinglauncherplus.Root;
 import android.content.Context;
 
 import java.io.File;
@@ -252,7 +253,7 @@ final class DebugReport {
                         .getBytes(StandardCharsets.UTF_8));
             }
             // A session of its own, so the capture outlives this app and the su call.
-            return su("setsid sh " + script.getAbsolutePath() + " </dev/null >/dev/null 2>&1 &");
+            return Root.run("setsid sh " + script.getAbsolutePath() + " </dev/null >/dev/null 2>&1 &");
         } catch (Exception e) {
             return e.getMessage() != null ? e.getMessage() : e.toString();
         }
@@ -260,18 +261,6 @@ final class DebugReport {
 
     /** Ends a running capture now; it still saves what it has. Null once asked, else why not. */
     static String stop() {
-        try {
-            return su("touch " + STOP_FILE);
-        } catch (Exception e) {
-            return e.getMessage() != null ? e.getMessage() : e.toString();
-        }
-    }
-
-    private static String su(String command) throws Exception {
-        Process p = new ProcessBuilder("su", "-c", command).redirectErrorStream(true).start();
-        String output = new String(p.getInputStream().readAllBytes(),
-                StandardCharsets.UTF_8).trim();
-        int code = p.waitFor();
-        return code == 0 ? null : output.isEmpty() ? "Root access was refused" : output;
+        return Root.run("touch " + STOP_FILE);
     }
 }

@@ -1,5 +1,6 @@
 package com.dressence.nothinglauncherplus.ui;
 
+import com.dressence.nothinglauncherplus.Root;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -938,7 +939,7 @@ public class SettingsActivity extends Activity {
     private void perfMtk(String arguments, String done, Runnable saved) {
         new Thread(() -> {
             String failure = com.dressence.nothinglauncherplus.perf.Device.hasPerfMtk()
-                    ? com.dressence.nothinglauncherplus.perf.Device.su("perfmtk " + arguments)
+                    ? Root.run("perfmtk " + arguments)
                     : "PerfMTK is not installed";
             runOnUiThread(() -> {
                 if (failure == null) {

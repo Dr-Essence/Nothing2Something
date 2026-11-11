@@ -1,6 +1,6 @@
 package com.dressence.nothinglauncherplus.ui
 
-import com.dressence.nothinglauncherplus.perf.Device
+import com.dressence.nothinglauncherplus.Root
 
 /**
  * Restarts System UI, so options it reads when it starts (status bar, lock screen) apply now;
@@ -38,7 +38,7 @@ internal object SystemUiRestart {
     fun restart(): Boolean {
         if (waitSeconds() > 0) return false
         last = android.os.SystemClock.elapsedRealtime()
-        return Device.su(
+        return Root.run(
             "[ -d $DIR ] && echo \"\$(date +%s)000\" > $DIR/$NOTE; pkill -f com.android.systemui"
         ) == null
     }
