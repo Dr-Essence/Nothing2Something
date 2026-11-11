@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.12, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.13, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.12** (CMF Phone 1, Nothing OS 4.1, Android 16): games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.13** (CMF Phone 1, Nothing OS 4.1, Android 16): games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,17 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.13, cleanup step 4, part 3: LockScreenTurn split.** No change in what the module
+  does. Two parts of the turned lock screen move, as they were, into their own files in
+  `systemui`: LandscapeBouncer (the landscape PIN / pattern / password screen: the flag
+  answered yes only inside the bouncer's code, its fingerprint icon, lock glyph and message
+  margin) and LockScreenLayoutLog (the landscape layouts written to the LSPosed log with
+  Diagnostic logging on). LockScreenTurn goes from 1,316 to about 1,020 lines and installs
+  them at the same point as before. Checked: the build compiles, and comparing the old file
+  with the three new ones line by line, the only changes are the two calls into the new
+  classes and the three names the bouncer reads from LockScreenTurn (the fingerprint's turned
+  spot, the layout rotation and Nothing's device-entry section class), no longer private. To
+  test on the phone: with Lock screen rotation on, the PIN pad in landscape as before.
 - **0.70.12, cleanup step 4, part 2: DotEffect split.** No change in what the module does.
   The emoji effects' shared pieces (timing, finding eyes, drops, balls and feet, and the blink,
   glow, water and glint drawing several effects reuse; 58 functions, about 1,600 lines) move

@@ -70,16 +70,8 @@ final class LockScreenTurn {
             "com.android.systemui.keyguard.ui.view.layout.sections.ClockSection";
     private static final String CLS_UDFPS_OVERLAY =
             "com.android.systemui.biometrics.UdfpsControllerOverlay";
-    private static final String CLS_ENTRY_SECTION =
+    static final String CLS_ENTRY_SECTION =
             "com.android.systemui.keyguard.ui.view.layout.sections.DefaultDeviceEntrySection";
-    private static final String CLS_FLAGS = "com.android.systemui.flags.Flags";
-    private static final String[] CLS_FEATURE_FLAGS = {
-            "com.android.systemui.flags.FeatureFlagsClassicRelease",
-            "com.android.systemui.flags.FeatureFlagsClassicDebug"};
-    private static final String CLS_FLIPPER =
-            "com.android.keyguard.KeyguardSecurityViewFlipperController";
-    private static final String CLS_SECURITY_CONTAINER =
-            "com.android.keyguard.KeyguardSecurityContainerController";
     private static final String CLS_NSSL_SECTION = "com.android.systemui.keyguard.ui.view.layout"
             + ".sections.DefaultNotificationStackScrollLayoutSection";
     private static final String CLS_WIDGET_SECTION =
@@ -101,26 +93,13 @@ final class LockScreenTurn {
     private static final int VERTICAL = 1;
     private static final int PARENT = 0;
     private static final int TOP = 3;
-    /** The lock screen's views, by resource name. */
-    private static final String[] ROOTS = {"keyguard_root_view", "shared_notification_container",
-            "keyguard_message_area_container", "keyguard_bouncer_container", "nt_bouncer_icon_area"};
-    private static final int MAX_DEPTH = 9;
-    private static final int MAX_LINES = 160;
-    /** Layouts logged per System UI run at most, so the log stays readable. */
-    private static final int MAX_DUMPS = 60;
 
-    /** Inside the bouncer's own code, where the landscape flag is answered yes. */
-    private static final ThreadLocal<int[]> BOUNCER = ThreadLocal.withInitial(() -> new int[1]);
-    /** Set if the bouncer's landscape code failed once: Nothing's layouts from then on. */
-    private static volatile boolean bouncerFailed;
     /**
      * The fingerprint spot on the screen as last turned: its center, the rotation it is for
      * and the lock icon's radius around it (Nothing's centerIcon).
      */
-    private static volatile int[] turnedSpot;
+    static volatile int[] turnedSpot;
 
-    private static int dumps;
-    private static String lastLayout;
     /** Set by the clock's constraints, used by the widgets' in the same pass (main thread). */
     private static android.content.Context halfContext;
     /** Whether the half layout was put on Nothing's pieces (to be taken off again). */
@@ -166,7 +145,7 @@ final class LockScreenTurn {
                 }).size();
         keepNothingLayout(cl, store);
         turnFingerprint(cl, store);
-        landscapeBouncer(cl, store);
+        LandscapeBouncer.install(cl, store);
         settings = store;
         mirrorNotifications(cl, store);
         layOutOnFlip(cl, store);
@@ -184,7 +163,7 @@ final class LockScreenTurn {
                             Hooks.guard("lock screen layout", () -> {
                                 if (store.get().lockRotation
                                         && store.get().diagnosticLogging) {
-                                    record(root);
+                                    LockScreenLayoutLog.record(root);
                                 }
                             })::run);
                 }
@@ -447,207 +426,6 @@ final class LockScreenTurn {
     }
 
     /**
-     * The bouncer's fingerprint icon (Nothing centers it across and sets only its top, for
-     * portrait): over the sensor's turned spot, as the lock screen's icon.
-     */
-    private static void turnBouncerIcon(Object section, boolean on) {
-        int[] spot = turnedSpot;
-        View icon = (View) XposedHelpers.getObjectField(section, "bouncerUdfpsIconContainer");
-        if (icon == null || !(icon.getLayoutParams()
-                instanceof android.widget.FrameLayout.LayoutParams)) {
-            return;
-        }
-        android.widget.FrameLayout.LayoutParams lp =
-                (android.widget.FrameLayout.LayoutParams) icon.getLayoutParams();
-        if (!on || spot == null || layoutRotation((android.content.Context)
-                XposedHelpers.getObjectField(section, "context")) != spot[2]) {
-            // Nothing's own placement (also when the lock screen no longer turns) (centered across, its top set): Nothing never sets the
-            // left margin, so the one set here for landscape goes (it had pushed the icon
-            // off the screen, logged at x 3017).
-            if (lp.leftMargin != 0) {
-                lp.leftMargin = 0;
-                icon.setLayoutParams(lp);
-            }
-            return;
-        }
-        int[] origin = {0, 0};
-        if (icon.getParent() instanceof View && ((View) icon.getParent()).getWidth() > 0) {
-            ((View) icon.getParent()).getLocationOnScreen(origin);
-        }
-        lp.gravity = android.view.Gravity.TOP | android.view.Gravity.LEFT;
-        lp.leftMargin = spot[0] - lp.width / 2 - origin[0];
-        lp.topMargin = spot[1] - lp.height / 2 - origin[1];
-        icon.setLayoutParams(lp);
-    }
-
-    /**
-     * Nothing's bouncer lock icon (a lock glyph above the PIN, 348 px from the top for
-     * portrait) sat between the landscape bouncer's two halves, over its message: left out in
-     * landscape, back as Nothing had it when the screen turns back.
-     */
-    private static void landscapeBouncerLock(Object section, boolean on) {
-        View lock = (View) XposedHelpers.getObjectField(section, "bouncerlockIconContainer");
-        if (lock == null) {
-            return;
-        }
-        int rotation = layoutRotation((android.content.Context)
-                XposedHelpers.getObjectField(section, "context"));
-        boolean turned = on && (rotation == android.view.Surface.ROTATION_90
-                || rotation == android.view.Surface.ROTATION_270);
-        String key = "nlplus.hiddenLock";
-        if (turned && lock.getVisibility() == View.VISIBLE) {
-            lock.setVisibility(View.GONE);
-            XposedHelpers.setAdditionalInstanceField(lock, key, Boolean.TRUE);
-        } else if (!turned && XposedHelpers.removeAdditionalInstanceField(lock, key) != null) {
-            lock.setVisibility(View.VISIBLE);
-        }
-    }
-
-    /**
-     * Nothing places the bouncer's message 448 px down (nt_message_area_margin_top), under its
-     * portrait lock icon; in the landscape bouncer that pushed the PIN entry below the
-     * bouncer's bottom (logged 902..1039 against 976). In landscape the message starts at the
-     * top of its half; Nothing's margin comes back in portrait.
-     */
-    private static void messageMargin(View bouncer, boolean landscape) {
-        int id = bouncer.getResources().getIdentifier("bouncer_message_area", "id",
-                bouncer.getContext().getPackageName());
-        View message = id != 0 ? bouncer.findViewById(id) : null;
-        if (message == null
-                || !(message.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) {
-            return;
-        }
-        ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) message.getLayoutParams();
-        String key = "nlplus.messageTop";
-        Object nothing = XposedHelpers.getAdditionalInstanceField(message, key);
-        if (landscape) {
-            if (nothing == null) {
-                XposedHelpers.setAdditionalInstanceField(message, key, lp.topMargin);
-            }
-            lp.topMargin = 0;
-        } else if (nothing != null) {
-            lp.topMargin = (Integer) nothing;
-            XposedHelpers.removeAdditionalInstanceField(message, key);
-        } else {
-            return;
-        }
-        message.setLayoutParams(lp);
-    }
-
-    private static void landscapeBouncer(ClassLoader cl, ConfigStore store) {
-        Class<?> flags = XposedHelpers.findClassIfExists(CLS_FLAGS, cl);
-        Class<?> flipper = XposedHelpers.findClassIfExists(CLS_FLIPPER, cl);
-        if (flags == null || flipper == null) {
-            Hooks.log("lock screen bouncer: classes not found, Nothing's layouts kept");
-            return;
-        }
-        Object flag = XposedHelpers.getStaticObjectField(flags, "LOCKSCREEN_ENABLE_LANDSCAPE");
-        int answered = 0;
-        for (String name : CLS_FEATURE_FLAGS) {
-            Class<?> impl = XposedHelpers.findClassIfExists(name, cl);
-            if (impl == null) {
-                continue;
-            }
-            answered += XposedBridge.hookAllMethods(impl, "isEnabled", new XC_MethodHook() {
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) {
-                    if (param.args.length == 1 && param.args[0] == flag
-                            && BOUNCER.get()[0] > 0 && !bouncerFailed) {
-                        param.setResult(true);
-                    }
-                }
-            }).size();
-        }
-        XC_MethodHook scope = new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                if (store.get().lockRotation) {
-                    BOUNCER.get()[0]++;
-                    param.setObjectExtra("nlplus.scoped", Boolean.TRUE);
-                }
-            }
-
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) {
-                if (param.getObjectExtra("nlplus.scoped") == null) {
-                    return;
-                }
-                BOUNCER.get()[0]--;
-                Throwable failed = param.getThrowable();
-                if (failed != null) {
-                    // Kept from System UI: the bouncer goes back to Nothing's layouts.
-                    bouncerFailed = true;
-                    param.setResult(null);
-                    Hooks.log("lock screen bouncer: landscape layout failed, Nothing's kept: "
-                            + android.util.Log.getStackTraceString(failed));
-                }
-            }
-        };
-        int scoped = 0;
-        for (java.lang.reflect.Method m : flipper.getDeclaredMethods()) {
-            if (m.getName().equals("asynchronouslyInflateView")
-                    || m.getName().startsWith("lambda$asynchronouslyInflateView")) {
-                XposedBridge.hookMethod(m, scope);
-                scoped++;
-            }
-        }
-        // The bouncer's turn listener (an inner class of the security container controller).
-        for (int i = 1; i <= 30; i++) {
-            Class<?> inner = XposedHelpers.findClassIfExists(CLS_SECURITY_CONTAINER + "$" + i, cl);
-            if (inner == null) {
-                continue;
-            }
-            for (java.lang.reflect.Method m : inner.getDeclaredMethods()) {
-                if (m.getName().equals("onOrientationChanged")) {
-                    XposedBridge.hookMethod(m, scope);
-                    scoped++;
-                }
-            }
-        }
-        Class<?> entry = XposedHelpers.findClassIfExists(CLS_ENTRY_SECTION, cl);
-        if (entry != null) {
-            XposedBridge.hookAllMethods(entry, "updateBouncerLockIconContainer",
-                    new XC_MethodHook() {
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) {
-                            // Off: what was changed for landscape goes back to Nothing's.
-                            boolean on = store.get().lockRotation;
-                            try {
-                                turnBouncerIcon(param.thisObject, on);
-                                landscapeBouncerLock(param.thisObject, on);
-                            } catch (Throwable t) {
-                                Hooks.log("lock screen bouncer: " + t);
-                            }
-                        }
-                    });
-        }
-        for (String view : new String[] {"com.android.keyguard.KeyguardPINView",
-                "com.android.keyguard.KeyguardPatternView",
-                "com.android.keyguard.KeyguardPasswordView"}) {
-            Class<?> c = XposedHelpers.findClassIfExists(view, cl);
-            if (c != null) {
-                XposedBridge.hookAllMethods(c, "updateConstraints", new XC_MethodHook() {
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) {
-                        if (param.args.length != 1) {
-                            return;
-                        }
-                        try {
-                            // Off: Nothing's margin back (messageMargin restores it).
-                            messageMargin((View) param.thisObject, store.get().lockRotation
-                                    && Boolean.TRUE.equals(param.args[0]));
-                        } catch (Throwable t) {
-                            Hooks.log("lock screen bouncer: " + t);
-                        }
-                    }
-                });
-            }
-        }
-        Hooks.log("lock screen bouncer: flag answered in " + answered + ", bouncer code "
-                + scoped);
-    }
-
-    /**
      * Where the lock screen (the icon's ConstraintLayout) starts on the screen: as laid out if
      * it already is for this orientation, else the window's system bar and cutout insets.
      */
@@ -811,7 +589,7 @@ final class LockScreenTurn {
      * orientation and is laid out on the display change: layOutOnFlip), otherwise the
      * rotation of the configuration being laid out.
      */
-    private static int layoutRotation(android.content.Context context) {
+    static int layoutRotation(android.content.Context context) {
         if (passRotation >= 0) {
             return passRotation; // Laid out here with the turn: its own rotation.
         }
@@ -1241,76 +1019,5 @@ final class LockScreenTurn {
             }
         }
         return false;
-    }
-
-    /** Logs the lock screen's layout if it shows in landscape and differs from the last one. */
-    private static void record(View window) {
-        if (dumps >= MAX_DUMPS || window.getResources().getConfiguration().orientation
-                != Configuration.ORIENTATION_LANDSCAPE) {
-            return;
-        }
-        StringBuilder out = new StringBuilder();
-        int[] lines = {0};
-        for (String name : ROOTS) {
-            int id = window.getResources().getIdentifier(name, "id",
-                    window.getContext().getPackageName());
-            View v = id != 0 ? window.findViewById(id) : null;
-            if (v != null && v.isShown()) {
-                dump(window, v, 0, out, lines);
-            }
-        }
-        if (out.length() == 0) {
-            return; // No lock screen showing.
-        }
-        String layout = "window " + window.getWidth() + "x" + window.getHeight() + "\n" + out;
-        if (layout.equals(lastLayout)) {
-            return;
-        }
-        lastLayout = layout;
-        dumps++;
-        for (String line : layout.split("\n")) {
-            Hooks.log("lock screen layout: " + line);
-        }
-    }
-
-    private static void dump(View window, View v, int depth, StringBuilder out, int[] lines) {
-        if (v.getVisibility() != View.VISIBLE || v.getWidth() <= 0 || v.getHeight() <= 0
-                || v.getAlpha() == 0f || lines[0] >= MAX_LINES) {
-            return;
-        }
-        Rect r = new Rect(0, 0, v.getWidth(), v.getHeight());
-        try {
-            ((ViewGroup) window).offsetDescendantRectToMyCoords(v, r);
-        } catch (IllegalArgumentException notInside) {
-            return;
-        }
-        boolean off = r.left < 0 || r.top < 0 || r.right > window.getWidth()
-                || r.bottom > window.getHeight();
-        for (int i = 0; i < depth; i++) {
-            out.append("  ");
-        }
-        out.append(name(v)).append(' ').append(r.toShortString())
-                .append(off ? " OFF-SCREEN" : "")
-                .append(v.getScaleX() != 1f ? " scale " + v.getScaleX() : "")
-                .append('\n');
-        lines[0]++;
-        if (depth < MAX_DEPTH && v instanceof ViewGroup) {
-            ViewGroup g = (ViewGroup) v;
-            for (int i = 0; i < g.getChildCount(); i++) {
-                dump(window, g.getChildAt(i), depth + 1, out, lines);
-            }
-        }
-    }
-
-    private static String name(View v) {
-        String cls = v.getClass().getSimpleName();
-        if (v.getId() == View.NO_ID) {
-            return cls;
-        }
-        try {
-            return v.getResources().getResourceEntryName(v.getId()) + ":" + cls;
-        } catch (Resources.NotFoundException e) {
-            return cls;
-        }
     }
 }
