@@ -159,7 +159,16 @@ final class LockScreenTurn {
                 protected void afterHookedMethod(MethodHookParam param) {
                     View root = (View) param.thisObject;
                     shadeWindow = new java.lang.ref.WeakReference<>(root);
-                    root.getViewTreeObserver().addOnGlobalLayoutListener(
+                    // Once per window (its tree observer): attached again to the same window,
+                    // it added another listener, never removed, so the layout log ran once
+                    // more on every layout (0.70.14 audit). A new window has a new observer.
+                    android.view.ViewTreeObserver observer = root.getViewTreeObserver();
+                    if (XposedHelpers.getAdditionalInstanceField(observer, "nlplus.layoutLog")
+                            != null) {
+                        return;
+                    }
+                    XposedHelpers.setAdditionalInstanceField(observer, "nlplus.layoutLog", true);
+                    observer.addOnGlobalLayoutListener(
                             Hooks.guard("lock screen layout", () -> {
                                 if (store.get().lockRotation
                                         && store.get().diagnosticLogging) {
@@ -677,6 +686,21 @@ final class LockScreenTurn {
                                                 Hooks.guard("lock screen notifications",
                                                         LockScreenTurn::layOutNotifications)
                                                         .run();
+                                            }
+                                            // Object's own methods answered as an
+                                            // object would: null for hashCode would throw
+                                            // in System UI if it ever kept its listeners
+                                            // in a set (0.70.14 audit).
+                                            switch (method.getName()) {
+                                                case "hashCode":
+                                                    return System.identityHashCode(proxy);
+                                                case "equals":
+                                                    return args != null && proxy == args[0];
+                                                case "toString":
+                                                    return "Nothing2Something lock screen"
+                                                            + " listener";
+                                                default:
+                                                    break;
                                             }
                                             return method.getReturnType() == boolean.class
                                                     ? Boolean.FALSE : null;

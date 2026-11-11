@@ -309,6 +309,7 @@ final class PaletteCycleSounds {
                 parts[parts.length - 3] + "-" + parts[parts.length - 1] + ".mp3");
         DOWNLOADS.execute(Hooks.guard("palette cycle sound download", () -> {
             if (!file.exists() && !download(sound, file)) {
+                failed(sound, generation);
                 return;
             }
             SeamlessLoop.Pcm pcm;
@@ -317,6 +318,7 @@ final class PaletteCycleSounds {
             } catch (Throwable t) {
                 Hooks.log("palette cycle: sound " + sound + " not decoded: " + t);
                 file.delete(); // A broken download: fetched again next time.
+                failed(sound, generation);
                 return;
             }
             Hooks.log("palette cycle: sound " + sound + ": " + pcm.report);
@@ -325,6 +327,19 @@ final class PaletteCycleSounds {
                 start(sound, pcm, generation);
             }));
         }));
+    }
+
+    /**
+     * A sound that could not be had (offline at boot, a broken file): no longer "being
+     * prepared", so the next update tries it again. It stayed marked as playing with no
+     * player, and that world stayed silent until another sound was chosen (0.70.14 audit).
+     */
+    private static void failed(String sound, int generation) {
+        MAIN.post(() -> {
+            if (generation == generations && sound.equals(playing) && player == null) {
+                playing = null;
+            }
+        });
     }
 
     private static boolean download(String sound, File file) {

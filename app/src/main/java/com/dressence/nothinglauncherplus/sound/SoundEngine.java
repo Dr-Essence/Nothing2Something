@@ -154,9 +154,15 @@ public final class SoundEngine {
         bedLoader.execute(() -> bed = new Bed(wanted, beds.get(wanted)));
     }
 
+    /** How often a silent music loop looks whether it is heard again. */
+    private static final long SILENT_POLL_MS = 100;
+    /** The pause before the music starts again after its thread failed. */
+    private static final long RESTART_AFTER_FAILURE_MS = 1000;
+
     private void musicLoop() {
         Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO);
         AudioTrack track = null;
+        boolean failed = false;
         try {
             // The first start waits (silently, off the main thread) for its loop to decode.
             askBed(style);
@@ -216,6 +222,20 @@ public final class SoundEngine {
                         break;
                     }
                 }
+                if (next == 0 && gain == 0 && !playing) {
+                    // Silent while wanted (another app's media plays, or the style's loop is
+                    // still loading): the track pauses and nothing is rendered, instead of
+                    // writing silence at audio priority, which also kept the speaker path out
+                    // of standby (0.70.14 audit). It plays again when it is heard again.
+                    if (track.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+                        track.pause();
+                    }
+                    Thread.sleep(SILENT_POLL_MS);
+                    continue;
+                }
+                if (track.getPlayState() != AudioTrack.PLAYSTATE_PLAYING) {
+                    track.play();
+                }
                 // Receding: muffle in step with the fade, back to clear as it returns.
                 ambience.setMuffle(playing ? 0 : 1 - next / Math.max(0.01f, volume));
                 ambience.render(block, BLOCK);
@@ -227,9 +247,15 @@ public final class SoundEngine {
                     block[2 * i + 1] *= g;
                 }
                 gain = next;
-                track.write(block, 0, block.length, AudioTrack.WRITE_BLOCKING);
+                int written = track.write(block, 0, block.length, AudioTrack.WRITE_BLOCKING);
+                if (written < 0) {
+                    // The track is dead (audioserver restarted): an error comes back at once,
+                    // so ignored it spun this loop flat out. A new track, after a pause below.
+                    throw new IllegalStateException("music track write " + written);
+                }
             }
         } catch (Throwable t) {
+            failed = true;
             synchronized (lock) {
                 thread = null;
             }
@@ -241,6 +267,15 @@ public final class SoundEngine {
                     // Never started.
                 }
                 track.release();
+            }
+        }
+        if (failed) {
+            // Not straight away: a failure that repeats would otherwise start thread after
+            // thread with no pause.
+            try {
+                Thread.sleep(RESTART_AFTER_FAILURE_MS);
+            } catch (InterruptedException e) {
+                return;
             }
         }
         // Asked to play again while we were finishing: start a fresh thread.

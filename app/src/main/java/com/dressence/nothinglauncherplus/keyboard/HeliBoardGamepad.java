@@ -266,7 +266,9 @@ public final class HeliBoardGamepad {
             return false;
         }
         if (code == KeyEvent.KEYCODE_BUTTON_A || code == KeyEvent.KEYCODE_DPAD_CENTER) {
-            touchEnd(MotionEvent.ACTION_UP);
+            // A controller lost while Cross is held sends its key up as canceled: the touch is
+            // canceled too, so HeliBoard does not type the key under the highlight.
+            touchEnd(event.isCanceled() ? MotionEvent.ACTION_CANCEL : MotionEvent.ACTION_UP);
         }
         return true;
     }

@@ -52,7 +52,9 @@ final class FontSettings {
 
     private void showChooser(List<SystemFont.Choice> fonts, List<Typeface> faces,
             List<Boolean> lowercase) {
-        if (activity.isFinishing()) {
+        // Destroyed too: turned while the fonts loaded, the old screen is destroyed without
+        // finishing, and a dialog shown on it throws (0.70.14 audit).
+        if (activity.isFinishing() || activity.isDestroyed()) {
             return;
         }
         LinearLayout list = new LinearLayout(activity);

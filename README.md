@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.14, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.15, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.14** (CMF Phone 1, Nothing OS 4.1, Android 16): games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.15** (CMF Phone 1, Nothing OS 4.1, Android 16): games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,36 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.15, full audit, part 2.** More of the audit's findings, each checked in the code first:
+  - *Home restore*: items were matched by database id alone, but items added after a grid
+    change can take the id of one the change dropped, which was then skipped as "already
+    there" (and could have been written over that id). Now an id counts only if it is the same
+    item (its app, or for a folder its kind), and a taken id gets a new one.
+  - *Battery and CPU*: Gaming Space turned every app's box at the display's rate, about a
+    hundred in "Apps", including the hidden and off-screen ones (now only the shown ones), and
+    its trailer view redrew 120 times a second besides each video frame; the background music
+    wrote silence at audio priority while another app played (now paused), and a dead audio
+    track spun its loop; Nothing's Running services page read its figures every 2 s while
+    Settings sat in recents; the status bar saver kept moving the bar with the screen off; the
+    dot icons' once-a-second check went on in other apps and after the pack was left; the
+    lock screen fingerprint layer was placed again on every screen on and off; System UI's texts
+    were each looked up on every draw with the Ndot options off; the rotation hook re-read the
+    settings file inside the window manager's lock; each scanning dot icon made a new gradient
+    every frame (one shared now, the same pixels).
+  - *Stuck states*: the OLED saver stopped while faded left full-screen apps using the bar's
+    space; a Palette Cycle sound that failed to download stayed silent until another was
+    chosen; after "Hide" or "Move" on a category's last game the selection pointed past the end.
+  - *Crashes of the module app*: a backup file over 64 MB (a wrong file picked) or any download
+    over its limit could run it out of memory; the font chooser after a turn mid-load; the debug
+    report's indicator started from the background.
+  - *Smaller*: a cancelled controller key typed in HeliBoard; Gaming Space's keyboard stayed up
+    after SAVE; the drawer's list changed before a check that could stop it (RecyclerView
+    inconsistency); the lock screen listener answered null for hashCode; a backup with a damaged
+    cover left some covers replaced. The Ndot status bar and Green quick settings switches now
+    say that turned off, the green texts stay until System UI restarts.
+  - *Dead code removed*: Scene.mapped, MusicEffects.knobs (two), DotEffectParts.hearts,
+    ObjectEffects.rotate and pips, and the compass needle's unused mask and face.
+  Checked: the build compiles; nothing of this was run on a phone.
 - **0.70.14, full audit, part 1: bugs found by reading every file, fixed.** The whole module
   (46,000 lines) was read by area, once for hidden bugs and crashes and once for threads,
   leaks and wasted work; each finding was checked against the code (and Nothing's decompiled

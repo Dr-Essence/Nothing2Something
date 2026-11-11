@@ -680,48 +680,6 @@ final class MusicEffects {
         s.addPart(0, 0, r.size, r.size, (r.minX + r.maxX + 1) / 2f, r.maxY + 1, degrees, 0, 0);
         s.busy = true;
     }
-
-    // -------------------------------------------------------------------------------------
-    // Knobs: 🎛️
-    // -------------------------------------------------------------------------------------
-
-    /** Each round knob's pointer turns on its own, to and fro, like hands on a mixing desk. */
-    static void knobs(Scene s) {
-        Regions r = s.regions;
-        List<int[]> knobs = knobs(r);
-        for (int k = 0; k < knobs.size(); k++) {
-            int[] c = knobs.get(k);
-            float x = cx(r, c);
-            float y = cy(r, c);
-            float rad = Math.max(1, (float) Math.sqrt(c.length / Math.PI) - 0.5f);
-            double swing = Math.sin(s.t * (0.8 + 0.3 * k) + k * 1.7) * 2.2
-                    + Math.sin(s.t * 2.4) * 0.5 * kick(s);
-            double ang = -Math.PI / 2 + swing;
-            s.plotRest(x + (float) Math.cos(ang) * rad, y + (float) Math.sin(ang) * rad, WHITE);
-        }
-    }
-
-    /** Dark round blobs enclosed by the emoji. */
-    private static List<int[]> knobs(Regions r) {
-        @SuppressWarnings("unchecked")
-        List<int[]> cached = (List<int[]>) r.memo.get("knobs");
-        if (cached != null) {
-            return cached;
-        }
-        boolean[] dark = new boolean[r.size * r.size];
-        for (int i = 0; i < dark.length; i++) {
-            dark[i] = r.ink[i] && r.luma[i] < 0.45f;
-        }
-        List<int[]> knobs = new ArrayList<>();
-        for (int[] c : components(r, dark, false)) {
-            if (c.length >= 5 && c.length <= 80) {
-                knobs.add(c);
-            }
-        }
-        r.memo.put("knobs", knobs);
-        return knobs;
-    }
-
     // -------------------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------------------

@@ -1083,10 +1083,8 @@ final class ObjectEffects {
         s.addDisc(needle.x + 0.5f, needle.y + 0.5f, needle.radius - 0.6f, angle);
     }
 
-    /** A compass needle: its dots, the face it turns over, and its pivot. */
+    /** A compass needle: its pivot and reach (found only if it has pointer dots). */
     static final class Needle {
-        boolean[] mask;
-        int face;
         float x;
         float y;
         float radius;
@@ -1098,15 +1096,11 @@ final class ObjectEffects {
         }
         int n = r.size * r.size;
         float sx = 0, sy = 0;
-        long fr = 0, fg = 0, fb = 0;
         int faces = 0;
         for (int i = 0; i < n; i++) {
             if (r.ink[i] && r.luma[i] > 0.85f && r.sat[i] < 0.2f) {
                 sx += i % r.size;
                 sy += i / r.size;
-                fr += (r.rest[i] >> 16) & 0xFF;
-                fg += (r.rest[i] >> 8) & 0xFF;
-                fb += r.rest[i] & 0xFF;
                 faces++;
             }
         }
@@ -1116,16 +1110,12 @@ final class ObjectEffects {
             needle.x = sx / faces;
             needle.y = sy / faces;
             needle.radius = (float) Math.sqrt(faces / Math.PI) + 1;
-            needle.face = 0xFF000000 | (int) (fr / faces) << 16 | (int) (fg / faces) << 8
-                    | (int) (fb / faces);
-            needle.mask = new boolean[n];
-            int count = 0;
+            int count = 0; // Its pointer's dots: too few, and it is not a needle.
             for (int i = 0; i < n; i++) {
                 float d = (float) Math.hypot(i % r.size - needle.x, i / r.size - needle.y);
                 boolean pointer = r.sat[i] > 0.35f && (r.hue[i] < 25 || r.hue[i] > 330
                         || (r.hue[i] > 185 && r.hue[i] < 250));
                 if (r.ink[i] && d < needle.radius - 0.5f && pointer) {
-                    needle.mask[i] = true;
                     count++;
                 }
             }
@@ -1135,29 +1125,6 @@ final class ObjectEffects {
         }
         r.memo.put("needle", needle);
         return needle;
-    }
-
-    private static boolean[] pips(Regions r) {
-        Object cached = r.memo.get("pips");
-        if (cached != null) {
-            return (boolean[]) cached;
-        }
-        int n = r.size * r.size;
-        boolean[] dark = new boolean[n];
-        for (int i = 0; i < n; i++) {
-            dark[i] = r.ink[i] && (r.luma[i] < 0.4f || (r.sat[i] > 0.5f
-                    && (r.hue[i] < 20 || r.hue[i] > 330)));
-        }
-        boolean[] out = new boolean[n];
-        for (int[] c : MusicEffects.components(r, dark, false)) {
-            if (c.length <= 10) {
-                for (int i : c) {
-                    out[i] = true;
-                }
-            }
-        }
-        r.memo.put("pips", out);
-        return out;
     }
 
     /**
@@ -2915,40 +2882,6 @@ final class ObjectEffects {
     // -------------------------------------------------------------------------------------
     // Shared moves
     // -------------------------------------------------------------------------------------
-
-    /**
-     * Turns part of the drawing by {@code angle} (radians) about (cx, cy), within
-     * {@code radius}: with a {@code mask}, only those dots move, and where they left the
-     * {@code fill} colour shows; without one, everything in the circle turns.
-     */
-    static void rotate(Scene s, float cx, float cy, float radius, float angle, boolean[] mask,
-            int fill) {
-        Regions r = s.regions;
-        float c = (float) Math.cos(angle);
-        float sn = (float) Math.sin(angle);
-        for (int i = 0; i < s.dots.length; i++) {
-            int ri = s.restIndex(i);
-            if (ri < 0) {
-                continue;
-            }
-            float dx = ri % r.size - cx;
-            float dy = ri / r.size - cy;
-            if (dx * dx + dy * dy > radius * radius) {
-                continue;
-            }
-            int sx = Math.round(cx + dx * c + dy * sn);
-            int sy = Math.round(cy - dx * sn + dy * c);
-            int src = r.in(sx, sy) ? sy * r.size + sx : -1;
-            if (mask == null) {
-                s.dots[i] = src >= 0 ? r.rest[src] : 0;
-            } else if (src >= 0 && mask[src]) {
-                s.dots[i] = r.rest[src];
-            } else if (mask[ri]) {
-                s.dots[i] = fill;
-            }
-        }
-    }
-
     /** Light spokes sweeping round a wheel at (cx, cy): {@code count} of them at {@code angle}. */
     static void spokes(Scene s, float cx, float cy, float radius, float angle, int count,
             float strength) {

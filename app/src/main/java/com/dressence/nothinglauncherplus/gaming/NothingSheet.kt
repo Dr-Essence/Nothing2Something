@@ -176,11 +176,13 @@ internal class NothingSheet(private val context: Context, private val host: Fram
     }
 
     fun close() {
-        layer?.let { host.removeView(it) }
+        // The keyboard first: a view's window token is null once it is removed, which left the
+        // keyboard up after SAVE or SEARCH (0.70.14 audit).
         field?.let {
             context.getSystemService(InputMethodManager::class.java)
                 ?.hideSoftInputFromWindow(it.windowToken, 0)
         }
+        layer?.let { host.removeView(it) }
         layer = null
         choices = emptyList()
         onPick = null

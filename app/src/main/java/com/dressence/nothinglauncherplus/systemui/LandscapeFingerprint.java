@@ -170,6 +170,13 @@ final class LandscapeFingerprint {
             if (container == null) {
                 return; // No layer shown yet: placed when Nothing first shows one.
             }
+            // Only when what the placement depends on changed: the display also reports a
+            // change on every screen on and off, doze step and mode change, and each one built
+            // and applied the same transaction again (0.70.14 audit).
+            long key = placementKey(controller);
+            if (key == placedFor) {
+                return;
+            }
             SurfaceControl.Transaction t = new SurfaceControl.Transaction();
             placePanel(t, controller);
             t.apply();
@@ -206,8 +213,18 @@ final class LandscapeFingerprint {
                 // A layer without a buffer draws nothing either.
             }
             container = (SurfaceControl) XposedHelpers.callMethod(builder, "build");
+            placedFor = -1; // A new layer: not placed yet.
         }
         return container;
+    }
+
+    /** What the container was last placed for (rotation and display size), or -1. */
+    private static volatile long placedFor = -1;
+
+    private static long placementKey(Object controller) {
+        return ((long) rotation(controller) << 40)
+                | ((long) XposedHelpers.getIntField(controller, "mDisplayWidth") << 20)
+                | XposedHelpers.getIntField(controller, "mDisplayHeight");
     }
 
     private static void placePanel(SurfaceControl.Transaction t, Object controller) {
@@ -224,6 +241,7 @@ final class LandscapeFingerprint {
         // System UI, a platform app, may use).
         XposedHelpers.callMethod(t, "setMatrix", container, m[0], m[3], m[1], m[4]);
         XposedHelpers.callMethod(t, "setPosition", container, m[2], m[5]);
+        placedFor = placementKey(controller);
         if (lastRotation != rotation) {
             lastRotation = rotation;
             Hooks.log("landscape fingerprint: sensor layers placed for rotation " + rotation);

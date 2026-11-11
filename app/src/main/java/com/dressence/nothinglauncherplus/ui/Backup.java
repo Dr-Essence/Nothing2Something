@@ -53,6 +53,13 @@ final class Backup {
     }
 
     /** Restores cover files and returns the imported configuration (not yet saved). */
+    /**
+     * The largest backup read: far above a real one (the settings and a few cover images), so
+     * a wrong file picked (a video) is refused instead of filling the memory and crashing the
+     * app (0.70.14 audit).
+     */
+    private static final int MAX_BACKUP_BYTES = 64 * 1024 * 1024;
+
     static Config restore(Context context, Uri source) throws IOException, JSONException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (InputStream in = context.getContentResolver().openInputStream(source)) {
@@ -61,25 +68,40 @@ final class Backup {
             }
             byte[] buffer = new byte[64 * 1024];
             for (int n; (n = in.read(buffer)) > 0; ) {
+                if (bytes.size() + n > MAX_BACKUP_BYTES) {
+                    throw new IOException("not a backup (over 64 MB)");
+                }
                 bytes.write(buffer, 0, n);
             }
         }
         JSONObject root = new JSONObject(bytes.toString(StandardCharsets.UTF_8.name()));
         Config config = Config.fromJson(root.getJSONObject("config"));
         JSONObject covers = root.optJSONObject("covers");
+        // Every cover decoded first, and only then written: a bad one found halfway used to
+        // leave the current folders showing some of the backup's images while the import
+        // reported it failed (0.70.14 audit).
+        java.util.Map<Config.Folder, byte[]> images = new java.util.LinkedHashMap<>();
         for (Config.Folder folder : config.folders) {
             String data = covers != null ? covers.optString(folder.id, "") : "";
             if (data.isEmpty()) {
                 folder.coverImageVersion = 0;
                 continue;
             }
+            try {
+                images.put(folder, Base64.decode(data, Base64.NO_WRAP));
+            } catch (IllegalArgumentException e) {
+                throw new IOException("the cover of " + folder.name + " is damaged");
+            }
+        }
+        for (java.util.Map.Entry<Config.Folder, byte[]> e : images.entrySet()) {
+            Config.Folder folder = e.getKey();
             File file = CoverProvider.coverFile(context, folder.id);
             File dir = file.getParentFile();
             if (dir != null && !dir.isDirectory() && !dir.mkdirs()) {
                 throw new IOException("cannot create " + dir);
             }
             try (FileOutputStream out = new FileOutputStream(file)) {
-                out.write(Base64.decode(data, Base64.NO_WRAP));
+                out.write(e.getValue());
             }
             // New version so the launcher does not reuse a cached bitmap.
             folder.coverImageVersion = System.currentTimeMillis();

@@ -41,7 +41,11 @@ public final class RotationSensor {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {
                 try {
-                    store.reloadIfChanged();
+                    // Read, not reloaded: the window manager calls this with its global lock
+                    // held, on every screen-on, and a reload reads and parses the settings
+                    // file (it did, after every save, 0.70.14 audit). The store is kept
+                    // current off the lock: every save sends ACTION_RELOAD, which
+                    // ControllerHome's receiver (registered at systemReady) reloads it on.
                     if (!(store.get().lockRotation || store.get().allowRotation)) {
                         return;
                     }

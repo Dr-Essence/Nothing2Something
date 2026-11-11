@@ -75,6 +75,15 @@ internal class DotSlabView(context: Context) : View(context), TurningIcon {
             field = value
             invalidate()
         }
+    override var active = true
+        set(value) {
+            if (field == value) return
+            field = value
+            if (value) {
+                lastFrame = 0L // no jump after the pause
+                invalidate()
+            }
+        }
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     /** Makes the slab from [icon] (any size; read as [GRID] cells). */
@@ -161,7 +170,7 @@ internal class DotSlabView(context: Context) : View(context), TurningIcon {
                 canvas.drawCircle(cx + x1 * p * scale, cy + y2 * p * scale, r0 * p, paint)
             }
         }
-        if (isShown) postInvalidateOnAnimation()
+        if (isShown && active) postInvalidateOnAnimation()
     }
 
     override fun onVisibilityAggregated(isVisible: Boolean) {

@@ -1317,27 +1317,6 @@ final class DotEffectParts {
                     1 + (0.22f + 0.1f * s.boost) * swell);
         }
     }
-
-    /** Hearts rising from beside the emoji: swaying, growing a little, fading at the top. */
-    static void hearts(Scene s, int count) {
-        Regions r = s.regions;
-        float w = r.maxX - r.minX;
-        for (int k = 0; k < count; k++) {
-            float life = cycle(s, 3.2f, k * (3.2f / count));
-            int cyc = (int) ((s.t + k * (3.2f / count) + (s.seed & 0xFF) * 0.013f) / 3.2f);
-            float side = Scene.hash(k, cyc, s.seed);
-            float x0 = r.minX + w * (0.2f + 0.6f * side);
-            float rise = ObjectEffects.easeOut(life);
-            float x = x0 + (float) Math.sin(life * 6 + k * 2) * 1.1f * life;
-            // From the upper half up to the panel's top edge: always inside the screen.
-            float y0 = r.minY + (r.maxY - r.minY) * 0.62f;
-            float y = y0 - rise * (y0 - 2.5f);
-            float env = Math.min(1, life / 0.12f) * (life < 0.55f ? 1 : 1 - (life - 0.55f) / 0.45f);
-            s.heart(x, y, 3 + 1.8f * ObjectEffects.easeOut(Math.min(1, life * 2.5f)),
-                    0xFFFF3D68, env);
-        }
-    }
-
     /** Stars circling round the head, brighter as they pass in front. */
     static void dizzy(Scene s) {
         Regions r = s.regions;

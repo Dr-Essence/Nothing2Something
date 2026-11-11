@@ -191,7 +191,8 @@ internal class SteamTrailers(context: Context) {
         if (ref.startsWith("http")) ref
         else base.substringBefore('?').substringBeforeLast('/') + "/" + ref
 
-    private fun bytes(address: String): ByteArray = Http.get(address)
+    /** A clip's piece: no clip kept is larger than MAX_BYTES * 2, so no piece read is either. */
+    private fun bytes(address: String): ByteArray = Http.get(address, maxBytes = MAX_BYTES * 2)
 
     private fun search(label: String): Int? {
         val name = label.replace(Regex("[™®©]"), "").trim()

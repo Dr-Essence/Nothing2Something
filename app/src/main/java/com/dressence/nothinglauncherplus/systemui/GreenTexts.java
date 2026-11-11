@@ -27,6 +27,11 @@ final class GreenTexts {
                 new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {
+                        // First: with both off, nothing to do for any of System UI's texts
+                        // (it looked each one up first, on every draw, 0.70.14 audit).
+                        if (!store.get().ndotStatusBar && !store.get().ndotQuickSettings) {
+                            return;
+                        }
                         TextView view = (TextView) param.thisObject;
                         if (Led.isLit(view) || NetworkSpeed.contains(view)) {
                             return;

@@ -715,7 +715,8 @@ public class SettingsActivity extends Activity {
         restartSystemUiRow(ui);
         ui.section("Status bar");
         ui.switchRow("Ndot status bar",
-                "Ndot clock and date, every status icon in glowing green",
+                "Ndot clock and date, every status icon in glowing green · turned off, the"
+                        + " texts stay green until System UI restarts",
                 config.ndotStatusBar, checked -> {
                     config.ndotStatusBar = checked;
                     store.save(this);
@@ -805,7 +806,8 @@ public class SettingsActivity extends Activity {
                 null, ui.chevron(), v -> AppPickerActivity.openFullScreen(this));
 
         ui.section("Quick settings");
-        ui.switchRow("Green quick settings", "Quick settings icons in glowing green",
+        ui.switchRow("Green quick settings", "Quick settings icons in glowing green · turned"
+                + " off, the tile names stay green until System UI restarts",
                 config.ndotQuickSettings, checked -> {
                     config.ndotQuickSettings = checked;
                     store.save(this);
@@ -1152,7 +1154,8 @@ public class SettingsActivity extends Activity {
             String error = null;
             try {
                 work.run();
-            } catch (Exception e) {
+            } catch (Throwable e) {
+                // Throwable: an error (out of memory) would end this thread and the app.
                 error = e.getMessage() != null ? e.getMessage() : e.toString();
             }
             String failure = error;

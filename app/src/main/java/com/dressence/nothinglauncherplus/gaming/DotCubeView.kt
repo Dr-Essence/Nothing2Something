@@ -109,6 +109,15 @@ internal class DotCubeView(context: Context) : View(context), TurningIcon {
             field = value
             invalidate()
         }
+    override var active = true
+        set(value) {
+            if (field == value) return
+            field = value
+            if (value) {
+                lastFrame = 0L // no jump after the pause
+                invalidate()
+            }
+        }
 
     private val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
     private val matrix = Matrix()
@@ -146,7 +155,7 @@ internal class DotCubeView(context: Context) : View(context), TurningIcon {
         // The top is a dot screen too (it was a dark plain lid until 0.68.1), a little darker,
         // as lit from the front.
         if (facing(TOP)) drawFace(canvas, picture, TOP, dim * 0.75f)
-        if (isShown) postInvalidateOnAnimation()
+        if (isShown && active) postInvalidateOnAnimation()
     }
 
     /** The face picture mapped onto one side's four projected corners, at [light] (0 to 1). */
@@ -191,12 +200,12 @@ internal class DotCubeView(context: Context) : View(context), TurningIcon {
 
     /** How squarely a face looks at the viewer, 0 (edge on) to 1 (straight on). */
     private fun frontness(f: IntArray): Float {
-        val w = RectF()
-        w.left = minOf(px[f[0]], px[f[1]], px[f[2]], px[f[3]])
-        w.right = maxOf(px[f[0]], px[f[1]], px[f[2]], px[f[3]])
+        // Its width on screen (no RectF: this runs for every side, every frame).
+        val wide = maxOf(px[f[0]], px[f[1]], px[f[2]], px[f[3]]) -
+            minOf(px[f[0]], px[f[1]], px[f[2]], px[f[3]])
         val r = REACH
         val full = 2f * minOf(width / (r[1] - r[0]), height / (r[3] - r[2])) // a side, straight on
-        return (w.width() / full).coerceIn(0f, 1f)
+        return (wide / full).coerceIn(0f, 1f)
     }
 }
 
@@ -206,6 +215,14 @@ internal class DotCubeView(context: Context) : View(context), TurningIcon {
  */
 internal interface TurningIcon {
     var lit: Boolean
+    /**
+     * False while the icon cannot be seen (Gaming Space's categories show, it is above the
+     * selected app, or below the screen's edge): it holds still instead of drawing every frame.
+     * A view at alpha 0 or moved off screen still counts as shown to Android, so every app of
+     * a category turned at the display's rate, about a hundred views in "Apps" (0.70.14
+     * audit). Set by Gaming Space's layoutCross; true again, it turns on from where it was.
+     */
+    var active: Boolean
 }
 
 /**

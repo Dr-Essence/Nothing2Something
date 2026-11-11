@@ -142,8 +142,10 @@ internal class DotVideoView(context: Context) : FrameLayout(context),
             super.dispatchDraw(canvas)
             return
         }
-        screen.draw(canvas, null, corner) { super.dispatchDraw(it) } // the video, no glow
-        postInvalidateOnAnimation() // every frame the video gives
+        // The video, no glow. Redrawn once per video frame by onSurfaceTextureUpdated; it also
+        // asked for a redraw on every display frame (120 a second, two full-size layers each),
+        // even before a video started or after one failed (0.70.14 audit).
+        screen.draw(canvas, null, corner) { super.dispatchDraw(it) }
     }
 
     override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {

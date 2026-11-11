@@ -369,6 +369,11 @@ final class SmartDrawer {
                 return;
             }
             List<?> apps = GroupItems.apps(items.get(index));
+            if (apps == null) {
+                // Checked before the list changes: failing after it left the drawer's list and
+                // its adapter disagreeing, which RecyclerView reports as an inconsistency.
+                return;
+            }
             List<Object> before = new ArrayList<>(items);
             items.remove(index);
             items.add(XposedHelpers.newInstance(adapterItemClass, VIEW_TYPE_SPACER));

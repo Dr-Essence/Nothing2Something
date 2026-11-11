@@ -39,8 +39,15 @@ public final class CaptureIndicator extends Service {
     private String phase = "";
 
     static void start(Context context, int delaySeconds, int seconds) {
-        context.startForegroundService(new Intent(context, CaptureIndicator.class)
-                .putExtra(EXTRA_DELAY, delaySeconds).putExtra(EXTRA_LENGTH, seconds));
+        try {
+            context.startForegroundService(new Intent(context, CaptureIndicator.class)
+                    .putExtra(EXTRA_DELAY, delaySeconds).putExtra(EXTRA_LENGTH, seconds));
+        } catch (IllegalStateException notNow) {
+            // Android refuses a foreground service once the app is in the background (Home
+            // pressed while root was asked): the capture runs and saves all the same, only
+            // without the buzz, notification and pill (thrown on the main thread, it crashed
+            // the app, 0.70.14 audit).
+        }
     }
 
     @Override

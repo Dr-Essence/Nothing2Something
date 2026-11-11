@@ -138,14 +138,21 @@ final class HomeRestore {
             int columns, int rows, List<String> restored, List<String> widgets) {
         // What the grid in use has: ids, intents, and the desktop cells taken.
         Set<Integer> ids = new HashSet<>();
+        // Each id's item, to tell it from another one that took its id: the migration keeps
+        // ids, and items added afterwards are numbered on from the highest kept one, so they
+        // can have the id of an item it dropped. Matched by id alone, such a dropped item
+        // counted as present and was skipped (0.70.14 audit).
+        Map<Integer, String> items = new HashMap<>();
         Set<String> intents = new HashSet<>();
         Map<Integer, boolean[][]> taken = new HashMap<>();
         int maxId = 0;
         try (Cursor c = db.rawQuery("SELECT _id, container, screen, cellX, cellY, spanX, spanY,"
-                + " intent FROM favorites", null)) {
+                + " intent, itemType, title FROM favorites", null)) {
             while (c.moveToNext()) {
                 int id = c.getInt(0);
                 ids.add(id);
+                items.put(id, signature(c.getInt(8), c.isNull(7) ? null : c.getString(7),
+                        c.isNull(9) ? null : c.getString(9)));
                 maxId = Math.max(maxId, id);
                 int container = c.getInt(1);
                 if ((container == DESKTOP || container == HOTSEAT) && !c.isNull(7)) {
@@ -165,11 +172,12 @@ final class HomeRestore {
                 + DESKTOP + " ORDER BY screen, cellY, cellX", null)) {
             while (c.moveToNext()) {
                 int id = c.getInt(0);
-                if (ids.contains(id)) {
-                    continue;
-                }
                 int type = c.getInt(6);
                 String title = c.isNull(7) ? null : c.getString(7);
+                String intent = c.isNull(8) ? null : c.getString(8);
+                if (signature(type, intent, title).equals(items.get(id))) {
+                    continue; // The same item, still there.
+                }
                 if (!RESTORED_TYPES.contains(type)) {
                     String provider = c.isNull(9) ? null : c.getString(9);
                     widgets.add(title != null ? title : provider != null
@@ -191,7 +199,8 @@ final class HomeRestore {
                     continue;
                 }
                 mark(taken, screen, x, y, spanX, spanY, columns, rows);
-                newIds.put(id, id <= maxId ? id : -1);
+                // Its own id where that is free; a new one where another item has it.
+                newIds.put(id, id <= maxId && !ids.contains(id) ? id : -1);
                 titles.add(title != null ? title : "item " + id);
             }
         }
@@ -204,11 +213,13 @@ final class HomeRestore {
         for (Integer id : newIds.keySet()) {
             folders.append(folders.length() == 0 ? "" : ",").append(id);
         }
-        try (Cursor c = src.rawQuery("SELECT _id, container, itemType FROM favorites"
-                + " WHERE container IN (" + folders + ")", null)) {
+        try (Cursor c = src.rawQuery("SELECT _id, container, itemType, intent, title"
+                + " FROM favorites WHERE container IN (" + folders + ")", null)) {
             while (c.moveToNext()) {
-                if (!ids.contains(c.getInt(0)) && RESTORED_TYPES.contains(c.getInt(2))
-                        && c.getInt(2) != FOLDER) {
+                int type = c.getInt(2);
+                boolean same = signature(type, c.isNull(3) ? null : c.getString(3),
+                        c.isNull(4) ? null : c.getString(4)).equals(items.get(c.getInt(0)));
+                if (!same && RESTORED_TYPES.contains(type) && type != FOLDER) {
                     children.put(c.getInt(0), c.getInt(1));
                 }
             }
@@ -224,11 +235,22 @@ final class HomeRestore {
         }
         for (Map.Entry<Integer, Integer> e : children.entrySet()) {
             int id = e.getKey();
-            int to = id <= maxId ? id
+            int to = id <= maxId && !ids.contains(id) ? id
                     : (Integer) XposedHelpers.callMethod(controller, "generateNewItemId");
             insert(src, controller, wanted, id, to, newIds.get(e.getValue()));
         }
         restored.addAll(titles);
+    }
+
+    /**
+     * What an item is, to tell two items with one id apart: its type and what it opens. A
+     * folder by its type alone: one renamed since must not come back a second time.
+     */
+    private static String signature(int type, String intent, String title) {
+        if (type == FOLDER) {
+            return String.valueOf(FOLDER);
+        }
+        return type + "|" + (intent != null ? component(intent) : String.valueOf(title));
     }
 
     /** One row of the other grid's database, as Nothing's insert takes it. */

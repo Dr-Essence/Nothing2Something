@@ -386,10 +386,6 @@ final class Scene {
         f = forward[5];
     }
 
-    boolean mapped() {
-        return mapped && regions != null && regions.maxX >= 0;
-    }
-
     /** Index of the resting dot output dot {@code i} shows, or -1. */
     int restIndex(int i) {
         int x = Math.round(srcX[i]);

@@ -214,13 +214,25 @@ internal object StatusBarSaver {
         if (hideMs >= 0) guarded {
             FullScreenApps.answerQueries(bar.context.applicationContext, settings)
         }
-        if (hideMs >= 0 && screenReceiver == null) {
+        if (screenReceiver == null) {
+            // Screen off: the moving stops (the bar's window stays attached with the screen
+            // off and on the always-on display, so it went on moving and measuring every few
+            // seconds whenever the phone was awake, 0.70.14 audit); screen on: it moves again
+            // and, with hiding on, the bar shows.
             val receiver = object : BroadcastReceiver() {
-                override fun onReceive(context: Context, intent: Intent) =
-                    guarded { wakeAll("screen on") }
+                override fun onReceive(context: Context, intent: Intent) = guarded {
+                    if (intent.action == Intent.ACTION_SCREEN_OFF) {
+                        savers.values.toList().forEach { it.pauseMoving() }
+                    } else {
+                        savers.values.toList().forEach { it.resumeMoving() }
+                        if (hideMs >= 0) wakeAll("screen on")
+                    }
+                }
             }
-            bar.context.applicationContext.registerReceiver(receiver,
-                IntentFilter(Intent.ACTION_SCREEN_ON), Context.RECEIVER_NOT_EXPORTED)
+            val filter = IntentFilter(Intent.ACTION_SCREEN_ON)
+            filter.addAction(Intent.ACTION_SCREEN_OFF)
+            bar.context.applicationContext.registerReceiver(receiver, filter,
+                Context.RECEIVER_NOT_EXPORTED)
             screenReceiver = receiver
         }
     }
@@ -280,6 +292,22 @@ internal object StatusBarSaver {
         fun stop() {
             main.removeCallbacks(move)
             main.removeCallbacks(hide)
+            if (hidden) {
+                // Undone too: stopped while faded (the bar detached), it stayed faded, and
+                // full-screen apps went on using its space while a new bar showed (0.70.14
+                // audit).
+                hidden = false
+                contents.animate().cancel()
+                contents.alpha = 1f
+                FullScreenApps.barFaded(contents.context, false)
+            }
+        }
+
+        fun pauseMoving() = main.removeCallbacks(move)
+
+        fun resumeMoving() {
+            main.removeCallbacks(move)
+            if (shiftMs > 0 && shiftDp > 0) main.postDelayed(move, shiftMs)
         }
 
         /**

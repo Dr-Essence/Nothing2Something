@@ -440,6 +440,13 @@ class GamingSpaceActivity : Activity() {
             main.post {
                 if (isDestroyed || phase != Phase.MAIN) return@post
                 apps = loaded
+                // Each category's selection kept inside its list: after "Hide" or "Move" on a
+                // category's last app (or an app uninstalled while away) it pointed past the
+                // end, so nothing showed and Cross did nothing (0.70.14 audit).
+                for (i in appFocus.indices) {
+                    appFocus[i] = appFocus[i].coerceIn(0, maxOf(0, appsOf(i).size - 1))
+                }
+                if (inApps && appsOf(category).isEmpty()) inApps = false
                 buildCards()
                 buildColumn()
                 showSelection()
@@ -608,7 +615,11 @@ class GamingSpaceActivity : Activity() {
                 if (on) it.setShadowLayer(dp(10f), 0f, 0f, GLOW) else it.setShadowLayer(0f, 0f, 0f, 0)
             }
             (((item as? ViewGroup)?.getChildAt(0) as? ViewGroup)?.getChildAt(0) as? TurningIcon)
-                ?.lit = on
+                ?.let {
+                    it.lit = on
+                    val bottom = window.decorView.height
+                    it.active = inApps && off >= 0 && (bottom == 0 || y + away < bottom)
+                }
         }
     }
 

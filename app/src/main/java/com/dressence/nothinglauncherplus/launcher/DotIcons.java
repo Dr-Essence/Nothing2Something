@@ -172,6 +172,15 @@ final class DotIcons {
                         launcher = new WeakReference<>((Activity) param.thisObject);
                     }
                 });
+        XposedHelpers.findAndHookMethod(Config.CLS_LAUNCHER, cl, "onResume",
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) {
+                        if (!OUT_OF_VIEW.isEmpty() && DotIconPack.active()) {
+                            recheckSoon(); // Paused while the launcher was away.
+                        }
+                    }
+                });
         // Picking the pack or leaving it redraws every icon on screen at once (the launcher
         // reloads its icons too, a moment later).
         DotIconPack.install(cl, () -> {
@@ -219,11 +228,25 @@ final class DotIcons {
         recheckPosted = true;
         MAIN.postDelayed(Hooks.guard("dot icons recheck", () -> {
             recheckPosted = false;
+            if (!DotIconPack.active()) {
+                OUT_OF_VIEW.clear(); // The pack was left: nothing waits to power on.
+                return;
+            }
             wakeInView();
-            if (!OUT_OF_VIEW.isEmpty() && !watching) {
+            // Paused while the launcher is not in front (its icons cannot come into view; it
+            // checked once a second for as long as other apps were open, 0.70.14 audit);
+            // onResume starts it again.
+            if (!OUT_OF_VIEW.isEmpty() && !watching && launcherInFront()) {
                 recheckSoon();
             }
         }), RECHECK_MS);
+    }
+
+    /** True while the launcher's window shows (it is not behind another app). */
+    private static boolean launcherInFront() {
+        Activity activity = launcher.get();
+        return activity != null && activity.getWindow().getDecorView().getWindowVisibility()
+                == View.VISIBLE;
     }
 
     /** True if {@code d}'s view is on the display and not faded out; true if it has no view. */
@@ -334,6 +357,16 @@ final class DotIcons {
     /** The scan line's colour (no alpha): the green of an old phosphor screen. */
     private static final int SCAN_GREEN = 0x4CFF8A;
     private static final Paint SCAN = new Paint();
+    /**
+     * The scan line's band, made once over 0..1 and moved and stretched onto each frame's band
+     * by its matrix; its strength is the paint's alpha. The same pixels as a new gradient with
+     * the peak's alpha each frame (the edges are clear, so alpha only scales), without one
+     * new gradient per scanning icon per frame (0.70.14 audit).
+     */
+    private static final LinearGradient SCAN_BAND = new LinearGradient(0, 0, 0, 1,
+            new int[] {SCAN_GREEN, 0xFF000000 | SCAN_GREEN, SCAN_GREEN}, null,
+            Shader.TileMode.CLAMP);
+    private static final android.graphics.Matrix SCAN_PLACE = new android.graphics.Matrix();
     static {
         SCAN.setXfermode(new PorterDuffXfermode(
                 PorterDuff.Mode.SRC_IN));
@@ -367,10 +400,11 @@ final class DotIcons {
             float band = bounds.height() * 0.22f;
             float e = scan * scan * (3 - 2 * scan);
             float y = bounds.top - band + e * (bounds.height() + band * 2);
-            int peak = Math.round(150 * (float) Math.sin(scan * Math.PI)) << 24 | SCAN_GREEN;
-            SCAN.setShader(new LinearGradient(0, y - band / 2, 0, y + band / 2,
-                    new int[] {SCAN_GREEN, peak, SCAN_GREEN}, null,
-                    Shader.TileMode.CLAMP));
+            SCAN_PLACE.setScale(1, band);
+            SCAN_PLACE.postTranslate(0, y - band / 2);
+            SCAN_BAND.setLocalMatrix(SCAN_PLACE);
+            SCAN.setShader(SCAN_BAND);
+            SCAN.setAlpha(Math.round(150 * (float) Math.sin(scan * Math.PI)));
             canvas.drawRect(bounds.left, y - band / 2, bounds.right, y + band / 2, SCAN);
             canvas.restoreToCount(layer);
             d.invalidateSelf();

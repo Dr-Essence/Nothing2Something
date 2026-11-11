@@ -139,10 +139,20 @@ public final class TaskManager {
                 header.show(STATS);
                 refreshRows();
             }));
-            if (page.isAttachedToWindow()) {
+            // Only while the page shows: Settings left in recents (home pressed, screen off)
+            // keeps its views attached, and it read /proc, the CPU dump, the thermal HAL and
+            // the network stats every 2 s for as long as it sat there (0.70.14 audit). The
+            // window's visibility listener below starts it again.
+            if (page.isAttachedToWindow() && page.getWindowVisibility() == View.VISIBLE) {
                 worker().postDelayed(tick[0], TICK_MS);
             }
         };
+        page.getViewTreeObserver().addOnWindowVisibilityChangeListener(visibility -> {
+            worker().removeCallbacks(tick[0]);
+            if (visibility == View.VISIBLE) {
+                worker().post(tick[0]);
+            }
+        });
         page.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override
             public void onViewAttachedToWindow(View v) {
