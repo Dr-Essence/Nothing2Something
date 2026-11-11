@@ -120,8 +120,8 @@ final class FontSettings {
             // crash guard's "planned restart" note and allows one restart every 90 s. (Mistake
             // recorded, up to 0.65.2: the font had its own restart with neither, so choosing a
             // few fonts in a row could put LSPosed into safe mode, as in 0.54.1.)
-            long wait = SystemUiRestart.waitSeconds();
-            boolean restarted = wait == 0 && SystemUiRestart.restart();
+            long wait = SystemUiRestart.waitSeconds(activity);
+            boolean restarted = wait == 0 && SystemUiRestart.restart(activity);
             UpdateReceiver.restartLauncher();
             String name = choice == null ? "Phone font back" : choice.title + " set";
             String status = restarted ? ": status bar and launcher now use it."

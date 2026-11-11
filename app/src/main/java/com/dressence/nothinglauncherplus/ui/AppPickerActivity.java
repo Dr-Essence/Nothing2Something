@@ -93,17 +93,33 @@ public class AppPickerActivity extends Activity {
         accent = a.getColor(0, 0xFFD71921);
         a.recycle();
         all.addAll(Apps.all(this));
-        for (Apps.App app : all) {
-            boolean in = fullScreenList
-                    ? store.config.fullScreenApps.contains(packageOf(app.component))
-                    : store.config.folderForComponent(app.component) == folder;
-            if (in) {
-                chosen.add(app.component);
+        java.util.ArrayList<String> kept = savedInstanceState != null
+                ? savedInstanceState.getStringArrayList(STATE_CHOSEN) : null;
+        if (kept != null) {
+            // Turned (or brought back) before saving: the ticks made so far, not the saved
+            // ones again, which lost every unsaved tick (0.70.14 audit).
+            chosen.addAll(kept);
+        } else {
+            for (Apps.App app : all) {
+                boolean in = fullScreenList
+                        ? store.config.fullScreenApps.contains(packageOf(app.component))
+                        : store.config.folderForComponent(app.component) == folder;
+                if (in) {
+                    chosen.add(app.component);
+                }
             }
         }
         getWindow().getDecorView().setBackgroundColor(Ui.BACKGROUND);
         setContentView(build(fullScreenList ? "Full-screen apps" : folder.name));
         filter();
+    }
+
+    private static final String STATE_CHOSEN = "chosen";
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        out.putStringArrayList(STATE_CHOSEN, new ArrayList<>(chosen));
     }
 
     @Override

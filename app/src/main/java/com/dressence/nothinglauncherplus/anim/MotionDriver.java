@@ -137,6 +137,7 @@ public final class MotionDriver implements Choreographer.FrameCallback {
         boolean animating = false;
         boolean onScreen = false;
         boolean windowVisible = false;
+        boolean offScreen = false;
         long nextPlay = Long.MAX_VALUE;
 
         for (int i = views.size() - 1; i >= 0; i--) {
@@ -151,6 +152,7 @@ public final class MotionDriver implements Choreographer.FrameCallback {
             }
             windowVisible = true;
             if (scale == 0 || !isOnScreen(view)) {
+                offScreen = true;
                 view.rest();
                 continue;
             }
@@ -168,7 +170,11 @@ public final class MotionDriver implements Choreographer.FrameCallback {
             delayMs = 0;
         } else if (onScreen && nextPlay != Long.MAX_VALUE) {
             delayMs = Math.max(1, nextPlay / 1_000_000L);
-        } else if (windowVisible) {
+        } else if (windowVisible && offScreen) {
+            // Watching for views coming into view without a redraw (a page swiped in).
+            // With every shown view on screen and still, there is nothing to watch for: it
+            // sleeps until a view wakes it (setEmoji, react, a visibility change), instead of
+            // waking four times a second for as long as the home screen shows (0.70.14 audit).
             delayMs = OFFSCREEN_POLL_MS;
         } else {
             return; // Nothing visible: sleep until a view wakes us.

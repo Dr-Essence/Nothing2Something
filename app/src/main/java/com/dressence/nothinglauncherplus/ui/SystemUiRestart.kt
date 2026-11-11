@@ -20,12 +20,23 @@ import com.dressence.nothinglauncherplus.Root
 internal object SystemUiRestart {
 
     private const val COOLDOWN_MS = 90_000L
-    @Volatile private var last = 0L
+    /**
+     * When System UI was last restarted from here (wall clock ms), kept in this app's own
+     * prefs: held only in memory, it was forgotten whenever the app was swiped away, and two
+     * restarts in a row were possible again (0.70.14 audit).
+     */
+    private const val PREFS = "nlplus_systemui_restart"
+    private const val LAST = "last"
+
+    private fun prefs(context: android.content.Context) =
+        context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
 
     /** Seconds until the next restart is allowed (0: now). */
     @JvmStatic
-    fun waitSeconds(): Long {
-        val left = COOLDOWN_MS - (android.os.SystemClock.elapsedRealtime() - last)
+    fun waitSeconds(context: android.content.Context): Long {
+        val last = prefs(context).getLong(LAST, 0L)
+        // Clamped: a clock set back never makes it wait longer than the cooldown.
+        val left = (COOLDOWN_MS - (System.currentTimeMillis() - last)).coerceAtMost(COOLDOWN_MS)
         return if (last == 0L || left <= 0) 0 else (left + 999) / 1000
     }
 
@@ -35,9 +46,9 @@ internal object SystemUiRestart {
 
     /** True if System UI was restarted; false without root. Call off the main thread. */
     @JvmStatic
-    fun restart(): Boolean {
-        if (waitSeconds() > 0) return false
-        last = android.os.SystemClock.elapsedRealtime()
+    fun restart(context: android.content.Context): Boolean {
+        if (waitSeconds(context) > 0) return false
+        prefs(context).edit().putLong(LAST, System.currentTimeMillis()).commit()
         return Root.run(
             "[ -d $DIR ] && echo \"\$(date +%s)000\" > $DIR/$NOTE; pkill -f com.android.systemui"
         ) == null

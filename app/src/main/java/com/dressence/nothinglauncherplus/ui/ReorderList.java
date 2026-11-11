@@ -45,6 +45,8 @@ final class ReorderList extends LinearLayout {
     private final GradientDrawable dragBackground = new GradientDrawable();
 
     private View dragRow;
+    /** The dragged row's own background (its tap ripple), put back when it is dropped. */
+    private android.graphics.drawable.Drawable rowBackground;
     private int startIndex;
     private int currentIndex;
     private float downLocalY;
@@ -182,6 +184,7 @@ final class ReorderList extends LinearLayout {
         startIndex = currentIndex = index;
         lastRawY = ev.getRawY();
         downLocalY = localY(lastRawY);
+        rowBackground = dragRow.getBackground();
         dragRow.setBackground(dragBackground);
         dragRow.setElevation(rowHeight / 8f);
         dragRow.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
@@ -208,11 +211,13 @@ final class ReorderList extends LinearLayout {
     private void endDrag() {
         removeCallbacks(autoScroll);
         View row = dragRow;
+        android.graphics.drawable.Drawable own = rowBackground;
         dragRow = null;
+        rowBackground = null;
         row.animate().translationY(0).setDuration(150)
                 .withEndAction(() -> {
                     row.setElevation(0);
-                    row.setBackground(null);
+                    row.setBackground(own); // Not null: that took the row's ripple away.
                 })
                 .start();
         getParent().requestDisallowInterceptTouchEvent(false);

@@ -61,7 +61,8 @@ final class PaletteCycleView {
         XposedHelpers.findAndHookMethod(CLS_CYCLE, cl, "getCycleAmount", int.class,
                 new XC_MethodReplacement() {
                     @Override
-                    protected Object replaceHookedMethod(MethodHookParam param) {
+                    protected Object replaceHookedMethod(MethodHookParam param)
+                            throws Throwable {
                         return cycleAmount(param.thisObject, (Integer) param.args[0]);
                     }
                 });
@@ -103,12 +104,32 @@ final class PaletteCycleView {
         return new Rect(left, top, left + Math.round(w), top + Math.round(h));
     }
 
+    /**
+     * Cycle's fields, looked up once: cycleAmount runs for every colour cycle on every frame,
+     * and XposedHelpers.getIntField makes a lookup key each call (0.70.14 audit).
+     */
+    private static volatile java.lang.reflect.Field[] cycleFields;
+
+    /** rate, reverse, low, high: published together, so no thread sees them half set. */
+    private static java.lang.reflect.Field[] cycleFields(Class<?> cycle) {
+        java.lang.reflect.Field[] f = cycleFields;
+        if (f == null) {
+            f = new java.lang.reflect.Field[] {XposedHelpers.findField(cycle, "rate"),
+                    XposedHelpers.findField(cycle, "reverse"),
+                    XposedHelpers.findField(cycle, "low"),
+                    XposedHelpers.findField(cycle, "high")};
+            cycleFields = f;
+        }
+        return f;
+    }
+
     /** Cycle.getCycleAmount in doubles, as the author's fix does. */
-    private static float cycleAmount(Object cycle, int timePassed) {
-        int rate = XposedHelpers.getIntField(cycle, "rate");
-        int reverse = XposedHelpers.getIntField(cycle, "reverse");
-        int low = XposedHelpers.getIntField(cycle, "low");
-        int high = XposedHelpers.getIntField(cycle, "high");
+    private static float cycleAmount(Object cycle, int timePassed) throws IllegalAccessException {
+        java.lang.reflect.Field[] f = cycleFields(cycle.getClass());
+        int rate = f[0].getInt(cycle);
+        int reverse = f[1].getInt(cycle);
+        int low = f[2].getInt(cycle);
+        int high = f[3].getInt(cycle);
         int size = high - low + 1;
         double t = timePassed / (1000 / (rate / 280.0));
         double amount = 0;

@@ -35,14 +35,34 @@ final class Apps {
 
     private static List<App> all;
     private static Map<String, App> byComponent;
+    /** Android's count of app changes when the list was made (see {@link #all}). */
+    private static int sequence;
 
     private Apps() {
     }
 
-    /** Sorted by label; cached for the life of the process. */
+    /**
+     * Sorted by label; kept until an app is installed, updated or removed. (Until 0.70.15 it
+     * was kept for the life of the process, which Gaming Space and the overlay keep running:
+     * apps installed since never showed in the pickers, 0.70.14 audit.) Android counts app
+     * changes; getChangedPackages answers null while there was none since the list was made.
+     */
     static synchronized List<App> all(Context context) {
+        PackageManager pm = context.getPackageManager();
+        if (all != null) {
+            android.content.pm.ChangedPackages changed = pm.getChangedPackages(sequence);
+            if (changed != null) {
+                sequence = changed.getSequenceNumber();
+                all = null;
+            }
+        }
         if (all == null) {
-            PackageManager pm = context.getPackageManager();
+            if (sequence == 0) {
+                android.content.pm.ChangedPackages first = pm.getChangedPackages(0);
+                if (first != null) {
+                    sequence = first.getSequenceNumber();
+                }
+            }
             Intent intent = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
             List<App> result = new ArrayList<>();
             for (ResolveInfo info : pm.queryIntentActivities(intent, 0)) {

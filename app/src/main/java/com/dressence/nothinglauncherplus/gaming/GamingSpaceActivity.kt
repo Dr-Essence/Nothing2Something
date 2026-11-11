@@ -663,7 +663,15 @@ class GamingSpaceActivity : Activity() {
      * category first played a short animation of its own over the screen; removed, see
      * [DotArtworkView].)
      */
+    /**
+     * Counts selections. A lookup queued for a game checks it before going online: moving
+     * through 30 games queued about 60 network calls (several seconds each when offline)
+     * ahead of the game finally selected (0.70.14 audit).
+     */
+    @Volatile private var selection = 0
+
     private fun showSelection() {
+        selection++
         main.removeCallbacks(showApp)
         if (adjusting != null) endAdjust(false)
         screen.visibility = View.VISIBLE
@@ -693,7 +701,9 @@ class GamingSpaceActivity : Activity() {
      */
     private fun showTrailer(app: GamingLibrary.App) {
         if (!store.config.gamingTrailers || !isGame(app)) return
+        val mine = selection
         work {
+            if (mine != selection) return@work // another game is selected by now
             val url = trailers.find(app.packageName, app.label) ?: return@work
             main.post {
                 val now = appsOf(category).getOrNull(appFocus[category])
@@ -730,7 +740,9 @@ class GamingSpaceActivity : Activity() {
         if (!store.config.gamingArtwork) return
         if (app.category != GamingLibrary.Category.GAMES &&
             app.category != GamingLibrary.Category.EMULATORS) return
+        val mine = selection
         work {
+            if (mine != selection) return@work // another game is selected by now
             val picture = art.fetch(app.packageName, app.label,
                 store.config.gamingArtworkAnimated) ?: return@work
             main.post {

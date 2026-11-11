@@ -81,7 +81,9 @@ public final class LivingWorlds {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
                 Object engine = XposedHelpers.getObjectField(param.thisObject, "myActivity");
-                if (store.get().livingWorldsSounds && !isPreview(engine)) {
+                // Due first: isPreview is a reflective call, and this runs on every frame;
+                // the script goes in once every few seconds (0.70.14 audit).
+                if (store.get().livingWorldsSounds && due(engine) && !isPreview(engine)) {
                     inject(engine, SOUNDS_JS);
                 }
             }
@@ -234,6 +236,12 @@ public final class LivingWorlds {
         } catch (Throwable t) {
             return true;
         }
+    }
+
+    /** True when the script is due again (once every ENABLE_EVERY_MS). */
+    private static boolean due(Object engine) {
+        Long at = (Long) XposedHelpers.getAdditionalInstanceField(engine, ENABLED_AT);
+        return at == null || SystemClock.elapsedRealtime() - at >= ENABLE_EVERY_MS;
     }
 
     private static void inject(Object engine, String js) {

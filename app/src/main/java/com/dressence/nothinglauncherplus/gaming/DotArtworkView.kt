@@ -106,6 +106,16 @@ internal class DotArtworkView(context: Context) : View(context) {
 
     override fun verifyDrawable(who: Drawable): Boolean = who === moving || super.verifyDrawable(who)
 
+    /**
+     * An animated picture plays only while it can be seen: it drives itself (each frame asks
+     * for the next), so hidden under a trailer, or with Gaming Space behind a game it started,
+     * it went on decoding frames on the main thread (0.70.14 audit).
+     */
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        (moving as? Animatable)?.let { if (isVisible) it.start() else it.stop() }
+    }
+
     /** An animated picture asks for its next frame: it is drawn into the dots again. */
     override fun invalidateDrawable(drawable: Drawable) {
         if (drawable === moving) {

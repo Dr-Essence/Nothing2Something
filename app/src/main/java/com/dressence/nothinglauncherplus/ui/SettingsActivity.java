@@ -52,6 +52,10 @@ public class SettingsActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         store = new SettingsStore(this);
+        if (savedInstanceState != null) {
+            // Turned while the notification permission was asked: its answer still posts them.
+            pendingTest = savedInstanceState.getIntArray(STATE_PENDING_TEST);
+        }
         openSearchResult(getIntent());
         if (RunningServices.shortcutsOn(this)) {
             RunningServices.setShortcuts(this, true); // The icon's long-press shortcut.
@@ -141,6 +145,14 @@ public class SettingsActivity extends Activity {
      * Never lets a failure reach the page on screen.
      */
     private void buildSearchIndex() {
+        // Once per process, and again only when the settings changed: every page is its own
+        // screen, and each return to one laid all eight pages out again on the main thread
+        // (0.70.14 audit).
+        java.util.Map<String, ?> now = store.prefs.getAll();
+        if (now.equals(indexedFor)) {
+            return;
+        }
+        indexedFor = now;
         try {
             java.util.List<com.dressence.nothinglauncherplus.search.SearchIndex.Entry> found =
                     new java.util.ArrayList<>();
@@ -164,6 +176,11 @@ public class SettingsActivity extends Activity {
             android.util.Log.w("Nothing2Something", "search index not built: " + t);
         }
     }
+
+    /** The settings the search index was last built from, in this process. */
+    private static java.util.Map<String, ?> indexedFor;
+    /** The move off the memory card was asked for in this process (once is enough). */
+    private static boolean moveAsked;
 
     /** A Settings search result: open its page, and remember its row to show. */
     private void openSearchResult(Intent intent) {
@@ -244,7 +261,8 @@ public class SettingsActivity extends Activity {
                     + " the phone's storage now (root; this page closes). Without root, run: pm"
                     + " move-package " + getPackageName() + " internal");
             String pkg = getPackageName();
-            if (!ui.collecting()) {
+            if (!ui.collecting() && !moveAsked) {
+                moveAsked = true; // Not a new root thread on every render of the menu.
                 new Thread(() -> com.dressence.nothinglauncherplus.UpdateReceiver
                         .moveToInternalStorage(pkg)).start();
             }
@@ -899,6 +917,14 @@ public class SettingsActivity extends Activity {
     private static final int[] TEST_COUNTS = {1, 3, TestNotifications.KINDS, 12};
     private static final int[] TEST_DELAYS = {0, 10};
     private static final int NOTIFICATION_REQUEST = 7100;
+    private static final String STATE_PENDING_TEST = "pendingTest";
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        out.putIntArray(STATE_PENDING_TEST, pendingTest);
+    }
+
     /** The test notifications waiting for the notification permission: {count, delay}. */
     private int[] pendingTest;
 
@@ -1173,7 +1199,7 @@ public class SettingsActivity extends Activity {
     private void restartSystemUiRow(Ui ui) {
         ui.row("Restart System UI", "Applies the options marked \"restart System UI\" now"
                 + " · needs root · once every 90 s", null, null, v -> {
-                    long wait = SystemUiRestart.waitSeconds();
+                    long wait = SystemUiRestart.waitSeconds(this);
                     if (wait > 0) {
                         // More restarts in a row look like a crash loop to LSPosed, which
                         // then turns on its safe mode.
@@ -1183,7 +1209,7 @@ public class SettingsActivity extends Activity {
                         return;
                     }
                     new Thread(() -> {
-                        boolean done = SystemUiRestart.restart();
+                        boolean done = SystemUiRestart.restart(this);
                         runOnUiThread(() -> Toast.makeText(this, done ? "System UI restarted"
                                 : "Root not available; force stop System UI from App info",
                                 Toast.LENGTH_LONG).show());
