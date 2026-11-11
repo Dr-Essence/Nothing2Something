@@ -77,7 +77,13 @@ internal object DotIconPack {
                     try {
                         @Suppress("UNCHECKED_CAST")
                         val packs = param.args[1] as ConcurrentHashMap<Any, Any>
-                        packs.putIfAbsent(PACK_ID, XposedHelpers.newInstance(entity, PACK_ID, LABEL))
+                        // The class of an entry already in Nothing's map, which is the right
+                        // one by definition; "k7.b" (its name in 4.0.20, obfuscated) only when
+                        // the map is empty. A later build giving that name to another class
+                        // would have put a foreign object into Nothing's map (dependency map,
+                        // F4).
+                        val kind = packs.values.firstOrNull()?.javaClass ?: entity
+                        packs.putIfAbsent(PACK_ID, XposedHelpers.newInstance(kind, PACK_ID, LABEL))
                     } catch (t: Throwable) {
                         Hooks.log("dot matrix icon pack: entry failed: $t")
                     }

@@ -130,6 +130,30 @@ final class LockScreenTurn {
             Hooks.skipped("lock screen rotation", "no " + CLS_KEYGUARD_STATE);
             return;
         }
+        settings = store;
+        // The fingerprint parts first, and the turn only if they are in: a lock screen that
+        // turns without them leaves the sensor's spot and touches portrait, so in landscape
+        // the fingerprint fails and the finger pulls the shade down. (Until 0.70.20 the turn
+        // went in first and the parts after it, all in one step: a failure on the way, at the
+        // bouncer's flag for instance, left exactly that; found in the dependency map.)
+        try {
+            turnFingerprint(cl, store);
+            sensorTouches(cl, store);
+        } catch (Throwable t) {
+            Hooks.skipped("lock screen rotation", "fingerprint parts not installed, the lock"
+                    + " screen does not turn: " + t);
+            return;
+        }
+        // Each further part on its own: one that fails costs only itself (and shows in
+        // Diagnostics → Hook health).
+        Hooks.install("lock screen layout", () -> keepNothingLayout(cl, store));
+        Hooks.install("lock screen bouncer", () -> LandscapeBouncer.install(cl, store));
+        Hooks.install("lock screen notifications", () -> mirrorNotifications(cl, store));
+        Hooks.install("lock screen flip", () -> layOutOnFlip(cl, store));
+        Hooks.install("lock screen turn layout", () -> layOutWithTurn(cl, store));
+        Hooks.install("lock screen fingerprint log", () -> logFingerprint(cl, store));
+        Hooks.install("lock screen layout log", () -> layoutLog(cl, store));
+        // Last, the turn itself.
         int hooked = XposedBridge.hookAllMethods(state, "isKeyguardScreenRotationAllowed",
                 new XC_MethodHook() {
                     @Override
@@ -143,15 +167,11 @@ final class LockScreenTurn {
                         }
                     }
                 }).size();
-        keepNothingLayout(cl, store);
-        turnFingerprint(cl, store);
-        LandscapeBouncer.install(cl, store);
-        settings = store;
-        mirrorNotifications(cl, store);
-        layOutOnFlip(cl, store);
-        layOutWithTurn(cl, store);
-        logFingerprint(cl, store);
-        sensorTouches(cl, store);
+        Hooks.log("lock screen rotation: " + hooked + " hooks");
+    }
+
+    /** With Diagnostic logging: each landscape layout of the lock screen in the LSPosed log. */
+    private static void layoutLog(ClassLoader cl, ConfigStore store) {
         Class<?> window = XposedHelpers.findClassIfExists(CLS_SHADE_WINDOW, cl);
         if (window != null) {
             XposedHelpers.findAndHookMethod(window, "onAttachedToWindow", new XC_MethodHook() {
@@ -178,8 +198,7 @@ final class LockScreenTurn {
                 }
             });
         }
-        Hooks.log("lock screen rotation: " + hooked + " hooks, layout log "
-                + (window != null ? "on" : "off"));
+        Hooks.log("lock screen layout log " + (window != null ? "on" : "off"));
     }
 
     private static void keepNothingLayout(ClassLoader cl, ConfigStore store) {
@@ -318,8 +337,11 @@ final class LockScreenTurn {
 
     private static void turnFingerprint(ClassLoader cl, ConfigStore store) {
         Class<?> overlay = XposedHelpers.findClassIfExists(CLS_UDFPS_OVERLAY, cl);
-        if (overlay != null) {
-            XposedBridge.hookAllMethods(overlay, "shouldRotate", new XC_MethodHook() {
+        // Thrown, not skipped: install() turns the lock screen only with these parts in.
+        if (overlay == null) {
+            throw new IllegalStateException("no " + CLS_UDFPS_OVERLAY);
+        }
+        int rotate = XposedBridge.hookAllMethods(overlay, "shouldRotate", new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) {
                     if (Boolean.TRUE.equals(param.getResult()) || !store.get().lockRotation) {
@@ -335,9 +357,11 @@ final class LockScreenTurn {
                         Hooks.log("lock screen fingerprint: " + t);
                     }
                 }
-            });
+            }).size();
+        if (rotate == 0) {
+            throw new IllegalStateException("no shouldRotate on " + CLS_UDFPS_OVERLAY);
         }
-        if (overlay != null) {
+        {
             XposedBridge.hookAllMethods(overlay, "updateDimensions", new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) {
@@ -359,8 +383,7 @@ final class LockScreenTurn {
         }
         Class<?> entry = XposedHelpers.findClassIfExists(CLS_ENTRY_SECTION, cl);
         if (entry == null) {
-            Hooks.skipped("lock screen fingerprint", "no " + CLS_ENTRY_SECTION);
-            return;
+            throw new IllegalStateException("no " + CLS_ENTRY_SECTION);
         }
         for (java.lang.reflect.Method m : entry.getDeclaredMethods()) {
             if (!m.getName().startsWith("centerIcon")) {
@@ -536,8 +559,7 @@ final class LockScreenTurn {
         Class<?> utils = XposedHelpers.findClassIfExists(
                 "com.android.systemui.biometrics.UdfpsUtils", cl);
         if (utils == null) {
-            Hooks.skipped("fingerprint touch", "no UdfpsUtils");
-            return;
+            throw new IllegalStateException("no UdfpsUtils"); // install(): no turn without it
         }
         XC_MethodHook turnTouch = new XC_MethodHook() {
             @Override

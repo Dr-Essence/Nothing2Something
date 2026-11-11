@@ -194,9 +194,26 @@ final class LandscapeGrid {
     }
 
     void install() {
+        // The safety parts first, and the grid only with all of them in. They keep the user's
+        // items: the occupied-cells hook (with its veto on Launcher3 deleting items it thinks
+        // collide while binding) and the two guards that keep landscape places out of the
+        // portrait database. Until 0.70.20 the grid's mapper went in first, on its own, and
+        // these after it: a renamed method in a later launcher would have left the mapper on
+        // without them, and Launcher3 deleting "colliding" items (found in the dependency map
+        // of Nothing Launcher 4.0.20).
+        launcherClass = XposedHelpers.findClass(Config.CLS_LAUNCHER, cl);
+        activityContext = XposedHelpers.findClass(CLS_ACTIVITY_CONTEXT, cl); // gridOfView
+        try {
+            hookCollisionGuard();
+            hookOccupancy();
+            hookModelWriter();
+            hookDatabase();
+        } catch (Throwable t) {
+            Hooks.skipped("landscape grid", "its safety parts did not install, so the home"
+                    + " screen keeps Nothing's own landscape layout: " + t);
+            return;
+        }
         Hooks.install("landscape grid", () -> {
-            launcherClass = XposedHelpers.findClass(Config.CLS_LAUNCHER, cl);
-            activityContext = XposedHelpers.findClass(CLS_ACTIVITY_CONTEXT, cl);
             cellPos = XposedHelpers.findConstructorExact(CLS_CELL_POS, cl,
                     int.class, int.class, int.class);
             hookMapper();
@@ -205,11 +222,8 @@ final class LandscapeGrid {
             hookPagePadding();
         });
         Hooks.install("landscape grid spans", this::hookSpans);
-        Hooks.install("landscape occupied cells", this::hookOccupancy);
         Hooks.install("landscape widget resize", this::hookResizeFrame);
         Hooks.install("landscape grid arrangement", this::hookArrange);
-        Hooks.install("landscape grid safety", this::hookModelWriter);
-        Hooks.install("landscape portrait guard", this::hookDatabase);
         Hooks.install("landscape widget spans", this::hookDisplaySpan);
         Hooks.install("clean rotation", this::hookRebindHold);
         Hooks.install("pages on a profile change", this::hookProfileChange);
@@ -435,9 +449,14 @@ final class LandscapeGrid {
                 "finishBindingItems"}) {
             XposedBridge.hookAllMethods(launcherClass, bind, arrange);
         }
+    }
 
-        // Items are bound onto their turned portrait cells, which may overlap until the page is
-        // arranged: none of them is a collision.
+    /**
+     * Items are bound onto their turned portrait cells, which may overlap until the page is
+     * arranged: none of them is a collision, and Launcher3 must not delete them as one. A
+     * safety part (install()): the grid goes in only with it.
+     */
+    private void hookCollisionGuard() {
         XposedBridge.hookAllMethods(launcherClass, "bindInflatedItems", new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {

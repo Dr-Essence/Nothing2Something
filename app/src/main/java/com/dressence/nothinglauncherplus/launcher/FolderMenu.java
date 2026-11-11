@@ -171,6 +171,20 @@ final class FolderMenu {
         }
         Object model = XposedHelpers.callMethod(launcher, "getModel");
         Object writer = XposedHelpers.callMethod(launcher, "getModelWriter");
+        // Checked before the folder is added: found missing only afterwards (another launcher
+        // build), the folder was on the home screen with nothing in it (dependency map, F6).
+        boolean canWrite = false;
+        for (Class<?> c = writer.getClass(); c != null && !canWrite; c = c.getSuperclass()) {
+            for (java.lang.reflect.Method m : c.getDeclaredMethods()) {
+                if (m.getName().equals("addItemToDatabase") && m.getParameterCount() == 5) {
+                    canWrite = true;
+                    break;
+                }
+            }
+        }
+        if (!canWrite) {
+            throw new NoSuchMethodError("ModelWriter.addItemToDatabase(item, 4 ints)");
+        }
         XposedHelpers.callMethod(model, "addAndBindAddedWorkspaceItems",
                 Collections.singletonList(Pair.create(folder, null)));
 

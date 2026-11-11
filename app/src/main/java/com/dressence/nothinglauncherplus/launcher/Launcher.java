@@ -12,6 +12,7 @@ import com.dressence.nothinglauncherplus.xposed.ConfigStore;
 import com.dressence.nothinglauncherplus.xposed.Hooks;
 
 import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XC_MethodReplacement;
 import de.robv.android.xposed.XposedHelpers;
 
@@ -35,7 +36,8 @@ public final class Launcher {
         Hooks.install("settings module row", () -> SettingsEntry.installModuleRow(cl));
         Hooks.install("drawer background", () -> DrawerBackground.install(cl, store));
         new Landscape(cl, store).install();
-        new LandscapeGrid(cl).install();
+        // Guarded as a whole too: its first lookups are outside its own steps.
+        Hooks.install("landscape grid setup", () -> new LandscapeGrid(cl).install());
         new LandscapeSurfaces(cl, store).install();
         Hooks.install("landscape folder sheet", () -> new FolderSheetLandscape(cl).install());
         Hooks.install("landscape widget picker", () -> new WidgetPickerLandscape(cl, store).install());
@@ -128,22 +130,50 @@ public final class Launcher {
      * few seconds.
      */
     private static void hookLoaderIdleWait(ClassLoader cl) {
-        XposedHelpers.findAndHookMethod(CLS_LOADER_TASK, cl, "waitForIdle",
+        // Everything it uses, found now: a name missing in another launcher build skips this
+        // feature (Hooks.install), instead of failing inside every load of the home screen
+        // (until 0.70.20 they were looked up only as the load ran; dependency map, F3).
+        Class<?> taskClass = XposedHelpers.findClass(CLS_LOADER_TASK, cl);
+        java.lang.reflect.Field binderField = XposedHelpers.findField(taskClass, "mLauncherBinder");
+        java.lang.reflect.Field stoppedField = XposedHelpers.findField(taskClass, "mStopped");
+        java.lang.reflect.Method newIdleLock = null;
+        for (Class<?> c = binderField.getType(); c != null && newIdleLock == null;
+                c = c.getSuperclass()) {
+            for (java.lang.reflect.Method m : c.getDeclaredMethods()) {
+                if (m.getName().equals("newIdleLock") && m.getParameterCount() == 1) {
+                    m.setAccessible(true);
+                    newIdleLock = m;
+                    break;
+                }
+            }
+        }
+        if (newIdleLock == null) {
+            throw new NoSuchMethodError("newIdleLock");
+        }
+        java.lang.reflect.Method idleLock = newIdleLock;
+        java.lang.reflect.Method awaitLocked = XposedHelpers.findMethodExact(
+                idleLock.getReturnType(), "awaitLocked", long.class);
+        XposedHelpers.findAndHookMethod(taskClass, "waitForIdle",
                 new XC_MethodReplacement() {
                     @Override
-                    protected Object replaceHookedMethod(MethodHookParam param) {
+                    protected Object replaceHookedMethod(MethodHookParam param) throws Throwable {
                         Object task = param.thisObject;
-                        synchronized (task) {
-                            Object lock = XposedHelpers.callMethod(XposedHelpers.getObjectField(
-                                    task, "mLauncherBinder"), "newIdleLock", task);
-                            for (int i = 0; i < IDLE_WAIT_SECONDS
-                                    && !XposedHelpers.getBooleanField(task, "mStopped")
-                                    && (Boolean) XposedHelpers.callMethod(lock, "awaitLocked",
-                                            1000L); i++) {
-                                // Still not idle: wait another second.
+                        try {
+                            synchronized (task) {
+                                Object lock = idleLock.invoke(binderField.get(task), task);
+                                for (int i = 0; i < IDLE_WAIT_SECONDS
+                                        && !stoppedField.getBoolean(task)
+                                        && (Boolean) awaitLocked.invoke(lock, 1000L); i++) {
+                                    // Still not idle: wait another second.
+                                }
                             }
+                            return null;
+                        } catch (ReflectiveOperationException | RuntimeException e) {
+                            // Never into the load: the launcher's own wait instead.
+                            Hooks.log("loader idle wait: " + e + "; the launcher's own wait");
+                            return XposedBridge.invokeOriginalMethod(param.method, task,
+                                    param.args);
                         }
-                        return null;
                     }
                 });
     }
