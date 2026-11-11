@@ -103,16 +103,23 @@ internal class SteamTrailers(context: Context) {
     /** Makes the clip of the chosen trailer [link] the app's own. Blocking. */
     fun use(pkg: String, link: String): Boolean {
         val clip = java.io.File(dir, "$pkg.mp4")
-        clip.delete()
+        // Not deleted first: save() downloads into a .part file and renames it over the clip
+        // only when it is complete, so a failed download keeps the clip the app had.
         val made = save(link, clip)
         prefs.edit().putString(pkg, if (made) clip.path else NONE)
             .putLong("$pkg@", System.currentTimeMillis()).apply()
         return made
     }
 
-    /** Forgets an app's trailer (after a rename), so it is looked up again. */
+    /**
+     * Forgets an app's trailer (after a rename), so it is looked up again. Only a clip this
+     * class saved (its path is in the prefs) is deleted: one the user put there themselves
+     * ("Use my own clip") stays. (Mistake recorded, found in the 0.70.14 audit: renaming the
+     * app deleted the user's own clip.)
+     */
     fun forget(pkg: String) {
-        java.io.File(dir, "$pkg.mp4").delete()
+        val clip = java.io.File(dir, "$pkg.mp4")
+        if (prefs.getString(pkg, null) == clip.path) clip.delete()
         prefs.edit().remove(pkg).remove("$pkg@").apply()
     }
 

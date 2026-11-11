@@ -115,6 +115,21 @@ class GamingSpaceActivity : Activity() {
     private lateinit var store: SettingsStore
     private val main = Handler(Looper.getMainLooper())
     private val worker: ExecutorService = Executors.newSingleThreadExecutor()
+
+    /**
+     * Runs [task] on [worker], or not at all once the activity is gone: a download finishing
+     * after onDestroy (shutdownNow does not stop a blocking read) could post a result whose
+     * next step queued more work on the shut-down executor, which threw
+     * RejectedExecutionException on the main thread (0.70.14 audit).
+     */
+    private fun work(task: () -> Unit) {
+        if (worker.isShutdown) return
+        try {
+            worker.execute(task)
+        } catch (e: java.util.concurrent.RejectedExecutionException) {
+            // Shut down between the check and the call: nothing to do any more.
+        }
+    }
     /** Each app's look by package (see [look]). */
     private val looks = LruCache<String, Look>(64)
 
@@ -222,7 +237,7 @@ class GamingSpaceActivity : Activity() {
         inputManager = getSystemService(InputManager::class.java)
         inputManager?.registerInputDeviceListener(controllers, main)
         // NDot is read from the phone (none ships with the module): off the main thread.
-        worker.execute {
+        work {
             val face = loadNdot()
             main.post {
                 ndot = face
@@ -420,7 +435,7 @@ class GamingSpaceActivity : Activity() {
 
     private fun reloadApps() {
         val config = store.config
-        worker.execute {
+        work {
             val loaded = GamingLibrary.load(this, config)
             main.post {
                 if (isDestroyed || phase != Phase.MAIN) return@post
@@ -667,8 +682,8 @@ class GamingSpaceActivity : Activity() {
      */
     private fun showTrailer(app: GamingLibrary.App) {
         if (!store.config.gamingTrailers || !isGame(app)) return
-        worker.execute {
-            val url = trailers.find(app.packageName, app.label) ?: return@execute
+        work {
+            val url = trailers.find(app.packageName, app.label) ?: return@work
             main.post {
                 val now = appsOf(category).getOrNull(appFocus[category])
                 if (!isDestroyed && now?.packageName == app.packageName) {
@@ -704,9 +719,9 @@ class GamingSpaceActivity : Activity() {
         if (!store.config.gamingArtwork) return
         if (app.category != GamingLibrary.Category.GAMES &&
             app.category != GamingLibrary.Category.EMULATORS) return
-        worker.execute {
+        work {
             val picture = art.fetch(app.packageName, app.label,
-                store.config.gamingArtworkAnimated) ?: return@execute
+                store.config.gamingArtworkAnimated) ?: return@work
             main.post {
                 val now = appsOf(category).getOrNull(appFocus[category])
                 if (!isDestroyed && now?.packageName == app.packageName) {
@@ -748,7 +763,7 @@ class GamingSpaceActivity : Activity() {
     private fun look(app: GamingLibrary.App, done: (Look) -> Unit) {
         looks.get(app.packageName)?.let { done(it); return }
         val wantsIcon = store.config.gamingArtwork && isGame(app)
-        worker.execute {
+        work {
             // The box first, at once; the icon (which may need the network) replaces it.
             val box = try {
                 Look.Box(DotFace.of(packageManager.getApplicationIcon(app.packageName)))
@@ -759,7 +774,7 @@ class GamingSpaceActivity : Activity() {
             val slab = if (wantsIcon) {
                 try { art.icon(app.packageName, app.label)?.let { Look.Slab(it) } } catch (t: Throwable) { null }
             } else null
-            val look = slab ?: box ?: return@execute // no icon at all: the place stays empty
+            val look = slab ?: box ?: return@work // no icon at all: the place stays empty
             main.post {
                 looks.put(app.packageName, look)
                 if (look === slab) done(look)
@@ -959,7 +974,7 @@ class GamingSpaceActivity : Activity() {
             if (name.isEmpty()) store.config.gamingNames.remove(app.packageName)
             else store.config.gamingNames[app.packageName] = name
             store.save(this)
-            worker.execute {
+            work {
                 art.forget(app.packageName)
                 art.forgetIcon(app.packageName)
                 trailers.forget(app.packageName)
@@ -977,7 +992,7 @@ class GamingSpaceActivity : Activity() {
     private fun chooseArtwork(app: GamingLibrary.App, name: String = app.label) {
         chooseGame("Artwork", name, { art.games(it) }, { chooseArtwork(app, it) }) { game ->
             sheet.message("Artwork", "Loading the pictures of \"${game.second}\"…")
-            worker.execute {
+            work {
                 var failed: Throwable? = null
                 val previews = try {
                     art.choicesFor(game.first).take(14).map { it to art.preview(it) }
@@ -997,16 +1012,16 @@ class GamingSpaceActivity : Activity() {
                     }
                     sheet.pictures("Artwork · ${game.second}",
                         previews.map { (choice, picture) -> choice.kind to picture }) { which ->
-                        worker.execute {
+                        work {
                             try {
                                 art.save(app.packageName, previews[which].first)
                             } catch (t: Throwable) {
                                 main.post {
                                     sheet.message("Artwork", "Could not download it: ${why(t)}")
                                 }
-                                return@execute
+                                return@work
                             }
-                            main.post { showSelection() }
+                            main.post { if (!isDestroyed) showSelection() }
                         }
                     }
                 }
@@ -1022,7 +1037,7 @@ class GamingSpaceActivity : Activity() {
     private fun chooseIcon(app: GamingLibrary.App, name: String = app.label) {
         chooseGame("Icon", name, { art.games(it) }, { chooseIcon(app, it) }) { game ->
             sheet.message("Icon", "Loading the icons of \"${game.second}\"…")
-            worker.execute {
+            work {
                 var failed: Throwable? = null
                 val previews = try {
                     art.iconChoices(game.first).take(14).map { it to art.preview(it) }
@@ -1041,7 +1056,7 @@ class GamingSpaceActivity : Activity() {
                     } catch (t: Throwable) { null })
                     val tiles = listOf(box) + previews.map { (_, picture) -> "Icon" to picture }
                     sheet.pictures("Icon · ${game.second}", tiles, square = true) { which ->
-                        worker.execute {
+                        work {
                             val result = try {
                                 if (which == 0) art.useBox(app.packageName)
                                 else art.saveIcon(app.packageName, previews[which - 1].first)
@@ -1064,7 +1079,7 @@ class GamingSpaceActivity : Activity() {
     /** The game's banner from its Google Play page, saved as its artwork ([PlayStore]). */
     private fun usePlayBanner(app: GamingLibrary.App) {
         sheet.message("Artwork", "Looking on Google Play…")
-        worker.execute {
+        work {
             val result = try {
                 val choice = art.playBanner(app.packageName)
                 if (choice == null) "\"${app.label}\" has no banner on Google Play."
@@ -1087,7 +1102,7 @@ class GamingSpaceActivity : Activity() {
     private fun chooseTrailer(app: GamingLibrary.App, name: String = app.label) {
         chooseGame("Trailer", name, { trailers.games(it) }, { chooseTrailer(app, it) }) { game ->
             sheet.message("Trailer", "Loading the trailers of \"${game.second}\"…")
-            worker.execute {
+            work {
                 var failed: Throwable? = null
                 val movies = try {
                     trailers.movies(game.first)
@@ -1112,7 +1127,7 @@ class GamingSpaceActivity : Activity() {
                             return@list
                         }
                         sheet.message("Trailer", "Saving \"${movies[which].first}\"…")
-                        worker.execute {
+                        work {
                             var failed: Throwable? = null
                             val ok = try {
                                 trailers.use(app.packageName, movies[which].second)
@@ -1154,7 +1169,7 @@ class GamingSpaceActivity : Activity() {
     private fun chooseGame(what: String, name: String, find: (String) -> List<Pair<Int, String>>,
             again: (String) -> Unit, chosen: (Pair<Int, String>) -> Unit) {
         sheet.message(what, "Searching for \"$name\"…")
-        worker.execute {
+        work {
             var failed: Throwable? = null
             val games = try {
                 find(name).take(12)

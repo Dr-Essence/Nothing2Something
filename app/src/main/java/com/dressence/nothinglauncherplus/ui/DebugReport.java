@@ -24,12 +24,25 @@ final class DebugReport {
     private static final String STOP_FILE = "/data/local/tmp/nlplus-report.stop";
     /** Left by the script once the report is saved ({@link CaptureIndicator} waits for it). */
     static final String DONE_FILE = "/data/local/tmp/nlplus-report.done";
+    /**
+     * Holds the running script's process id while it runs. Stop capture and the
+     * CaptureIndicator check it: with no capture running, "Stop capture" used to start the
+     * indicator's "saving" phase, which then waited for a done file no script would write,
+     * forever, with a new root call every 2 s (0.70.14 audit).
+     */
+    static final String RUNNING_FILE = "/data/local/tmp/nlplus-report.running";
+    /** What {@link #RUNNING_CHECK} prints when no capture script is alive. */
+    static final String NOT_RUNNING = "No capture is running";
+    /** Shell: exits 0 if the capture script is alive, else prints NOT_RUNNING and exits 1. */
+    static final String RUNNING_CHECK = "{ [ -e " + RUNNING_FILE + " ] && kill -0 $(cat "
+            + RUNNING_FILE + ") 2>/dev/null; } || { echo " + NOT_RUNNING + "; exit 1; }";
 
     private static final String SCRIPT = ""
             + "DELAY=%1$d\n"
             + "DUR=%2$d\n"
             + "STOP=" + STOP_FILE + "\n"
             + "rm -f $STOP " + DONE_FILE + "\n"
+            + "echo $$ > " + RUNNING_FILE + "\n"
             + "T=$(date +%%Y%%m%%d-%%H%%M%%S)\n"
             + "N=NLPlus-report-$T\n"
             + "D=/sdcard/Download/$N\n"
@@ -233,7 +246,9 @@ final class DebugReport {
             + "cp -r /data/adb/lspd/log $D/lsposed 2>/dev/null\n"
             + "rm -f $STOP\n"
             + "cd /sdcard/Download && tar -czf $N.tar.gz $N && rm -rf $N && N=$N.tar.gz\n"
+            // Done first, then no longer running: whoever sees it gone finds the done file.
             + "touch " + DONE_FILE + "\n"
+            + "rm -f " + RUNNING_FILE + "\n"
             + "cmd notification post -S bigtext -t 'Nothing2Something' nlplus_report"
             + " \"Debug report saved: Download/$N\" >/dev/null 2>&1\n";
 
@@ -261,6 +276,6 @@ final class DebugReport {
 
     /** Ends a running capture now; it still saves what it has. Null once asked, else why not. */
     static String stop() {
-        return Root.run("touch " + STOP_FILE);
+        return Root.run(RUNNING_CHECK + "; touch " + STOP_FILE);
     }
 }

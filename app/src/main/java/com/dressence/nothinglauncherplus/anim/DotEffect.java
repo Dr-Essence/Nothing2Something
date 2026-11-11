@@ -400,8 +400,9 @@ public enum DotEffect {
                 float period = 1.1f + 0.3f * k;
                 float life = cycle(s, period, k * 0.47f);
                 int cyc = (int) ((s.t + k * 0.47f + (s.seed & 0xFF) * 0.013f) / period);
-                int col = r.minX + 3 + (int) (Scene.hash(k, cyc, s.seed)
-                        * Math.max(1, r.maxX - r.minX - 6));
+                // Clamped: a narrow emoji near the edge would put minX + 3 past the grid.
+                int col = Math.min(r.size - 1, r.minX + 3 + (int) (Scene.hash(k, cyc, s.seed)
+                        * Math.max(1, r.maxX - r.minX - 6)));
                 int top = 0;
                 while (top < r.size && !r.ink[top * r.size + col]) {
                     top++;

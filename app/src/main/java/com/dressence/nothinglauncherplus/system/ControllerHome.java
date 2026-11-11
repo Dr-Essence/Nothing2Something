@@ -172,9 +172,19 @@ public final class ControllerHome {
         context.registerReceiver(receiver, boot, null, handler, Context.RECEIVER_NOT_EXPORTED);
     }
 
+    /** The one apply waiting to run, so settle() takes back only its own task. */
+    private static final Runnable APPLY = Hooks.guard("controller home", ControllerHome::apply);
+
+    /**
+     * Applies once the devices have settled. Mistake recorded (found in the 0.70.14 audit):
+     * this cleared every message on the handler, and Android also delivers this class's
+     * receivers through it (registerReceiver with this handler), so an input-device event
+     * could drop a queued BOOT_COMPLETED, USER_SWITCHED or settings delivery; an ordered
+     * broadcast whose delivery is dropped is never finished and waits for its timeout.
+     */
     private static void settle() {
-        handler.removeCallbacksAndMessages(null);
-        handler.postDelayed(Hooks.guard("controller home", ControllerHome::apply), SETTLE_MS);
+        handler.removeCallbacks(APPLY);
+        handler.postDelayed(APPLY, SETTLE_MS);
     }
 
     /** The home app for whether a controller is connected now (on the handler's thread). */

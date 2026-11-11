@@ -50,6 +50,16 @@ public final class HudWindows {
     private static final int TYPE_NAVIGATION_BAR_PANEL = 2024;
 
     private static PerfHud hud;
+    /**
+     * Takes the panel away when no sample came for {@link #STALE_MS}: the module app sends one
+     * at least twice a second while the overlay runs, so silence means it stopped without
+     * saying so (its process was killed, its shell died), which left the panel frozen on the
+     * screen, lock screen included (0.70.14 audit). The next sample brings it back.
+     */
+    private static final long STALE_MS = 5000;
+    private static final android.os.Handler MAIN =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private static Runnable stale;
     private static WindowManager.LayoutParams hudParams;
     private static TextView pill;
 
@@ -102,15 +112,32 @@ public final class HudWindows {
                 if (hud == null) {
                     showHud(context, windows);
                 }
+                if (hud == null) {
+                    return; // Its window was refused; tried again with the next sample.
+                }
                 hud.show(PerfHud.Sample.fromBundle(data));
+                if (stale == null) {
+                    stale = Hooks.guard("module panel timeout", () -> {
+                        remove(windows, hud);
+                        hud = null;
+                    });
+                }
+                MAIN.removeCallbacks(stale);
+                MAIN.postDelayed(stale, STALE_MS);
                 break;
             case ACTION_HUD_OFF:
+                if (stale != null) {
+                    MAIN.removeCallbacks(stale);
+                }
                 remove(windows, hud);
                 hud = null;
                 break;
             case ACTION_PILL:
                 if (pill == null) {
                     showPill(context, windows);
+                }
+                if (pill == null) {
+                    return;
                 }
                 pill.setText(intent.getStringExtra(EXTRA_TEXT));
                 pill.setTextColor(intent.getIntExtra(EXTRA_COLOR, 0xFFFFFFFF));
@@ -136,16 +163,19 @@ public final class HudWindows {
     /** The performance panel: dragged where wanted, and kept there. */
     private static void showHud(Context context, WindowManager windows) {
         Typeface ndot = NdotFont.get(context);
-        hud = new PerfHud(context, ndot != null ? ndot : Typeface.MONOSPACE);
+        // Kept in hud only once its window is added: a refused window left a panel that every
+        // later sample "showed" without it ever appearing.
+        PerfHud panel = new PerfHud(context, ndot != null ? ndot : Typeface.MONOSPACE);
         SharedPreferences place = context.getSharedPreferences(PLACE, Context.MODE_PRIVATE);
         hudParams = params(0);
         hudParams.gravity = Gravity.TOP | Gravity.START;
         hudParams.x = place.getInt("x", context.getResources().getDisplayMetrics().widthPixels / 2);
         hudParams.y = place.getInt("y", dp(context, 32));
         hudParams.alpha = 0.9f;
-        windows.addView(hud, hudParams);
+        windows.addView(panel, hudParams);
+        hud = panel;
         float[] grab = new float[4];
-        hud.setOnTouchListener((View view, MotionEvent event) -> {
+        panel.setOnTouchListener((View view, MotionEvent event) -> {
             try {
                 switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
@@ -157,7 +187,7 @@ public final class HudWindows {
                     case MotionEvent.ACTION_MOVE:
                         hudParams.x = Math.round(grab[2] + event.getRawX() - grab[0]);
                         hudParams.y = Math.round(grab[3] + event.getRawY() - grab[1]);
-                        windows.updateViewLayout(hud, hudParams);
+                        windows.updateViewLayout(panel, hudParams);
                         break;
                     case MotionEvent.ACTION_UP:
                         place.edit().putInt("x", hudParams.x).putInt("y", hudParams.y).apply();
@@ -174,7 +204,7 @@ public final class HudWindows {
 
     /** The debug report's pill: takes no touches. */
     private static void showPill(Context context, WindowManager windows) {
-        pill = new TextView(context);
+        TextView pill = new TextView(context);
         pill.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         int pad = dp(context, 6);
         pill.setPadding(pad * 2, pad / 2, pad * 2, pad / 2);
@@ -186,6 +216,7 @@ public final class HudWindows {
         lp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
         lp.y = pad * 8;
         windows.addView(pill, lp);
+        HudWindows.pill = pill; // Only once its window is added, as the performance panel.
     }
 
     private static void remove(WindowManager windows, View view) {

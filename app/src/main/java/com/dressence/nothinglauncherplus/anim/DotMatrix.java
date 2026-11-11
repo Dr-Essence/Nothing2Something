@@ -53,6 +53,32 @@ final class DotMatrix {
     private static final LruCache<String, Bitmap> MASKS = new LruCache<>(8);
     /** Turning parts with a piece kept on top (see Scene#keepOnLastPart): filled, kept. */
     private static final LruCache<String, Bitmap[]> SPLITS = new LruCache<>(4);
+    /**
+     * This view's own last split, looked at before SPLITS: the shared cache holds four, so
+     * five or more covers lifting pieces at once (the drawer's reactAll) evicted each other's
+     * every frame and recomputed a Detach on the main thread each time (found in the 0.70.14
+     * audit). Each view keeps the one it is showing.
+     */
+    private String splitKey;
+    private Bitmap[] splitLayers;
+
+    private Bitmap[] split(String key) {
+        if (key.equals(splitKey)) {
+            return splitLayers;
+        }
+        Bitmap[] shared = SPLITS.get(key);
+        if (shared != null) {
+            splitKey = key;
+            splitLayers = shared;
+        }
+        return shared;
+    }
+
+    private void keepSplit(String key, Bitmap[] layers) {
+        SPLITS.put(key, layers);
+        splitKey = key;
+        splitLayers = layers;
+    }
 
     /** The 32 x 32 frame inside a 1-dot transparent border (see class comment). */
     /** The wide glow: the frame at half resolution, inside a transparent border. */
@@ -179,6 +205,10 @@ final class DotMatrix {
         sphereFrame = null;
         // The resting frame, once: what effects find their regions in and paint over.
         rasterize(null);
+        // Copied first: the box below is measured on this glyph's frame. (Mistake recorded,
+        // up to 0.70.13: it was measured before the copy, on the previous glyph's frame, so
+        // for a view's first emoji the box was empty and keepInside never held a pose in.)
+        System.arraycopy(dots, 0, restDots, 0, dots.length);
         restBox[0] = restBox[1] = RENDER;
         restBox[2] = restBox[3] = 0;
         for (int i = 0; i < restDots.length; i++) {
@@ -189,7 +219,6 @@ final class DotMatrix {
                 restBox[3] = Math.max(restBox[3], (i / GRID + 1) * SUPERSAMPLE);
             }
         }
-        System.arraycopy(dots, 0, restDots, 0, dots.length);
         // Analysed on first use: most views (picker cells, previews) never run an effect.
         scene.regions = null;
         regionsStale = glyph != null;
@@ -213,7 +242,10 @@ final class DotMatrix {
             regionsStale = false;
             scene.regions = new Regions(restDots, GRID);
         }
-        boolean effects = effect != DotEffect.NONE && scene.regions != null;
+        // An emoji with no solid dot (all faint or clear) has no regions to play in: effects
+        // that look for its edges would index past the grid.
+        boolean effects = effect != DotEffect.NONE && scene.regions != null
+                && scene.regions.maxX >= 0;
         scene.partCount = 0;
         scene.detached = false;
         scene.boardDy = 0;
@@ -524,7 +556,7 @@ final class DotMatrix {
             restInverse.mapPoints(rows);
             String key = glyphKey + "|stick|" + Math.round(rows[1]) + "," + d[1] + ","
                     + Math.round(rows[3]);
-            Bitmap[] cached = SPLITS.get(key);
+            Bitmap[] cached = split(key);
             if (cached == null) {
                 int[] px = new int[GLYPH * GLYPH];
                 glyph.getPixels(px, 0, GLYPH, 0, 0, GLYPH, GLYPH);
@@ -533,7 +565,7 @@ final class DotMatrix {
                         Bitmap.createBitmap(split.board, GLYPH, GLYPH, Bitmap.Config.ARGB_8888),
                         Bitmap.createBitmap(split.object, GLYPH, GLYPH, Bitmap.Config.ARGB_8888),
                         Bitmap.createBitmap(split.shadow, GLYPH, GLYPH, Bitmap.Config.ARGB_8888)};
-                SPLITS.put(key, cached);
+                keepSplit(key, cached);
             }
             return cached;
         }
@@ -541,7 +573,7 @@ final class DotMatrix {
             float[] row = {0, d[0] * SUPERSAMPLE};
             restInverse.mapPoints(row);
             String key = glyphKey + "|legs|" + Math.round(row[1]);
-            Bitmap[] cached = SPLITS.get(key);
+            Bitmap[] cached = split(key);
             if (cached == null) {
                 int[] px = new int[GLYPH * GLYPH];
                 glyph.getPixels(px, 0, GLYPH, 0, 0, GLYPH, GLYPH);
@@ -558,7 +590,7 @@ final class DotMatrix {
                             Bitmap.createBitmap(split.object, GLYPH, GLYPH, Bitmap.Config.ARGB_8888),
                             Bitmap.createBitmap(split.shadow, GLYPH, GLYPH, Bitmap.Config.ARGB_8888)};
                 }
-                SPLITS.put(key, cached);
+                keepSplit(key, cached);
             }
             return cached;
         }
@@ -566,7 +598,7 @@ final class DotMatrix {
             float[] at = {d[0] * SUPERSAMPLE, d[1] * SUPERSAMPLE};
             restInverse.mapPoints(at);
             String key = glyphKey + "|piece|" + Math.round(at[0]) + "," + Math.round(at[1]);
-            Bitmap[] cached = SPLITS.get(key);
+            Bitmap[] cached = split(key);
             if (cached == null) {
                 int[] px = new int[GLYPH * GLYPH];
                 glyph.getPixels(px, 0, GLYPH, 0, 0, GLYPH, GLYPH);
@@ -575,7 +607,7 @@ final class DotMatrix {
                         Bitmap.createBitmap(split.board, GLYPH, GLYPH, Bitmap.Config.ARGB_8888),
                         Bitmap.createBitmap(split.object, GLYPH, GLYPH, Bitmap.Config.ARGB_8888),
                         Bitmap.createBitmap(split.shadow, GLYPH, GLYPH, Bitmap.Config.ARGB_8888)};
-                SPLITS.put(key, cached);
+                keepSplit(key, cached);
             }
             return cached;
         }
@@ -585,7 +617,7 @@ final class DotMatrix {
             restInverse.mapPoints(box);
             String key = glyphKey + "|dark|" + Math.round(box[0]) + "," + Math.round(box[1])
                     + "," + Math.round(box[2]) + "," + Math.round(box[3]);
-            Bitmap[] cached = SPLITS.get(key);
+            Bitmap[] cached = split(key);
             if (cached == null) {
                 int[] px = new int[GLYPH * GLYPH];
                 glyph.getPixels(px, 0, GLYPH, 0, 0, GLYPH, GLYPH);
@@ -595,7 +627,7 @@ final class DotMatrix {
                         Bitmap.createBitmap(split.board, GLYPH, GLYPH, Bitmap.Config.ARGB_8888),
                         Bitmap.createBitmap(split.object, GLYPH, GLYPH, Bitmap.Config.ARGB_8888),
                         Bitmap.createBitmap(split.shadow, GLYPH, GLYPH, Bitmap.Config.ARGB_8888)};
-                SPLITS.put(key, cached);
+                keepSplit(key, cached);
             }
             return cached;
         }
@@ -605,7 +637,7 @@ final class DotMatrix {
             float reach = restInverse.mapRadius(scene.detachArea[2] * SUPERSAMPLE);
             String key = glyphKey + "|hue|" + d[0] + "," + d[1] + "," + d[2] + "," + d[3] + ","
                     + Math.round(area[0]) + "," + Math.round(area[1]) + "," + Math.round(reach);
-            Bitmap[] cached = SPLITS.get(key);
+            Bitmap[] cached = split(key);
             if (cached == null) {
                 int[] px = new int[GLYPH * GLYPH];
                 glyph.getPixels(px, 0, GLYPH, 0, 0, GLYPH, GLYPH);
@@ -615,7 +647,7 @@ final class DotMatrix {
                         Bitmap.createBitmap(split.board, GLYPH, GLYPH, Bitmap.Config.ARGB_8888),
                         Bitmap.createBitmap(split.object, GLYPH, GLYPH, Bitmap.Config.ARGB_8888),
                         Bitmap.createBitmap(split.shadow, GLYPH, GLYPH, Bitmap.Config.ARGB_8888)};
-                SPLITS.put(key, cached);
+                keepSplit(key, cached);
             }
             return cached;
         }
@@ -625,7 +657,7 @@ final class DotMatrix {
         String key = glyphKey + "|detach|" + Math.round(centre[0] * 4) + ","
                 + Math.round(centre[1] * 4) + "," + Math.round(radius * 4) + "|" + d[3] + ","
                 + d[4];
-        Bitmap[] cached = SPLITS.get(key);
+        Bitmap[] cached = split(key);
         if (cached != null) {
             return cached;
         }
@@ -636,7 +668,7 @@ final class DotMatrix {
                 Bitmap.createBitmap(split.board, GLYPH, GLYPH, Bitmap.Config.ARGB_8888),
                 Bitmap.createBitmap(split.object, GLYPH, GLYPH, Bitmap.Config.ARGB_8888),
                 Bitmap.createBitmap(split.shadow, GLYPH, GLYPH, Bitmap.Config.ARGB_8888)};
-        SPLITS.put(key, layers);
+        keepSplit(key, layers);
         return layers;
     }
 
@@ -653,7 +685,7 @@ final class DotMatrix {
         int fold = Math.max(2, scene.partFold[k]);
         String key = glyphKey + "|" + Math.round(box[0]) + "," + Math.round(box[1]) + ","
                 + Math.round(box[2]) + "|" + hue + "|" + fold;
-        Bitmap[] cached = SPLITS.get(key);
+        Bitmap[] cached = split(key);
         if (cached != null) {
             return cached;
         }
@@ -722,7 +754,7 @@ final class DotMatrix {
         Bitmap[] split = {
                 Bitmap.createBitmap(turned, GLYPH, GLYPH, Bitmap.Config.ARGB_8888),
                 Bitmap.createBitmap(kept, GLYPH, GLYPH, Bitmap.Config.ARGB_8888)};
-        SPLITS.put(key, split);
+        keepSplit(key, split);
         return split;
     }
 

@@ -251,7 +251,8 @@ final class DotEffectParts {
         }
         float t = (s.t + Scene.hash(s.seed, 3, 3) * total) % total;
         int step = 0;
-        while (t > GAZE_HOLD[step]) {
+        // Never past the last step: float rounding can leave t a hair above the last hold.
+        while (step < GAZE_HOLD.length - 1 && t > GAZE_HOLD[step]) {
             t -= GAZE_HOLD[step];
             step++;
         }
@@ -379,6 +380,9 @@ final class DotEffectParts {
             }
             white.removeAll(caught);
             comp.addAll(caught);
+            if (white.isEmpty()) {
+                return new int[0][]; // All of it was light in the pupil: no white to look in.
+            }
             long cr = 0, cg = 0, cb = 0;
             for (int i : white) {
                 int c = r.rest[i];
@@ -1444,8 +1448,9 @@ final class DotEffectParts {
             float x0 = -1;
             float y0 = 0;
             for (int tryNo = 0; tryNo < 6 && x0 < 0; tryNo++) {
-                int col = r.minX + 1 + (int) (Scene.hash(k + 5 * tryNo, cyc, s.seed)
-                        * Math.max(1, r.maxX - r.minX - 2));
+                // Clamped: a narrow emoji near the edge would put minX + 1 past the grid.
+                int col = Math.min(r.size - 1, r.minX + 1 + (int) (Scene.hash(k + 5 * tryNo,
+                        cyc, s.seed) * Math.max(1, r.maxX - r.minX - 2)));
                 int top = 0;
                 while (top < r.size && !r.ink[top * r.size + col]) {
                     top++;

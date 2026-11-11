@@ -47,6 +47,9 @@ final class LabelScroll {
 
     /** Starts or stops {@code label} scrolling, as its text, width and the option say. */
     private static void update(TextView label, boolean on) {
+        if (!on && !SCROLLING.containsKey(label)) {
+            return; // The pack is off and this label does not scroll: nothing to measure.
+        }
         CharSequence text = label.getText();
         int room = label.getWidth() - label.getCompoundPaddingLeft()
                 - label.getCompoundPaddingRight();
@@ -121,6 +124,15 @@ final class LabelScroll {
                 posted = false; // Drawn again later, it starts over.
                 at = 0;
                 label.setScrollX(start());
+                if (!label.isAttachedToWindow()) {
+                    // Out of the map: this Scroller holds its label, the map's key, so an
+                    // entry left behind kept the label and its launcher (with all its views)
+                    // after the launcher was made again (0.70.14 audit). Drawn again, update
+                    // makes a new one.
+                    // Stopped first: its ellipsis back, as a label that does not scroll has.
+                    stop();
+                    SCROLLING.remove(label);
+                }
                 return;
             }
             int step = Math.max(1, Math.round(label.getTextSize() * STEP_EM));

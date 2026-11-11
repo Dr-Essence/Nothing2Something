@@ -56,7 +56,8 @@ public final class Pose {
         scaleY = 1 + (scaleY - 1) * amount;
         rotation *= amount;
         rotationY *= amount;
-        roll *= amount;
+        // roll is never scaled, as spin: KICK's is one whole turn, and a scaled turn left the
+        // ball up to 43 degrees off upright until the play ended, then it snapped back.
         alpha = Math.max(0, Math.min(1, 1 - (1 - alpha) * amount));
     }
 }

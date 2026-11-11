@@ -95,14 +95,24 @@ final class RecentsRam {
         buttons.addView(ram, lp);
         ram.setOnClickListener(v -> Hooks.guard("recents running services",
                 () -> openRunningServices(v.getContext())).run());
-        java.lang.ref.WeakReference<RamButton> weak = new java.lang.ref.WeakReference<>(ram);
-        store.addChangeListener(() -> {
-            RamButton shown = weak.get();
-            if (shown != null) {
-                shown.applySetting();
-            }
-        });
+        // One listener for the button recents shows now: one per inflation piled up for the
+        // life of the launcher (0.70.14 audit).
+        latest = new java.lang.ref.WeakReference<>(ram);
+        if (!listening) {
+            listening = true;
+            store.addChangeListener(() -> {
+                RamButton shown = latest.get();
+                if (shown != null) {
+                    shown.applySetting();
+                }
+            });
+        }
     }
+
+    /** The memory button of the recents inflated last (main thread). */
+    private static java.lang.ref.WeakReference<RamButton> latest =
+            new java.lang.ref.WeakReference<>(null);
+    private static boolean listening;
 
     /**
      * Running services, opened by system_server (SystemShortcuts: Nothing's Settings has it
@@ -207,7 +217,8 @@ final class RecentsRam {
         private final ActivityManager activityManager;
         private final Handler main = new Handler(Looper.getMainLooper());
         private final Runnable refresh = this::refresh;
-        private boolean shown;
+        /** Written on the main thread, read by refresh on the worker. */
+        private volatile boolean shown;
         private boolean stateLogged;
         /** Nothing's Screenshot button, to compare backgrounds in the diagnostic. */
         java.lang.ref.WeakReference<TextView> screenshot;
@@ -237,8 +248,10 @@ final class RecentsRam {
                 // Diagnostic: the button draws a teal fill Screenshot does not, while neither
                 // focused nor pressed (DebuG11); both backgrounds, as drawn, are compared.
                 TextView shot = screenshot != null ? screenshot.get() : null;
-                post(() -> Hooks.log("recents memory: ram " + describe(this) + " | screenshot "
-                        + (shot != null ? describe(shot) : "none")));
+                // Guarded: posted to the launcher, outside any hook (0.70.14 audit).
+                post(Hooks.guard("recents memory diagnostic", () -> Hooks.log(
+                        "recents memory: ram " + describe(this) + " | screenshot "
+                        + (shot != null ? describe(shot) : "none"))));
             }
             Handler handler = worker();
             handler.removeCallbacks(refresh);

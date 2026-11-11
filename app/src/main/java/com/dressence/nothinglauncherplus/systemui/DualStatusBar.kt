@@ -92,7 +92,10 @@ internal object DualStatusBar {
     /** The date shown for each bar, by its row container. */
     private val dates = WeakHashMap<View, DateRow>()
     /** Notification areas measured across the whole bar (Notifications at the end): their bar. */
-    private val wide = WeakHashMap<View, ViewGroup>()
+    // The bar weakly too: it holds the area (its key), and a WeakHashMap holds values
+    // strongly, so a strong bar kept its entry, and each status bar System UI inflated again
+    // (a theme, font size or density change) was kept whole (0.70.14 audit).
+    private val wide = WeakHashMap<View, java.lang.ref.WeakReference<ViewGroup>>()
 
     @JvmStatic
     fun install(cl: ClassLoader, store: ConfigStore) {
@@ -142,7 +145,7 @@ internal object DualStatusBar {
             Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, object : XC_MethodHook() {
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     val area = param.thisObject as View
-                    val bar = wide[area] ?: return
+                    val bar = wide[area]?.get() ?: return
                     runCatching {
                         fullWidth(bar)?.let {
                             param.args[0] = View.MeasureSpec.makeMeasureSpec(it,
@@ -308,7 +311,7 @@ internal object DualStatusBar {
         // the phone before: at the end of the left half, the icons stopped short of the end in
         // landscape, and in portrait (the half ends at the camera) only the overflow dot fit.
         val atEnd = rows != null && notificationsAtEnd
-        if (atEnd) wide[area] = bar else wide.remove(area)
+        if (atEnd) wide[area] = java.lang.ref.WeakReference(bar) else wide.remove(area)
         alignIcons(area, atEnd)
         // The date: before the notifications, or (Date at the end) on the end side's second
         // row, under its icons, where the bar is empty, leaving the notifications the whole

@@ -215,9 +215,16 @@ final class Earth {
         }
     }
 
+    /**
+     * Reused by shadeAt, which runs for every pixel of every globe frame (up to 120 a second):
+     * a new array each call was hundreds of thousands of short-lived arrays a second in the
+     * launcher (0.70.14 audit). One Earth is only ever used on the main thread.
+     */
+    private final double[] features = new double[FEATURES];
+
     /** The shade at (x, y) on the disc (y up). */
     private float shadeAt(float x, float y) {
-        double[] f = new double[FEATURES];
+        double[] f = features;
         double rr = x * x + y * y;
         double px = x;
         double py = y;

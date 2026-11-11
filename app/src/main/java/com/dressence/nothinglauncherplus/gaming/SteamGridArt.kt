@@ -37,6 +37,8 @@ internal class SteamGridArt(context: Context) {
         private const val PREFS = "steamgriddb"
         private const val KEY = "api_key"
         private const val NO_MATCH = "none:"
+        /** The file name of the artwork this class saved for a package (not one the user put in). */
+        private const val MADE = "made:"
         /** No cut-out icon found for an app (when), and the user's "use the box" choice. */
         private const val NO_ICON = "noicon:"
         private const val BOX = "box:"
@@ -105,11 +107,21 @@ internal class SteamGridArt(context: Context) {
         return EXTENSIONS.map { File(folder, "$pkg.$it") }.firstOrNull { it.exists() }
     }
 
-    /** Forgets an app's saved artwork and any "no match", so it is looked up again. */
+    /**
+     * Forgets an app's artwork (after a rename) and any "no match", so it is looked up again.
+     * Only a picture this class saved is deleted; one the user dropped into the folder stays.
+     * Pictures saved before 0.70.14 carry no such note, so they stay too: choose another by
+     * hand to replace one (found in the 0.70.14 audit: a rename deleted the user's own).
+     */
     fun forget(pkg: String) {
+        prefs.getString(MADE + pkg, null)?.let { File(dir, it).delete() }
+        prefs.edit().remove(NO_MATCH + pkg).remove(MADE + pkg).apply()
+    }
+
+    /** Deletes the app's picture in every kind, before a new one is saved in its place. */
+    private fun replace(pkg: String) {
         val folder = dir
         for (ext in EXTENSIONS) File(folder, "$pkg.$ext").delete()
-        prefs.edit().remove(NO_MATCH + pkg).apply()
     }
 
     /**
@@ -145,19 +157,40 @@ internal class SteamGridArt(context: Context) {
         val missed = prefs.getLong(NO_MATCH + pkg, 0L)
         if (missed != 0L && System.currentTimeMillis() - missed < RETRY_MS) return null
         return try {
-            val game = if (key.isEmpty()) null else search(key, label)
+            // SteamGridDB's steps on their own: a wrong or expired key (HTTP 401/403) or
+            // SteamGridDB being down threw past the Google Play banner, which needs no key, so
+            // no game got one (0.70.14 audit). Its failure is noted and Play is still asked.
+            var steamGrid: String? = null
+            val game = if (key.isEmpty()) null else try {
+                search(key, label)
+            } catch (e: Http.Error) {
+                steamGrid = "HTTP ${e.code}"; null
+            } catch (e: java.io.IOException) {
+                steamGrid = e.javaClass.simpleName; null
+            }
             var pick: Choice? = null
             if (game != null && animated) {
-                pick = list(key, "heroes/game/${game.first}?types=animated&$FILTERS", true,
-                    "Animated banner").firstOrNull()
+                pick = try {
+                    list(key, "heroes/game/${game.first}?types=animated&$FILTERS", true,
+                        "Animated banner").firstOrNull()
+                } catch (e: java.io.IOException) { null }
             }
             if (pick == null) pick = playBanner(pkg)
-            if (pick == null && game != null) pick = choices(key, game.first, 0).firstOrNull()
+            if (pick == null && game != null) pick = try {
+                choices(key, game.first, 0).firstOrNull()
+            } catch (e: java.io.IOException) { null }
+            if (pick == null && steamGrid != null) {
+                // Not noted as "no match": tried again next time (the key may be fixed).
+                prefs.edit().putString(LAST, "\"$label\": SteamGridDB answered $steamGrid;" +
+                    " Google Play: none").apply()
+                return null
+            }
             if (pick == null) {
                 prefs.edit().putLong(NO_MATCH + pkg, System.currentTimeMillis())
                     .putString(LAST, "No artwork for \"$label\" (SteamGridDB" +
                         (if (key.isEmpty()) ": no key" else if (game == null) ": no match" else
-                            ": none") + "; Google Play: none)").apply()
+                            ": none") +
+                        "; Google Play: none)").apply()
                 return null
             }
             save(pkg, pick)
@@ -274,9 +307,10 @@ internal class SteamGridArt(context: Context) {
     fun save(pkg: String, choice: Choice) {
         val bytes = download(if (choice.animated) choice.url else choice.thumb.ifEmpty { choice.url },
             null)
-        forget(pkg) // the previous picture, whatever its kind
-        File(dir, "$pkg.${extension(bytes)}").writeBytes(bytes)
-        prefs.edit().remove(NO_MATCH + pkg).apply()
+        replace(pkg) // the previous picture, whatever its kind
+        val name = "$pkg.${extension(bytes)}"
+        File(dir, name).writeBytes(bytes)
+        prefs.edit().remove(NO_MATCH + pkg).putString(MADE + pkg, name).apply()
     }
 
     /**

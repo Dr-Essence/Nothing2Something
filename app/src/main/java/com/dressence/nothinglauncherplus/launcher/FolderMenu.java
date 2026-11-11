@@ -92,18 +92,18 @@ final class FolderMenu {
 
             // Reuse the launcher's own translated labels and icons so the items look native.
             ArrayList<Object> items = new ArrayList<>();
-            addItem(items, context, "add_to_home_screen", "ic_install_no_shadow", v -> {
-                addFolderToHome(launcher, title, snapshot);
-                return true;
-            });
+            // Guarded: the launcher's popup calls these on its main thread when an item is
+            // tapped, outside any hook, so a throw there (a reflective call on another build,
+            // the module app being updated) crashed the launcher (0.70.14 audit).
+            addItem(items, context, "add_to_home_screen", "ic_install_no_shadow",
+                    picked("folder to home screen", () ->
+                            addFolderToHome(launcher, title, snapshot)));
             if (custom != null) {
-                addItem(items, context, "share_card_drawer_detail_edit", "ic_setting", v -> {
-                    context.startActivity(new Intent()
-                            .setClassName(Config.MODULE_PKG, Config.FOLDER_ACTIVITY)
-                            .putExtra(Config.EXTRA_FOLDER_ID, custom.id)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                    return true;
-                });
+                addItem(items, context, "share_card_drawer_detail_edit", "ic_setting",
+                        picked("folder settings", () -> context.startActivity(new Intent()
+                                .setClassName(Config.MODULE_PKG, Config.FOLDER_ACTIVITY)
+                                .putExtra(Config.EXTRA_FOLDER_ID, custom.id)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))));
             }
             if (items.isEmpty()) {
                 return false;
@@ -120,6 +120,15 @@ final class FolderMenu {
             Hooks.log("folder menu failed: " + t);
             return false;
         }
+    }
+
+    /** A menu item's action, made safe to hand to the launcher; the tap always counts. */
+    private static View.OnLongClickListener picked(String what, Runnable action) {
+        Runnable guarded = Hooks.guard(what, action);
+        return v -> {
+            guarded.run();
+            return true;
+        };
     }
 
     private void addItem(List<Object> items, Context context, String label, String image,

@@ -4,6 +4,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -81,7 +82,7 @@ public final class OverlayService extends Service {
             + " done\n"
             + "  t=\"\"; for z in $CPU; do t=\"$t $(cat $z)\"; done\n"
             + "  echo \"F$f|G $(cat /sys/kernel/ged/hal/current_freqency)"
-            + "|U $(cat /sys/kernel/ged/hal/gpu_utilization)|T$t|X $(cat $GPU) $(cat $SOC)"
+            + "|U $(cat /sys/kernel/ged/hal/gpu_utilization)|T$t|X $(cat ${GPU:-/dev/null}) $(cat ${SOC:-/dev/null})"
             + "|D $(cat /sys/class/devfreq/mtk-dvfsrc-devfreq/cur_freq)"
             + "|B $(cat $PS/current_now) $(cat $PS/voltage_now)"
             + "|C $(cat /sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq)"
@@ -97,8 +98,17 @@ public final class OverlayService extends Service {
             + "  echo E\n"
             + "done\n";
 
-    private Process reader;
+    // Written by the reading thread, destroyed from the main thread (onDestroy, screen off).
+    private volatile Process reader;
     private volatile boolean running;
+    /** Set while the screen is off: the shell is stopped on purpose, the overlay stays on. */
+    private volatile boolean paused;
+    private BroadcastReceiver screen;
+    /**
+     * Which reading thread is the current one: a thread from before a screen-off may still be
+     * finishing when the screen comes on again, and must not act on the new one's state.
+     */
+    private volatile int generation;
 
     public static void start(Context context) {
         context.startForegroundService(new Intent(context, OverlayService.class));
@@ -126,9 +136,42 @@ public final class OverlayService extends Service {
         }
         if (!running) {
             remember(true);
+            watchScreen();
             readSensors();
         }
         return START_NOT_STICKY;
+    }
+
+    /**
+     * Stops the root shell while the screen is off, and starts it again when it comes on: with
+     * the screen off but the phone awake (charging, music) it went on running dumpsys,
+     * simpleperf and about 30 reads a round, for a panel nobody sees (0.70.14 audit).
+     */
+    private void watchScreen() {
+        if (screen != null) {
+            return;
+        }
+        screen = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
+                    if (running) {
+                        paused = true;
+                        running = false;
+                        Process shell = reader;
+                        if (shell != null) {
+                            shell.destroy();
+                        }
+                    }
+                } else if (paused) {
+                    paused = false;
+                    readSensors();
+                }
+            }
+        };
+        IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+        filter.addAction(Intent.ACTION_SCREEN_ON);
+        registerReceiver(screen, filter, Context.RECEIVER_NOT_EXPORTED);
     }
 
     /** Saves whether the overlay shows, for the Performance page's switch. */
@@ -148,8 +191,14 @@ public final class OverlayService extends Service {
     @Override
     public void onDestroy() {
         running = false;
-        if (reader != null) {
-            reader.destroy();
+        paused = false;
+        if (screen != null) {
+            unregisterReceiver(screen);
+            screen = null;
+        }
+        Process shell = reader;
+        if (shell != null) {
+            shell.destroy();
         }
         // System UI takes its panel away.
         HudWindows.send(this, new Intent(HudWindows.ACTION_HUD_OFF));
@@ -171,17 +220,26 @@ public final class OverlayService extends Service {
     /** One root shell prints the readings twice a second; each round updates the panel. */
     private void readSensors() {
         running = true;
+        int mine = ++generation;
         new Thread(() -> {
             Reader parser = new Reader();
+            Process shell = null;
             try {
-                reader = new ProcessBuilder("su").redirectErrorStream(true).start();
-                reader.getOutputStream().write(SENSORS.getBytes(StandardCharsets.UTF_8));
-                reader.getOutputStream().flush();
+                shell = new ProcessBuilder("su").redirectErrorStream(true).start();
+                reader = shell;
+                if (!running) {
+                    return; // Turned off (or the screen went off) while su was starting.
+                }
+                shell.getOutputStream().write(SENSORS.getBytes(StandardCharsets.UTF_8));
+                shell.getOutputStream().flush();
                 BufferedReader in = new BufferedReader(new InputStreamReader(
-                        reader.getInputStream(), StandardCharsets.UTF_8));
+                        shell.getInputStream(), StandardCharsets.UTF_8));
                 String line;
-                while (running && (line = in.readLine()) != null) {
-                    PerfHud.Sample sample = parser.line(line, batteryTemperature());
+                while (running && mine == generation && (line = in.readLine()) != null) {
+                    // Android's battery temperature is a binder call: only for the round's end
+                    // ("E"), the one line that uses it, not for each of ~15 lines a second.
+                    PerfHud.Sample sample = parser.line(line,
+                            line.equals("E") ? batteryTemperature() : Float.NaN);
                     if (sample != null && running) {
                         // System UI draws it (above the lock screen too).
                         HudWindows.send(this, new Intent(HudWindows.ACTION_HUD)
@@ -190,6 +248,19 @@ public final class OverlayService extends Service {
                 }
             } catch (Exception e) {
                 // Root refused or the shell ended: no more readings are sent.
+            } finally {
+                if (shell != null) {
+                    shell.destroy(); // Never left running with nobody reading it.
+                }
+                if (running && mine == generation) {
+                    // Ended by itself (root refused, the shell died), not turned off: the
+                    // switch goes off and the service ends, instead of an empty "on".
+                    running = false;
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                        remember(false);
+                        stopSelf();
+                    });
+                }
             }
         }, "performance overlay").start();
     }

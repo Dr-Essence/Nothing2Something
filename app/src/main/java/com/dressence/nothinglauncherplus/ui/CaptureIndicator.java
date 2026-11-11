@@ -97,14 +97,27 @@ public final class CaptureIndicator extends Service {
         }
     }
 
-    /** The report script leaves the done file once it has saved the report (root-only). */
+    /**
+     * The report script leaves the done file once it has saved the report (root-only). If it
+     * is gone without one (it could not make its folder, or it was killed), the indicator ends
+     * too instead of waiting forever.
+     */
     private void checkDone() {
         new Thread(() -> {
-            boolean done = Root.run("[ -e " + DebugReport.DONE_FILE + " ] && rm -f "
-                    + DebugReport.DONE_FILE) == null;
+            String done0 = "if [ -e " + DebugReport.DONE_FILE + " ]; then rm -f "
+                    + DebugReport.DONE_FILE + "; exit 0; fi";
+            // Done; else still running (exit 1, keep waiting); else gone: done once more
+            // (it may have finished between the two looks), or NOT_RUNNING.
+            String result = Root.run(done0 + "\n( " + DebugReport.RUNNING_CHECK
+                    + " ) >/dev/null && exit 1\n" + done0 + "\necho "
+                    + DebugReport.NOT_RUNNING + "; exit 1");
+            boolean done = result == null;
+            boolean gone = result != null && result.contains(DebugReport.NOT_RUNNING);
             main.post(() -> {
                 if (done) {
                     buzz(2);
+                    stopSelf();
+                } else if (gone) {
                     stopSelf();
                 } else {
                     main.postDelayed(this::tick, 2000);

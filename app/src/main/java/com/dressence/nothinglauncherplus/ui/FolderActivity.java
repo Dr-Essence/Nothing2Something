@@ -109,9 +109,14 @@ public class FolderActivity extends Activity {
                 .setTitle("Delete " + folder.name + "?")
                 .setMessage("Its apps go back to their automatic categories.")
                 .setPositiveButton("Delete", (d, w) -> {
-                    Covers.clear(this, folder);
-                    store.config.folders.remove(folder);
-                    store.save(this);
+                    // By id, in the settings as they are now: the cover is removed only with
+                    // the folder that has it.
+                    Config.Folder current = store.config.folderForId(folderId);
+                    if (current != null) {
+                        Covers.clear(this, current);
+                        store.config.folders.remove(current);
+                        store.save(this);
+                    }
                     finish();
                 })
                 .setNegativeButton("Cancel", null)

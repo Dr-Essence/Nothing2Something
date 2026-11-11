@@ -53,8 +53,8 @@ final class DrawerBackground {
             XC_MethodHook colours = new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) {
-                    Hooks.guard("drawer search colours", () ->
-                            searchColours(param.thisObject, store.get().drawerOpacity)).run();
+                    Hooks.guard("drawer search colours", () -> searchColours(param.thisObject,
+                            store.get().drawerOpacity, atSource)).run();
                 }
             };
             XposedBridge.hookAllConstructors(search, colours);
@@ -80,19 +80,32 @@ final class DrawerBackground {
         });
     }
 
-    /** Nothing's drawer search colours at the drawer's opacity ({@code opacity} percent). */
-    private static void searchColours(Object container, int opacity) {
+    /**
+     * Nothing's drawer search colours at the drawer's opacity ({@code opacity} percent).
+     *
+     * <p>Mistake recorded (found in the 0.70.14 audit): the sheet (foregroundPaint) and the
+     * scrim are set from ThemeColors e(), which {@link #hookScrimColour} already fades, and
+     * were faded again here, so at 50% they showed at 25%. With {@code atSource} they are left
+     * as e() gave them. The constructors call each other and both are hooked, so each value
+     * faded here is remembered and never faded twice; updateCustomColor sets new ones.
+     */
+    private static void searchColours(Object container, int opacity, boolean atSource) {
         if (opacity >= 100) {
             return;
         }
         android.graphics.Paint paint = (android.graphics.Paint) XposedHelpers.getObjectField(
                 container, "foregroundPaint");
-        if (paint != null) {
-            paint.setColor(faded(paint.getColor(), opacity));
+        if (paint != null && !atSource && !isFaded(container, "foregroundPaint",
+                paint.getColor())) {
+            paint.setColor(fadeOnce(container, "foregroundPaint", paint.getColor(), opacity));
         }
-        for (String name : new String[] {"mScrimColor", "mHeaderProtectionColor"}) {
-            XposedHelpers.setIntField(container, name,
-                    faded(XposedHelpers.getIntField(container, name), opacity));
+        for (String name : atSource ? new String[] {"mHeaderProtectionColor"}
+                : new String[] {"mScrimColor", "mHeaderProtectionColor"}) {
+            int colour = XposedHelpers.getIntField(container, name);
+            if (!isFaded(container, name, colour)) {
+                XposedHelpers.setIntField(container, name,
+                        fadeOnce(container, name, colour, opacity));
+            }
         }
         View results = (View) XposedHelpers.callMethod(container, "getSearchRecyclerView");
         if (results != null && results.getBackground() != null) {
@@ -138,6 +151,18 @@ final class DrawerBackground {
             }
         });
         return true;
+    }
+
+    /** True if {@code colour} is the one this class last set in {@code name}. */
+    private static boolean isFaded(Object container, String name, int colour) {
+        Object set = XposedHelpers.getAdditionalInstanceField(container, "nlplus.faded." + name);
+        return set instanceof Integer && (Integer) set == colour;
+    }
+
+    private static int fadeOnce(Object container, String name, int colour, int opacity) {
+        int result = faded(colour, opacity);
+        XposedHelpers.setAdditionalInstanceField(container, "nlplus.faded." + name, result);
+        return result;
     }
 
     private static int faded(int color, int opacity) {

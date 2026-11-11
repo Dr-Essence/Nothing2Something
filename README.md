@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.13, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.14, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.13** (CMF Phone 1, Nothing OS 4.1, Android 16): games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.14** (CMF Phone 1, Nothing OS 4.1, Android 16): games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,49 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.14, full audit, part 1: bugs found by reading every file, fixed.** The whole module
+  (46,000 lines) was read by area, once for hidden bugs and crashes and once for threads,
+  leaks and wasted work; each finding was checked against the code (and Nothing's decompiled
+  code where it touches it) before it was fixed. Fixed here:
+  - *Could crash the launcher*: the Smart folder menu's "Add to home screen" and "Edit" ran
+    unguarded when tapped. Now guarded.
+  - *Lost the user's things*: a settings dialog left open over a screen-off (rename, animation,
+    delete folder) changed a copy of the settings that was no longer saved; delete folder that
+    way removed the cover image and kept the folder. Settings are now read again only when
+    they really changed, and delete works by the folder's id. Renaming a game in Gaming Space
+    deleted the user's own clip (Videos/<app>.mp4, where "Use my own clip" says to put it) and
+    their own artwork; only files the module made are deleted now, and choosing another trailer
+    keeps the old clip until the new one is complete.
+  - *System server*: the controller home's settle cleared every message on the handler that also
+    delivers its broadcasts, so it could drop a BOOT_COMPLETED or settings delivery; now it takes
+    back only its own task.
+  - *Emoji covers*: the resting box was measured on the previous emoji, so for a view's first
+    emoji keepInside never held a pose inside the panel (hops and swells cut at the edge); a
+    kicked ball ended up to 43 degrees off upright, then snapped back; three effects (popcorn,
+    bubbles, look) could index past the grid or divide by zero on unusual emojis and stop; five
+    or more covers lifting pieces at once recomputed their split every frame on the main thread
+    (each cover keeps its own now); the globe made a new array for every pixel of every frame.
+  - *Performance overlay*: with a thermal zone missing its script waited forever on a bare
+    `cat`; it read the battery temperature for every line (15 binder calls a second, one is
+    used); with root refused or the shell dead it stayed "on" showing nothing, and System UI's
+    panel stayed frozen on screen (now gone after 5 s without a sample); it ran on with the
+    screen off (now paused until the screen is on).
+  - *Debug report*: "Stop capture" with no capture running left "Saving the report..." and a
+    root call every 2 s forever; the script now marks itself running, and the indicator ends if
+    the script is gone.
+  - *Gaming Space*: a wrong SteamGridDB key stopped Google Play banners too; a download ending
+    after Gaming Space closed could crash it.
+  - *Drawer*: with the drawer see-through, its search sheet and scrim were faded twice (50%
+    showed as 25%).
+  - *Leaks*: each status bar System UI rebuilt (theme, font size) was kept whole with
+    "notifications at the end"; a scrolling dot-icon label kept the old launcher after it was
+    recreated; recents' memory button added a settings listener on every inflation.
+  Checked: the build compiles; nothing of this was run on a phone. Visible change to look for:
+  emoji covers whose motion grows past the panel are now eased back inside it, as designed.
+  Found and not changed yet, with why: the landscape grid waits on the launcher's model lock on
+  the main thread when the phone is turned during a load (moving it changes the order of
+  binding and arranging, which needs a phone test); the system font guard arms on every boot
+  (kept: it is the boot-loop guard). More fixes follow in the next builds.
 - **0.70.13, cleanup step 4, part 3: LockScreenTurn split.** No change in what the module
   does. Two parts of the turned lock screen move, as they were, into their own files in
   `systemui`: LandscapeBouncer (the landscape PIN / pattern / password screen: the flag
