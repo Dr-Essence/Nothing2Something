@@ -254,8 +254,7 @@ public final class HudWindows {
 
     /** From the module app: a broadcast to System UI carrying who sends it. */
     public static void send(Context context, Intent intent) {
-        context.sendBroadcast(intent.setPackage(Config.SYSTEMUI_PKG), null,
-                android.app.BroadcastOptions.makeBasic().setShareIdentityEnabled(true)
-                        .toBundle());
+        com.dressence.nothinglauncherplus.Broadcasts.send(context,
+                intent.setPackage(Config.SYSTEMUI_PKG));
     }
 }

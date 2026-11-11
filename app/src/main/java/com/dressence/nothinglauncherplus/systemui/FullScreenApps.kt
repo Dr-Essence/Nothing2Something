@@ -210,6 +210,10 @@ internal object FullScreenApps {
             }
         }
         context.registerReceiver(receiver, IntentFilter(ACTION_QUERY), Context.RECEIVER_EXPORTED)
+        // A new System UI starts with the bar shown: the picked apps hear it once. An app the
+        // previous System UI had told "faded" (a restart from the module, a crash) went on
+        // hiding its bar until the next full fade (0.70.16 audit).
+        for (app in listeners()) send(context, app)
     }
 
     private fun send(context: Context, app: String) {

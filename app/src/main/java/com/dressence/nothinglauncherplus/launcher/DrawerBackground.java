@@ -77,6 +77,13 @@ final class DrawerBackground {
                 scrim.setBackgroundColor((Integer) XposedHelpers.callMethod(
                         allApps, "getWorkspaceScrimColor", launcher));
             }
+            // The search's colours too, through Nothing's own updateCustomColor (what an icon
+            // pack or theme change calls): fresh colours, faded once by the hook above. They
+            // kept the old opacity until the launcher was made again (0.70.16 audit).
+            Object apps = XposedHelpers.callMethod(launcher, "getAppsView");
+            if (apps != null && search != null && search.isInstance(apps)) {
+                XposedHelpers.callMethod(apps, "updateCustomColor");
+            }
         });
     }
 

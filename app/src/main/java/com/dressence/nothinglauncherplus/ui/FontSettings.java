@@ -112,8 +112,8 @@ final class FontSettings {
         // A font file by now: one with no path needs adding, and add() handles it above.
         store.config.systemFont = choice == null ? "" : "file:" + choice.path;
         store.save(activity);
-        activity.sendBroadcast(new android.content.Intent(Config.ACTION_FONT)
-                .setPackage("android"));
+        com.dressence.nothinglauncherplus.Broadcasts.send(activity,
+                new android.content.Intent(Config.ACTION_FONT).setPackage("android"));
         new Thread(() -> {
             SystemFont.removeOldModule();
             // Through SystemUiRestart, the one way System UI is restarted: it writes the

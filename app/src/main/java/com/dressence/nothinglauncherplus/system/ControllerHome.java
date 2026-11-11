@@ -201,7 +201,8 @@ public final class ControllerHome {
         Object roles = context.getSystemService("role");
         String home = holder(roles, user);
         // "previous home/gaming launcher set in its place", while the gaming launcher is home.
-        String saved = Settings.Global.getString(context.getContentResolver(), SAVED);
+        String key = savedKey(userId);
+        String saved = Settings.Global.getString(context.getContentResolver(), key);
         String previous = saved == null ? null : saved.substring(0, saved.indexOf('/'));
         String placed = saved == null ? null : saved.substring(saved.indexOf('/') + 1);
         if (home == null) {
@@ -214,18 +215,28 @@ public final class ControllerHome {
             if (previous == null || !home.equals(placed)) {
                 previous = home; // Not one set here: the user's home, to put back.
             }
-            save(previous + "/" + gaming);
+            save(key, previous + "/" + gaming);
             setHome(roles, gaming, user, home);
         } else if (saved != null) {
-            save(null);
+            save(key, null);
             if (home.equals(placed) && !home.equals(previous)) {
                 setHome(roles, previous, user, home);
             }
         }
     }
 
-    private static void save(String value) {
-        Settings.Global.putString(context.getContentResolver(), SAVED, value);
+    private static void save(String key, String value) {
+        Settings.Global.putString(context.getContentResolver(), key, value);
+    }
+
+    /**
+     * The record's key for one user: the home role is held per user, and one record for all
+     * of them let a switch to another user overwrite the first user's home to put back (found
+     * in the 0.70.16 audit). User 0 keeps the original key, so a record saved before stays
+     * found.
+     */
+    private static String savedKey(int userId) {
+        return userId == 0 ? SAVED : SAVED + "_u" + userId;
     }
 
     @SuppressWarnings("unchecked")

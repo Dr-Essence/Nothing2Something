@@ -16,6 +16,7 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.UserHandle;
 
+import com.dressence.nothinglauncherplus.Broadcasts;
 import com.dressence.nothinglauncherplus.Config;
 import com.dressence.nothinglauncherplus.xposed.Hooks;
 
@@ -64,6 +65,9 @@ public final class SystemShortcuts {
         context.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context c, Intent intent) {
+                if (!Broadcasts.fromModule(this)) {
+                    return; // Only for the module and the launcher (see Broadcasts).
+                }
                 boolean[] opened = new boolean[1];
                 Hooks.guard("running services",
                         () -> opened[0] = openRunningServices(context)).run();
@@ -78,6 +82,9 @@ public final class SystemShortcuts {
         context.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context c, Intent intent) {
+                if (!Broadcasts.fromModule(this)) {
+                    return;
+                }
                 Hooks.guard("expand notifications", () -> {
                     long identity = Binder.clearCallingIdentity();
                     try {
@@ -94,6 +101,9 @@ public final class SystemShortcuts {
         context.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context c, Intent intent) {
+                if (!Broadcasts.fromModule(this)) {
+                    return;
+                }
                 Hooks.guard("open media app", () -> openMediaApp(context)).run();
             }
         }, new IntentFilter(Config.ACTION_OPEN_MEDIA_APP), Context.RECEIVER_EXPORTED);

@@ -121,8 +121,10 @@ final class RecentsRam {
      * found no such screen), developer options, which lists Running services.
      */
     private static void openRunningServices(Context context) {
+        // Carrying who sent it: the system opens it only for the module and the launcher.
         context.sendOrderedBroadcast(
                 new Intent(Config.ACTION_RUNNING_SERVICES).setPackage("android"), null,
+                com.dressence.nothinglauncherplus.Broadcasts.withIdentity(),
                 new android.content.BroadcastReceiver() {
                     @Override
                     public void onReceive(Context c, Intent intent) {

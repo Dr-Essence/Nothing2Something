@@ -137,6 +137,9 @@ public final class SystemFonts {
         context.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context c, Intent intent) {
+                if (!com.dressence.nothinglauncherplus.Broadcasts.fromModule(this)) {
+                    return; // Only the module's settings may reset the font's crash guard.
+                }
                 try {
                     store.reloadAndNotify();
                     FAILED.delete(); // A font chosen again is given another chance.

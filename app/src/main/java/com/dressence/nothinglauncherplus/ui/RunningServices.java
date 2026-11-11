@@ -38,8 +38,10 @@ public final class RunningServices extends Activity {
 
     /** Asks the system for Running services; developer options if it does not answer. */
     static void open(Context context, Runnable done) {
+        // Carrying who sent it: the system opens it only for the module and the launcher.
         context.sendOrderedBroadcast(
                 new Intent(Config.ACTION_RUNNING_SERVICES).setPackage("android"), null,
+                com.dressence.nothinglauncherplus.Broadcasts.withIdentity(),
                 new BroadcastReceiver() {
                     @Override
                     public void onReceive(Context c, Intent intent) {

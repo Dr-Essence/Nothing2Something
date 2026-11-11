@@ -234,8 +234,8 @@ final class Gamepad {
                 mediaKey(launcher, KeyEvent.KEYCODE_MEDIA_NEXT);
                 break;
             case KeyEvent.KEYCODE_BUTTON_START:
-                launcher.sendBroadcast(new Intent(Config.ACTION_OPEN_MEDIA_APP)
-                        .setPackage("android"));
+                com.dressence.nothinglauncherplus.Broadcasts.send(launcher,
+                        new Intent(Config.ACTION_OPEN_MEDIA_APP).setPackage("android"));
                 break;
             default:
                 break;
@@ -351,8 +351,8 @@ final class Gamepad {
             case KeyEvent.KEYCODE_BUTTON_SELECT:
                 // Nothing Launcher may not expand the panel itself (EXPAND_STATUS_BAR): the
                 // system does it (SystemShortcuts).
-                launcher.sendBroadcast(new Intent(Config.ACTION_EXPAND_NOTIFICATIONS)
-                        .setPackage("android"));
+                com.dressence.nothinglauncherplus.Broadcasts.send(launcher,
+                        new Intent(Config.ACTION_EXPAND_NOTIFICATIONS).setPackage("android"));
                 break;
             default:
                 break;

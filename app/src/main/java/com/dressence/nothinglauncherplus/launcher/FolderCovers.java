@@ -114,6 +114,8 @@ final class FolderCovers {
             // Same box as the preview grid, so the folder name stays where it is.
             tile.addView(cover, new FrameLayout.LayoutParams(
                     (FrameLayout.LayoutParams) previews.getLayoutParams()));
+        } else {
+            matchBox(cover, previews);
         }
         previews.setVisibility(View.INVISIBLE);
         cover.setVisibility(View.VISIBLE);
@@ -123,6 +125,27 @@ final class FolderCovers {
             cover.showText(folder.coverText,
                     animate ? Motion.parse(folder.coverMotion) : Motion.NONE, folder.id.hashCode(),
                     dotMatrix);
+        }
+    }
+
+    /**
+     * The cover kept on the preview grid's box at every bind: a tile used again after a turn
+     * has its previews resized for the new orientation (SmartDrawer.resizeTile), and a cover
+     * that copied the box only when it was made kept the other orientation's (found in the
+     * 0.70.16 audit).
+     */
+    private static void matchBox(View cover, View previews) {
+        if (!(previews.getLayoutParams() instanceof FrameLayout.LayoutParams)
+                || !(cover.getLayoutParams() instanceof FrameLayout.LayoutParams)) {
+            return;
+        }
+        FrameLayout.LayoutParams want = (FrameLayout.LayoutParams) previews.getLayoutParams();
+        FrameLayout.LayoutParams has = (FrameLayout.LayoutParams) cover.getLayoutParams();
+        if (has.width != want.width || has.height != want.height
+                || has.gravity != want.gravity || has.leftMargin != want.leftMargin
+                || has.topMargin != want.topMargin || has.rightMargin != want.rightMargin
+                || has.bottomMargin != want.bottomMargin) {
+            cover.setLayoutParams(new FrameLayout.LayoutParams(want));
         }
     }
 
