@@ -1,4 +1,4 @@
-package com.dressence.nothinglauncherplus.ui
+package com.dressence.nothinglauncherplus.gaming
 
 import android.app.Activity
 import android.content.Context
@@ -33,6 +33,9 @@ import com.dressence.nothinglauncherplus.xposed.NdotFont
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.abs
+import com.dressence.nothinglauncherplus.ui.SettingsStore
+import com.dressence.nothinglauncherplus.ui.EmojiCatalog
+import com.dressence.nothinglauncherplus.ui.SystemFont
 
 /**
  * Nothing Gaming Space: a home screen for playing with a controller, in Nothing's dot-matrix

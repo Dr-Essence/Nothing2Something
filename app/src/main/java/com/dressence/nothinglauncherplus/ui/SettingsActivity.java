@@ -21,6 +21,10 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.dressence.nothinglauncherplus.Config;
+import com.dressence.nothinglauncherplus.gaming.GamingStorage;
+import com.dressence.nothinglauncherplus.gaming.SteamGridArt;
+import com.dressence.nothinglauncherplus.gaming.GamingSpaceActivity;
+import com.dressence.nothinglauncherplus.gaming.GamingLibrary;
 import com.dressence.nothinglauncherplus.UpdateReceiver;
 import com.dressence.nothinglauncherplus.anim.FrameRates;
 import com.dressence.nothinglauncherplus.sound.SoundEngine;

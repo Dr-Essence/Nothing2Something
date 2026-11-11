@@ -22,7 +22,7 @@ import java.util.Set;
  * Nothing's widgets app, to choose one as the system font; none ship with this app. The
  * choice is applied by the module's hook in the system (hook.SystemFonts).
  */
-final class SystemFont {
+public final class SystemFont {
 
     /** The font module earlier versions wrote (it replaced the system's font files). */
     private static final String OLD_MODULE = "/data/adb/modules/nlplus_systemfont";
@@ -38,8 +38,8 @@ final class SystemFont {
      * A font that can be chosen: its title, and a file path, or a widgets-app resource that is
      * first added to the system's fonts as a file ({@link #addToSystem}).
      */
-    static final class Choice {
-        final String title;
+    public static final class Choice {
+        public final String title;
         final String path;
         final int resource;
 
@@ -59,7 +59,7 @@ final class SystemFont {
     }
 
     /** Nothing's fonts on this phone. */
-    static List<Choice> find(Context context) {
+    public static List<Choice> find(Context context) {
         List<Choice> out = new ArrayList<>();
         Set<String> titles = new LinkedHashSet<>();
         for (String dir : FONT_DIRS) {
@@ -125,7 +125,7 @@ final class SystemFont {
      * {@code choice} as a typeface to preview it in this app (null: the phone's own font);
      * null if it cannot be read. A widgets-app font is read into a buffer of this app's own.
      */
-    static Typeface typeface(Context context, Choice choice) {
+    public static Typeface typeface(Context context, Choice choice) {
         try {
             if (choice == null) {
                 File roboto = new File("/system/fonts/Roboto-Regular.ttf");

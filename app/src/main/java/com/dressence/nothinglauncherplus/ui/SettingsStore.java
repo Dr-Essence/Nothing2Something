@@ -31,7 +31,7 @@ public final class SettingsStore {
         config = Config.read(prefs);
     }
 
-    void reload() {
+    public void reload() {
         config = Config.read(prefs);
     }
 

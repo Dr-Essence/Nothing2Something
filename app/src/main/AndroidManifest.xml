@@ -84,7 +84,7 @@
              app (so it can be picked as the gaming launcher that ControllerHome makes Android's
              home while a controller is connected), always in landscape, kept out of recents. -->
         <activity
-            android:name=".ui.GamingSpaceActivity"
+            android:name=".gaming.GamingSpaceActivity"
             android:exported="true"
             android:label="Nothing Gaming Space (alpha) (demo)"
             android:launchMode="singleTask"

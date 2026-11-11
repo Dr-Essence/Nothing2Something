@@ -1,4 +1,4 @@
-package com.dressence.nothinglauncherplus.ui
+package com.dressence.nothinglauncherplus.gaming
 
 import android.graphics.Bitmap
 import android.graphics.Canvas

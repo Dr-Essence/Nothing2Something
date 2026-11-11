@@ -6,7 +6,7 @@ import android.view.InputDevice
 
 /**
  * What counts as a game controller, in one place (until 0.70.9 the same test was written out in
- * launcher.Gamepad, keyboard.HeliBoardGamepad, system.ControllerHome and ui.GamingSpaceActivity).
+ * launcher.Gamepad, keyboard.HeliBoardGamepad, system.ControllerHome and gaming.GamingSpaceActivity).
  *
  * A device's sources say what kind of input it gives; a gamepad reports SOURCE_GAMEPAD (its
  * buttons), a joystick SOURCE_JOYSTICK (its sticks). Each is a bit pattern of several bits, so

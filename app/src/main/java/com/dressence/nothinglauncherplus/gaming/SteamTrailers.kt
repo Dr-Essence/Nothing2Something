@@ -1,4 +1,4 @@
-package com.dressence.nothinglauncherplus.ui
+package com.dressence.nothinglauncherplus.gaming
 
 import android.content.Context
 import com.dressence.nothinglauncherplus.Http

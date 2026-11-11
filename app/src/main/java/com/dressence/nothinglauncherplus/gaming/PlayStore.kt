@@ -1,4 +1,4 @@
-package com.dressence.nothinglauncherplus.ui
+package com.dressence.nothinglauncherplus.gaming
 
 import com.dressence.nothinglauncherplus.Http
 import java.net.URLEncoder
