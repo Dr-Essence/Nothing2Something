@@ -1,19 +1,12 @@
 package com.dressence.nothinglauncherplus.ui;
 
-import com.dressence.nothinglauncherplus.Root;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.content.res.ColorStateList;
-import android.graphics.Color;
-import android.graphics.Typeface;
-import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Display;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.os.Looper;
@@ -130,7 +123,7 @@ public class SettingsActivity extends Activity {
                 addSoundSection(ui, config);
                 break;
             case PAGE_PERFORMANCE:
-                renderPerformance(ui, config);
+                new PerformancePage(this, store, this::render).render(ui, config);
                 break;
             case PAGE_BACKUP:
                 renderBackup(ui);
@@ -292,7 +285,7 @@ public class SettingsActivity extends Activity {
         ui.row("Lock screen", "Landscape lock screen (test)", null, ui.chevron(),
                 v -> openPage(PAGE_LOCK));
         ui.row("System font", "Use one of Nothing's fonts on this phone · no reboot", null,
-                ui.chevron(), v -> chooseSystemFont());
+                ui.chevron(), v -> new FontSettings(this, store).choose());
         ui.switchRow("Full refresh rate in battery saver", "Battery saver keeps the screen's"
                 + " refresh rate (120 Hz) instead of capping it at 60 Hz; the rest of battery"
                 + " saver stays · uses more battery", store.config.saverFullRefresh, checked -> {
@@ -874,138 +867,6 @@ public class SettingsActivity extends Activity {
                         .setType("*/*"), REQUEST_IMPORT));
     }
 
-    private void renderPerformance(Ui ui, Config config) {
-        ui.note("Experimental, CMF Phone 1 only, needs root.");
-        if (config.perfOverlay && !ui.collecting()) {
-            // After a reboot the overlay comes back when this page is opened.
-            com.dressence.nothinglauncherplus.perf.OverlayService.start(this);
-        }
-        ui.section("Overlay");
-        ui.switchRow("Ndot performance overlay", "Each CPU core's clock, GPU clock and load, CPU,"
-                + " GPU, SoC and battery temperatures, FPS · over every app and the lock screen",
-                config.perfOverlay,
-                checked -> {
-                    config.perfOverlay = checked;
-                    store.save(this);
-                    if (checked) {
-                        // System UI draws it: no "display over other apps" needed.
-                        com.dressence.nothinglauncherplus.perf.OverlayService.start(this);
-                    } else {
-                        com.dressence.nothinglauncherplus.perf.OverlayService.stop(this);
-                    }
-                });
-
-        ui.section("PerfMTK");
-        ui.row("Profile", "Performance, Balanced, Powersave or Powersave+ now · PerfMTK's own"
-                + " app profiles still switch it when apps change", null, ui.chevron(),
-                v -> choosePerfMtkProfile());
-
-        ui.row("Thermal limits", "Switch PerfMTK's thermal throttling on or off · off runs"
-                + " hotter, for short gaming sessions", null, ui.chevron(),
-                v -> chooseThermal());
-
-        ui.section("Games");
-        int n = config.unlockGames.size();
-        ui.row("120 fps unlock", (n == 0 ? "No games" : n == 1 ? "1 game" : n + " games")
-                + " · the game sees a Galaxy S24 Ultra · read the warning", null, ui.chevron(),
-                v -> warnBeforeUnlock(config));
-    }
-
-    private static final String[] PERFMTK_PROFILES =
-            {"performance", "balanced", "powersave", "powersave+"};
-
-    private void choosePerfMtkProfile() {
-        Dialogs.builder(this)
-                .setTitle("PerfMTK profile")
-                .setItems(new String[] {"Performance", "Balanced", "Powersave", "Powersave+"},
-                        (d, which) -> perfMtk(PERFMTK_PROFILES[which],
-                                "PerfMTK: " + PERFMTK_PROFILES[which],
-                                () -> store.config.perfProfile = PERFMTK_PROFILES[which]))
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
-    /** PerfMTK's thermal switch (`perfmtk --thermal enable|disable`, from its own help). */
-    private void chooseThermal() {
-        Dialogs.builder(this)
-                .setTitle("Thermal limits")
-                .setMessage("Off lets the phone run hotter before it slows down. Use it for"
-                        + " short sessions, and switch it back on after.")
-                .setPositiveButton("On", (d, w) -> perfMtk("--thermal enable",
-                        "Thermal limits on", () -> store.config.thermalOff = false))
-                .setNegativeButton("Off", (d, w) -> perfMtk("--thermal disable",
-                        "Thermal limits off", () -> store.config.thermalOff = true))
-                .setNeutralButton("Cancel", null)
-                .show();
-    }
-
-    /** Runs PerfMTK; on success {@code saved} records the state (shown in the Game Bar). */
-    private void perfMtk(String arguments, String done, Runnable saved) {
-        new Thread(() -> {
-            String failure = com.dressence.nothinglauncherplus.perf.Device.hasPerfMtk()
-                    ? Root.run("perfmtk " + arguments)
-                    : "PerfMTK is not installed";
-            runOnUiThread(() -> {
-                if (failure == null) {
-                    saved.run();
-                    store.save(this);
-                }
-                Toast.makeText(this, failure == null ? done : "Failed: " + failure,
-                        Toast.LENGTH_LONG).show();
-            });
-        }).start();
-    }
-
-    private void warnBeforeUnlock(Config config) {
-        Dialogs.builder(this)
-                .setTitle("120 fps unlock")
-                .setMessage("Inside each game you pick, the phone presents itself as a Samsung"
-                        + " Galaxy S24 Ultra, so games that choose their frame rate by phone"
-                        + " offer 120 fps. Nothing outside those games changes.\n\n"
-                        + "Use it only for offline or single-player games. Games with online"
-                        + " play or anti-cheat can treat a changed device as cheating and ban"
-                        + " the account; there is no way to rule that out.\n\n"
-                        + "It does not help games that choose by their graphics chip. Tick each"
-                        + " game in the module's LSPosed scope too, then restart the game.")
-                .setPositiveButton("Pick games", (d, w) -> pickUnlockGames(config))
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
-    private void pickUnlockGames(Config config) {
-        java.util.List<Apps.App> all = Apps.all(this);
-        java.util.List<String> packages = new ArrayList<>();
-        java.util.List<String> labels = new ArrayList<>();
-        for (Apps.App app : all) {
-            String pkg = android.content.ComponentName.unflattenFromString(app.component)
-                    .getPackageName();
-            if (!packages.contains(pkg) && !pkg.equals(getPackageName())) {
-                packages.add(pkg);
-                labels.add(app.label);
-            }
-        }
-        boolean[] checked = new boolean[packages.size()];
-        for (int i = 0; i < packages.size(); i++) {
-            checked[i] = config.unlockGames.contains(packages.get(i));
-        }
-        Dialogs.builder(this)
-                .setTitle("Games to unlock")
-                .setMultiChoiceItems(labels.toArray(new String[0]), checked,
-                        (d, which, isChecked) -> checked[which] = isChecked)
-                .setPositiveButton("Save", (d, w) -> {
-                    config.unlockGames.clear();
-                    for (int i = 0; i < packages.size(); i++) {
-                        if (checked[i]) {
-                            config.unlockGames.add(packages.get(i));
-                        }
-                    }
-                    store.save(this);
-                    render();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
     private void renderDiagnostics(Ui ui, Config config) {
         ui.section("Logging");
         ui.switchRow("Diagnostic logging", "Writes what is needed to fix problems to the LSPosed"
@@ -1019,9 +880,9 @@ public class SettingsActivity extends Activity {
         ui.row("Capture debug report", "Waits while you set the problem up, then records the"
                 + " screen and saves screenshots, layer, window and view layouts, logcat and the"
                 + " LSPosed log to Download · needs root · may hold personal info", null, null,
-                v -> chooseReportTimes());
+                v -> ReportSettings.chooseTimes(this));
         ui.row("Stop capture", "Ends a running capture now; it still saves what it has", null,
-                null, v -> stopReport());
+                null, v -> ReportSettings.stop(this));
 
         ui.section("Test notifications");
         ui.row("Post test notifications", "Short, long, conversation, progress, picture and"
@@ -1301,187 +1162,6 @@ public class SettingsActivity extends Activity {
                 }
                 Toast.makeText(this, failure == null ? successMessage : "Failed: " + failure,
                         Toast.LENGTH_LONG).show();
-            });
-        }).start();
-    }
-
-    /**
-     * Lists Nothing's fonts on the phone, each previewed on a dot-matrix screen in glowing
-     * green, and sets the chosen one as the system font.
-     */
-    private void chooseSystemFont() {
-        new Thread(() -> {
-            List<SystemFont.Choice> fonts = new ArrayList<>();
-            fonts.add(null); // The phone's own font.
-            fonts.addAll(SystemFont.find(this));
-            List<Typeface> faces = new ArrayList<>();
-            List<Boolean> lowercase = new ArrayList<>();
-            for (SystemFont.Choice font : fonts) {
-                Typeface face = SystemFont.typeface(this, font);
-                faces.add(face);
-                lowercase.add(face == null || FontPreview.hasLowercase(face));
-            }
-            runOnUiThread(() -> showFontChooser(fonts, faces, lowercase));
-        }).start();
-    }
-
-    private void showFontChooser(List<SystemFont.Choice> fonts, List<Typeface> faces,
-            List<Boolean> lowercase) {
-        if (isFinishing()) {
-            return;
-        }
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        int pad = Ui.dp(this, 20);
-        list.setPadding(pad, Ui.dp(this, 8), pad, Ui.dp(this, 8));
-        ScrollView scroll = new ScrollView(this);
-        scroll.addView(list);
-        AlertDialog dialog = Dialogs.builder(this)
-                .setTitle("System font")
-                .setView(scroll)
-                .setNegativeButton("Cancel", null)
-                .create();
-        for (int i = 0; i < fonts.size(); i++) {
-            SystemFont.Choice font = fonts.get(i);
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.VERTICAL);
-            row.setPadding(0, Ui.dp(this, 10), 0, Ui.dp(this, 10));
-            row.setBackground(new RippleDrawable(ColorStateList.valueOf(0x22FFFFFF), null,
-                    new ColorDrawable(Color.WHITE)));
-            TextView title = new TextView(this);
-            title.setText(font == null ? "Phone default" : font.title
-                    + (lowercase.get(i) ? "" : "  · capitals only")
-                    + (font.needsAdding() ? "  · after one restart" : ""));
-            title.setTextColor(Ui.TEXT);
-            title.setTextSize(15);
-            title.setPadding(0, 0, 0, Ui.dp(this, 6));
-            row.addView(title);
-            if (faces.get(i) != null) {
-                FontPreview preview = new FontPreview(this);
-                preview.setTypeface(faces.get(i));
-                row.addView(preview, new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT));
-            }
-            row.setOnClickListener(v -> {
-                dialog.dismiss();
-                applyFont(font);
-            });
-            list.addView(row);
-        }
-        dialog.show();
-    }
-
-    /**
-     * Sets the font at once, no reboot: the system gives it to every app from its next start
-     * (System Framework in the module's scope), and System UI and the launcher are restarted
-     * now (just those two, a second each) to show it.
-     */
-    private void applyFont(SystemFont.Choice choice) {
-        if (choice != null && choice.needsAdding()) {
-            addFont(choice);
-            return;
-        }
-        store.config.systemFont = choice == null ? ""
-                : choice.path != null ? "file:" + choice.path : "res:" + choice.title;
-        store.save(this);
-        sendBroadcast(new android.content.Intent(Config.ACTION_FONT).setPackage("android"));
-        new Thread(() -> {
-            SystemFont.removeOldModule();
-            // Through SystemUiRestart, the one way System UI is restarted: it writes the
-            // crash guard's "planned restart" note and allows one restart every 90 s. (Mistake
-            // recorded, up to 0.65.2: the font had its own restart with neither, so choosing a
-            // few fonts in a row could put LSPosed into safe mode, as in 0.54.1.)
-            long wait = SystemUiRestart.waitSeconds();
-            boolean restarted = wait == 0 && SystemUiRestart.restart();
-            UpdateReceiver.restartLauncher();
-            String name = choice == null ? "Phone font back" : choice.title + " set";
-            String status = restarted ? ": status bar and launcher now use it."
-                    : wait > 0 ? ": the launcher uses it now, the status bar after the next"
-                            + " System UI restart (allowed again in " + wait + " s)."
-                    : ": the launcher uses it now; root not available for the status bar.";
-            runOnUiThread(() -> Toast.makeText(this, name + status
-                    + " Other apps use it when they next open.", Toast.LENGTH_LONG).show());
-        }).start();
-    }
-
-    /**
-     * A font only Nothing's widgets app has: added to the system's fonts as a file (shown after
-     * one restart of the phone), and chosen, so it is the system font from that restart on.
-     */
-    private void addFont(SystemFont.Choice choice) {
-        new Thread(() -> {
-            String error = SystemFont.addToSystem(this, choice);
-            runOnUiThread(() -> {
-                if (error != null) {
-                    Toast.makeText(this, "Could not add " + choice.title + ": " + error,
-                            Toast.LENGTH_LONG).show();
-                    return;
-                }
-                store.config.systemFont = "file:" + SystemFont.addedPath(choice);
-                store.save(this);
-                Toast.makeText(this, choice.title + " added. Restart the phone once: it is the"
-                        + " system font from then on.", Toast.LENGTH_LONG).show();
-            });
-        }).start();
-    }
-
-    /** Report wait and capture times to choose from, in seconds. */
-    private static final int[] REPORT_DELAYS = {10, 15, 30, 60, 120, 300, 600};
-    private static final int[] REPORT_LENGTHS = {15, 30, 60, 120, 300, 600};
-
-    private static String duration(int seconds) {
-        return seconds < 60 ? seconds + " s" : seconds / 60 + " min";
-    }
-
-    private static String[] durations(int[] seconds) {
-        String[] labels = new String[seconds.length];
-        for (int i = 0; i < seconds.length; i++) {
-            labels[i] = duration(seconds[i]);
-        }
-        return labels;
-    }
-
-    /** Asks how long to wait before capturing, then how long to capture, then starts. */
-    private void chooseReportTimes() {
-        Dialogs.builder(this)
-                .setTitle("Start capturing after")
-                .setItems(durations(REPORT_DELAYS), (d, delay) -> Dialogs.builder(this)
-                        .setTitle("Capture for")
-                        .setItems(durations(REPORT_LENGTHS), (d2, length) -> captureReport(
-                                REPORT_DELAYS[delay], REPORT_LENGTHS[length]))
-                        .setNegativeButton("Cancel", null)
-                        .show())
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
-    private void captureReport(int delay, int length) {
-        new Thread(() -> {
-            String failure = DebugReport.start(this, delay, length);
-            runOnUiThread(() -> {
-                if (failure == null) {
-                    CaptureIndicator.start(this, delay, length);
-                }
-                Toast.makeText(this, failure == null
-                        ? "Capturing in " + duration(delay) + " for " + duration(length)
-                                + ": one buzz when it starts, two when the report is saved"
-                        : "Failed: " + failure, Toast.LENGTH_LONG).show();
-            });
-        }).start();
-    }
-
-    private void stopReport() {
-        new Thread(() -> {
-            String failure = DebugReport.stop();
-            runOnUiThread(() -> {
-                if (failure == null) {
-                    // Straight to "saving": it ends when the report is saved.
-                    CaptureIndicator.start(this, 0, 0);
-                }
-                Toast.makeText(this, failure == null
-                        ? "Stopping; the report is saved in a few seconds"
-                        : "Failed: " + failure, Toast.LENGTH_LONG).show();
             });
         }).start();
     }
