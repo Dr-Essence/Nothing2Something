@@ -36,7 +36,10 @@ final class DrawerBackground {
                         @Override
                         protected void afterHookedMethod(MethodHookParam param) {
                             int opacity = store.get().drawerOpacity;
-                            if (opacity < 100) {
+                            // An int up to Nothing OS 4; Nothing OS 5 returns ScrimColors (two
+                            // colours), whose colour comes from ThemeColors, faded at the source
+                            // above (tools/hookcheck.py, 0.70.32).
+                            if (opacity < 100 && param.getResult() instanceof Integer) {
                                 param.setResult(faded((Integer) param.getResult(), opacity));
                             }
                         }
@@ -74,8 +77,12 @@ final class DrawerBackground {
                     XposedHelpers.callMethod(launcher, "getStateManager"), "getState");
             if (state == allApps) {
                 View scrim = (View) XposedHelpers.callMethod(launcher, "getScrimView");
-                scrim.setBackgroundColor((Integer) XposedHelpers.callMethod(
-                        allApps, "getWorkspaceScrimColor", launcher));
+                Object colour = XposedHelpers.callMethod(allApps, "getWorkspaceScrimColor",
+                        launcher);
+                // Nothing OS 5's ScrimColors: the new opacity shows at the next state change.
+                if (colour instanceof Integer) {
+                    scrim.setBackgroundColor((Integer) colour);
+                }
             }
             // The search's colours too, through Nothing's own updateCustomColor (what an icon
             // pack or theme change calls): fresh colours, faded once by the hook above. They

@@ -46,7 +46,11 @@ final class LandscapeSurfaces {
 
     void install() {
         Hooks.install("landscape recents", this::hookRecents);
-        Hooks.install("landscape folders", this::hookFolders);
+        if (Landscape.profilesSplit(XposedHelpers.findClass(CLS_DEVICE_PROFILE, cl))) {
+            Hooks.skipped("landscape folders", "not adapted to Nothing OS 5's DeviceProfile yet");
+        } else {
+            Hooks.install("landscape folders", this::hookFolders);
+        }
         Hooks.install("hidden navigation bar on turn", this::hookHiddenNavBarTurn);
     }
 

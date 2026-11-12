@@ -71,7 +71,9 @@ internal object DotIconPack {
 
     /** Our entry goes into the launcher's map of packs each time it is filled. */
     private fun addEntry(cl: ClassLoader) {
-        val entity = XposedHelpers.findClass("k7.b", cl)
+        // Only a fallback for an empty map (renamed in Nothing OS 5, so it may be absent:
+        // tools/hookcheck.py, 0.70.32); the class of an entry already there is used first.
+        val entity: Class<*>? = XposedHelpers.findClassIfExists("k7.b", cl)
         // Found by its shape when an update renames it (LauncherSymbols, 4.0.20: h7.d.a).
         XposedBridge.hookMethod(LauncherSymbols.readPacks(cl), object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
@@ -83,7 +85,7 @@ internal object DotIconPack {
                         // the map is empty. A later build giving that name to another class
                         // would have put a foreign object into Nothing's map (dependency map,
                         // F4).
-                        val kind = packs.values.firstOrNull()?.javaClass ?: entity
+                        val kind = packs.values.firstOrNull()?.javaClass ?: entity ?: return
                         packs.putIfAbsent(PACK_ID, XposedHelpers.newInstance(kind, PACK_ID, LABEL))
                     } catch (t: Throwable) {
                         Hooks.log("dot matrix icon pack: entry failed: $t")

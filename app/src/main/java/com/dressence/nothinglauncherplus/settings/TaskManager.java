@@ -57,7 +57,19 @@ public final class TaskManager {
 
     private static final String CLS_VIEW =
             "com.android.settings.applications.RunningProcessesView";
-    private static final String CLS_ROW = "com.android.settings.applications.A1";
+    private static final String PKG = "com.android.settings.applications.";
+    /**
+     * Settings' obfuscated names for the row view holder, the base item and the merged item,
+     * per Settings build: Nothing OS 4 (Settings 16) and Nothing OS 5 (Settings 17, Phone (3a)
+     * C5.0, read with dexdump: x4 binds a row with a(o5, f5, StringBuilder), f5 has c
+     * PackageItemInfo and d CharSequence, g5.n is the i5 process record with p/q/r). The first
+     * set whose every field has the expected type is used (checkShapes); none: not installed.
+     */
+    private static final String[][] NAMES = {{"A1", "J1", "K1"}, {"x4", "f5", "g5"}};
+    /** The names checkShapes found for this Settings build. */
+    private static String clsRow;
+    /** RunningProcessesView's process list: its one ListView field (G in 4, F in 5). */
+    private static java.lang.reflect.Field listField;
     private static final long TICK_MS = 2000;
     /** Packages whose stopping can take the phone down or lose calls, input or the home. */
     private static final Set<String> CRITICAL = new HashSet<>(Arrays.asList(
@@ -94,7 +106,7 @@ public final class TaskManager {
                 }
             }
         });
-        XposedBridge.hookAllMethods(XposedHelpers.findClass(CLS_ROW, cl), "a",
+        XposedBridge.hookAllMethods(XposedHelpers.findClass(clsRow, cl), "a",
                 new XC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) {
@@ -117,12 +129,48 @@ public final class TaskManager {
      */
     private static void checkShapes(ClassLoader cl) {
         Class<?> view = XposedHelpers.findClass(CLS_VIEW, cl);
-        expect(view, "G", ListView.class);
-        expect(XposedHelpers.findClass(CLS_ROW, cl), "d", TextView.class);
-        Class<?> base = XposedHelpers.findClass("com.android.settings.applications.J1", cl);
+        // The list: G (Settings 16) or F (Settings 17) when that field is the ListView, else
+        // the view's only ListView field.
+        for (String name : new String[] {"G", "F"}) {
+            java.lang.reflect.Field f = XposedHelpers.findFieldIfExists(view, name);
+            if (f != null && f.getType() == ListView.class) {
+                listField = f;
+                break;
+            }
+        }
+        if (listField == null) {
+            for (java.lang.reflect.Field f : view.getDeclaredFields()) {
+                if (f.getType() == ListView.class) {
+                    if (listField != null) {
+                        throw new NoSuchFieldError("RunningProcessesView has two lists");
+                    }
+                    f.setAccessible(true);
+                    listField = f;
+                }
+            }
+        }
+        if (listField == null) {
+            throw new NoSuchFieldError("RunningProcessesView has no list (Settings changed)");
+        }
+        Throwable last = null;
+        for (String[] names : NAMES) {
+            try {
+                checkShapes(cl, names);
+                clsRow = PKG + names[0];
+                return;
+            } catch (Throwable t) {
+                last = t;
+            }
+        }
+        throw last instanceof Error ? (Error) last : new NoSuchFieldError(String.valueOf(last));
+    }
+
+    private static void checkShapes(ClassLoader cl, String[] names) {
+        expect(XposedHelpers.findClass(PKG + names[0], cl), "d", TextView.class);
+        Class<?> base = XposedHelpers.findClass(PKG + names[1], cl);
         expect(base, "c", PackageItemInfo.class);
         expect(base, "d", CharSequence.class);
-        Class<?> item = XposedHelpers.findClass("com.android.settings.applications.K1", cl);
+        Class<?> item = XposedHelpers.findClass(PKG + names[2], cl);
         Class<?> process = XposedHelpers.findField(item, "n").getType();
         // The process record: the class that holds Android's RunningAppProcessInfo.
         boolean isProcess = false;
@@ -130,7 +178,7 @@ public final class TaskManager {
             isProcess |= f.getType() == android.app.ActivityManager.RunningAppProcessInfo.class;
         }
         if (!isProcess) {
-            throw new NoSuchFieldError("K1.n is no longer the process record");
+            throw new NoSuchFieldError(names[2] + ".n is no longer the process record");
         }
         expect(process, "p", int.class);
         expect(process, "q", String.class);
@@ -155,7 +203,12 @@ public final class TaskManager {
     }
 
     private static void setUp(ViewGroup page) {
-        ListView list = (ListView) XposedHelpers.getObjectField(page, "G");
+        ListView list;
+        try {
+            list = (ListView) listField.get(page);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(e);
+        }
         TaskHeader header = new TaskHeader(page.getContext(), NdotFont.get(page.getContext()));
         list.addHeaderView(header, null, false);
         list.setOnItemLongClickListener((parent, view, position, id) -> {

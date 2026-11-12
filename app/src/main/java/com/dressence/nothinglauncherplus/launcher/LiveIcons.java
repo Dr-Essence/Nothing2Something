@@ -103,9 +103,14 @@ final class LiveIcons {
         ERASE.setColor(Color.BLACK);
         DOT.setColor(Color.WHITE);
 
-        XposedHelpers.findAndHookMethod("com.android.launcher3.BubbleTextView", cl,
-                "setNonPendingIcon",
-                XposedHelpers.findClass("com.android.launcher3.model.data.ItemInfoWithIcon", cl),
+        // Where an icon gets its drawable: setNonPendingIcon up to Nothing OS 4, renamed
+        // setStandardIcon in Nothing OS 5 (same parameter; tools/hookcheck.py, 0.70.32).
+        Class<?> bubble = XposedHelpers.findClass("com.android.launcher3.BubbleTextView", cl);
+        Class<?> itemInfo = XposedHelpers.findClass(
+                "com.android.launcher3.model.data.ItemInfoWithIcon", cl);
+        String setIcon = XposedHelpers.findMethodExactIfExists(bubble, "setNonPendingIcon",
+                itemInfo) != null ? "setNonPendingIcon" : "setStandardIcon";
+        XposedHelpers.findAndHookMethod(bubble, setIcon, itemInfo,
                 new XC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) {

@@ -41,8 +41,16 @@ public final class Launcher {
         // Guarded as a whole too: its first lookups are outside its own steps.
         Hooks.install("landscape grid setup", () -> new LandscapeGrid(cl).install());
         new LandscapeSurfaces(cl, store).install();
-        Hooks.install("landscape folder sheet", () -> new FolderSheetLandscape(cl).install());
-        Hooks.install("landscape widget picker", () -> new WidgetPickerLandscape(cl, store).install());
+        if (Landscape.profilesSplit(XposedHelpers.findClass("com.android.launcher3.DeviceProfile", cl))) {
+            // Nothing OS 5: the folder sheet reads DeviceProfile fields now in its profiles,
+            // and the widget picker is Android 17's Compose WidgetPickerActivity, without the
+            // sheets this adapts (tools/hookcheck.py, 0.70.32).
+            Hooks.skipped("landscape folder sheet", "not adapted to Nothing OS 5's DeviceProfile yet");
+            Hooks.skipped("landscape widget picker", "Nothing OS 5's widget picker is a new screen");
+        } else {
+            Hooks.install("landscape folder sheet", () -> new FolderSheetLandscape(cl).install());
+            Hooks.install("landscape widget picker", () -> new WidgetPickerLandscape(cl, store).install());
+        }
         Hooks.install("landscape menus", () -> PopupLandscape.install(cl, store));
         Hooks.install("lifecycle after a turn", () -> hookTurnLifecycle(cl));
         Hooks.install("home shown", () -> hookHomeShown(cl));
@@ -136,6 +144,13 @@ public final class Launcher {
         // feature (Hooks.install), instead of failing inside every load of the home screen
         // (until 0.70.20 they were looked up only as the load ran; dependency map, F3).
         Class<?> taskClass = XposedHelpers.findClass(CLS_LOADER_TASK, cl);
+        // Nothing OS 5's loader (Android 17's Launcher3) no longer waits for an idle main
+        // thread: no waitForIdle, no LooperIdleLock (tools/hookcheck.py, 0.70.32). The problem
+        // this solves is gone with it, so the feature is left out, not failed.
+        if (XposedHelpers.findMethodExactIfExists(taskClass, "waitForIdle") == null) {
+            Hooks.skipped("loader idle wait", "this launcher's loader does not wait for idle");
+            return;
+        }
         java.lang.reflect.Field binderField = XposedHelpers.findField(taskClass, "mLauncherBinder");
         java.lang.reflect.Field stoppedField = XposedHelpers.findField(taskClass, "mStopped");
         java.lang.reflect.Method newIdleLock = null;

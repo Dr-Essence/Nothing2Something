@@ -71,8 +71,12 @@ public final class ControllerHome {
                                 .run();
                     }
                 });
-        XposedHelpers.findAndHookMethod(CLS_POLICY, cl, "interceptKeyBeforeDispatching",
-                android.os.IBinder.class, KeyEvent.class, int.class, new XC_MethodHook() {
+        // Android 16: (IBinder, KeyEvent, int policyFlags) returning a long, -1 = consumed.
+        // Android 17 (Nothing OS 5): (IBinder, KeyEvent) returning a boolean, true = consumed
+        // (services.jar: KeyGestureController.interceptShortcutsBeforeKeyCapture returns it as
+        // "handled"). Every version is hooked; homeButton answers in the method's own type.
+        XposedBridge.hookAllMethods(XposedHelpers.findClass(CLS_POLICY, cl),
+                "interceptKeyBeforeDispatching", new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {
                         KeyEvent event = (KeyEvent) param.args[1];
@@ -131,7 +135,10 @@ public final class ControllerHome {
             policyHandler.post(Hooks.guard("controller home button", () ->
                     XposedHelpers.callMethod(policy, "launchHomeFromHotKey", display)));
         }
-        param.setResult(-1L); // Consumed: the app in front does not get it.
+        // Consumed: the app in front does not get it.
+        boolean answersBoolean = ((java.lang.reflect.Method) param.method).getReturnType()
+                == boolean.class;
+        param.setResult(answersBoolean ? (Object) Boolean.TRUE : (Object) (-1L));
     }
 
     private static void start(Context system) {

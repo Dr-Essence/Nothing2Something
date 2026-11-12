@@ -155,6 +155,7 @@ final class LandscapeGrid {
      */
     private static volatile boolean crowded;
     /** Fits a landscape profile's icons to the grid in use (Landscape). */
+    /** Set by Landscape when its icon fit is installed; null on Nothing OS 5 (left out there). */
     static java.util.function.Consumer<Object> iconFit;
 
     /** Landscape places of items moved or resized in landscape; made with the launcher. */
@@ -1442,13 +1443,17 @@ final class LandscapeGrid {
                     return;
                 }
                 Object f = param.thisObject;
-                if (XposedHelpers.getIntField(f, "mMaxHSpan") >= grid.columns) {
-                    XposedHelpers.setIntField(f, "mMaxHSpan", Math.max(grid.columns,
+                // mMaxHSpan/mMaxVSpan up to Nothing OS 4, maxHSpan/maxVSpan in Nothing OS 5
+                // (tools/hookcheck.py, 0.70.32).
+                String h = XposedHelpers.findFieldIfExists(f.getClass(), "mMaxHSpan") != null
+                        ? "mMaxHSpan" : "maxHSpan";
+                String v = h.equals("mMaxHSpan") ? "mMaxVSpan" : "maxVSpan";
+                if (XposedHelpers.getIntField(f, h) >= grid.columns) {
+                    XposedHelpers.setIntField(f, h, Math.max(grid.columns,
                             grid.landscapeColumns()));
                 }
-                if (XposedHelpers.getIntField(f, "mMaxVSpan") >= grid.rows) {
-                    XposedHelpers.setIntField(f, "mMaxVSpan", Math.max(grid.rows,
-                            grid.landscapeRows()));
+                if (XposedHelpers.getIntField(f, v) >= grid.rows) {
+                    XposedHelpers.setIntField(f, v, Math.max(grid.rows, grid.landscapeRows()));
                 }
             }
         });

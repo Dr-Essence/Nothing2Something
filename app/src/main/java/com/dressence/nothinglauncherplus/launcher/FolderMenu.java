@@ -152,6 +152,28 @@ final class FolderMenu {
      * FolderIcon. That task stores only the folder itself, so the contents are written right
      * after it on the model thread, once the folder has its database id.
      */
+    /**
+     * LauncherModel.addAndBindAddedWorkspaceItems(items) up to Nothing OS 4. Nothing OS 5
+     * (Android 17's Launcher3) removed it; what it did is done directly, as it did:
+     * enqueueModelUpdateTask(new AddWorkspaceItemsTask(items, a space finder)), the task now in
+     * model.tasks and its finder from the model's own spaceFinderFactory (tools/hookcheck.py,
+     * 0.70.32).
+     */
+    private void addToWorkspace(Object model, List<?> items) {
+        if (XposedHelpers.findMethodExactIfExists(model.getClass(),
+                "addAndBindAddedWorkspaceItems", List.class) != null) {
+            XposedHelpers.callMethod(model, "addAndBindAddedWorkspaceItems", items);
+            return;
+        }
+        ClassLoader cl = model.getClass().getClassLoader();
+        // A javax.inject.Provider of the launcher's own class loader: called, not cast.
+        Object finder = XposedHelpers.callMethod(
+                XposedHelpers.getObjectField(model, "spaceFinderFactory"), "get");
+        Object task = XposedHelpers.newInstance(XposedHelpers.findClass(
+                "com.android.launcher3.model.tasks.AddWorkspaceItemsTask", cl), items, finder);
+        XposedHelpers.callMethod(model, "enqueueModelUpdateTask", task);
+    }
+
     private void addFolderToHome(Object launcher, CharSequence title, List<?> apps) {
         Context context = (Context) launcher;
         Object folder = XposedHelpers.newInstance(folderInfoClass);
@@ -185,8 +207,7 @@ final class FolderMenu {
         if (!canWrite) {
             throw new NoSuchMethodError("ModelWriter.addItemToDatabase(item, 4 ints)");
         }
-        XposedHelpers.callMethod(model, "addAndBindAddedWorkspaceItems",
-                Collections.singletonList(Pair.create(folder, null)));
+        addToWorkspace(model, Collections.singletonList(Pair.create(folder, null)));
 
         Executor modelExecutor =
                 (Executor) XposedHelpers.getStaticObjectField(executorsClass, "MODEL_EXECUTOR");

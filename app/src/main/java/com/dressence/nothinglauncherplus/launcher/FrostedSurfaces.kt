@@ -35,6 +35,12 @@ internal object FrostedSurfaces {
 
     @JvmStatic
     fun install(cl: ClassLoader, store: ConfigStore) {
+        if (Frosted.nativeIn(cl)) {
+            for (part in arrayOf("folder icon glass", "search bar glass", "widget glass")) {
+                Hooks.skipped(part, "Nothing OS 5 has its own frosted glass")
+            }
+            return
+        }
         Hooks.install("folder icon glass") { installFolderIcons(cl, store) }
         Hooks.install("search bar glass") { installSearchBar(cl, store) }
         Hooks.install("widget glass") { installWidgets(cl, store) }

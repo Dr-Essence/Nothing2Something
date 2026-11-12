@@ -43,6 +43,10 @@ internal object FolderGlass {
 
     @JvmStatic
     fun install(cl: ClassLoader, store: ConfigStore) {
+        if (Frosted.nativeIn(cl)) {
+            Hooks.skipped("folder glass", "Nothing OS 5 has its own frosted glass")
+            return
+        }
         val folder = XposedHelpers.findClass(FOLDER, cl)
         // Looked up now: if an update renames it, the feature is left out here, once, with the
         // reason in Hook health, instead of failing at every frame.

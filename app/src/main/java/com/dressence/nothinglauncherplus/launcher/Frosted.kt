@@ -59,6 +59,14 @@ import java.util.concurrent.Executors
  */
 internal object Frosted {
 
+    /**
+     * Whether this launcher draws Nothing's frosted glass itself (Nothing OS 5 has
+     * com.nothing.commBase.frosted). The module's glass is then left out, so the two never draw
+     * over each other: on Nothing OS 5, Nothing's own theme style switches it.
+     */
+    fun nativeIn(cl: ClassLoader) = de.robv.android.xposed.XposedHelpers.findClassIfExists(
+        "com.nothing.commBase.frosted.stdview.FrostedBackdropDrawable", cl) != null
+
     private const val DOWNSCALE = 3
     private const val BLUR_RADIUS = 3
     private const val SATURATION = 1.15f

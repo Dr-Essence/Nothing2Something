@@ -67,17 +67,17 @@ final class Landscape {
         Hooks.install("rotation shape hold", this::hookShapeHold);
         Hooks.install("landscape profiles", this::hookProfileChoice);
         Hooks.install("landscape config change", this::hookConfigChange);
-        Hooks.install("landscape layout", this::hookDeviceProfile);
-        Hooks.install("landscape smart drawer", this::hookSmartProfile);
-        Hooks.install("landscape icon fit", this::hookIconFit);
-        LandscapeGrid.iconFit = profile -> {
+        installOld("landscape layout", this::hookDeviceProfile);
+        installOld("landscape smart drawer", this::hookSmartProfile);
+        installOld("landscape icon fit", this::hookIconFit);
+        if (!profilesSplit()) LandscapeGrid.iconFit = profile -> {
             try {
                 fitIcons(profile);
             } catch (Throwable t) {
                 Hooks.log("landscape icon refit failed: " + t);
             }
         };
-        Hooks.install("landscape hotseat log", this::hookHotseatLog);
+        installOld("landscape hotseat log", this::hookHotseatLog);
     }
 
     // ---------------------------------------------------------------------------------------
@@ -498,9 +498,39 @@ final class Landscape {
 
     /** A phone held sideways, laid out with the hotseat as a vertical bar. */
     static boolean isPhoneLandscape(Object deviceProfile) {
-        return XposedHelpers.getBooleanField(deviceProfile, "isLandscape")
-                && XposedHelpers.getBooleanField(deviceProfile, "isPhone")
+        // Nothing OS 5 keeps isLandscape and isPhone in DeviceProfile.mDeviceProperties.
+        Object properties = profilesSplit(deviceProfile.getClass())
+                ? XposedHelpers.getObjectField(deviceProfile, "mDeviceProperties") : deviceProfile;
+        return XposedHelpers.getBooleanField(properties, "isLandscape")
+                && XposedHelpers.getBooleanField(properties, "isPhone")
                 && (Boolean) XposedHelpers.callMethod(deviceProfile, "isVerticalBarLayout");
+    }
+
+    /**
+     * Whether this launcher's DeviceProfile is Android 17's (Nothing OS 5): split into
+     * immutable profiles built by factories (mHotseatProfile, mFolderProfile, mAllAppsProfile,
+     * mWorkspaceProfile, mDeviceProperties), with none of the methods the landscape layout
+     * replaces (updateHotseatSizes, updateWorkspacePadding, getFixedCellWidth...). The parts
+     * of the landscape layout written for the old DeviceProfile are left out there, whole,
+     * rather than half applied (tools/hookcheck.py, 0.70.32); porting them needs a Nothing OS 5
+     * phone to test on.
+     */
+    static boolean profilesSplit(Class<?> deviceProfile) {
+        return XposedHelpers.findFieldIfExists(deviceProfile, "mHotseatProfile") != null;
+    }
+
+    private boolean profilesSplit() {
+        Class<?> dp = XposedHelpers.findClassIfExists("com.android.launcher3.DeviceProfile", cl);
+        return dp != null && profilesSplit(dp);
+    }
+
+    /** {@code name} installed, or on Nothing OS 5's DeviceProfile left out with the reason. */
+    private void installOld(String name, Hooks.Installer installer) {
+        if (profilesSplit()) {
+            Hooks.skipped(name, "not adapted to Nothing OS 5's DeviceProfile yet");
+        } else {
+            Hooks.install(name, installer);
+        }
     }
 
     private static boolean seascape(Object deviceProfile) {

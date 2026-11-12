@@ -79,12 +79,17 @@ public final class HudWindows {
      * "com.android.systemui:screenshot"), which would each listen and draw a second panel.
      */
     public static void install(ClassLoader cl) {
-        XposedHelpers.findAndHookMethod("com.android.systemui.SystemUIApplication", cl,
-                "onCreate", new XC_MethodHook() {
+        // Android's own hand-over to any app's Application.onCreate, whatever System UI calls
+        // its class: com.android.systemui.SystemUIApplication up to Nothing OS 4,
+        // com.android.systemui.application.impl.SystemUIApplicationImpl in Nothing OS 5
+        // (its manifest). Mistake recorded (found by tools/hookcheck.py, 0.70.32): the class
+        // was named here, and Nothing OS 5 renamed it.
+        XposedHelpers.findAndHookMethod(android.app.Instrumentation.class,
+                "callApplicationOnCreate", Application.class, new XC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) {
                         if (Config.SYSTEMUI_PKG.equals(Application.getProcessName())) {
-                            listen((Application) param.thisObject);
+                            listen((Application) param.args[0]);
                         }
                     }
                 });
