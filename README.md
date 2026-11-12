@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.30, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.31, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.30** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.31** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,25 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.31, The glass is visible on live wallpapers: the capture copied exactly from
+  Nothing OS 5.** Mistake recorded, 0.70.29 to 0.70.30 (Dr.Essence's screenshots on Living
+  Worlds: open folders, closed folders and widgets fully clear at a 40 % tint): the live
+  wallpaper's mirror was moved under the module's layer with Transaction.apply(), which does
+  not wait, and captured at once, before the mirror was there, so the picture was empty and
+  transparent; Nothing's colour filter keeps the picture's alpha, so the glass was invisible at
+  any tint. Read again in Nothing OS 5 (setup.d0.b/c): setLayer(0), apply(true) (synchronous),
+  150 ms to settle, the capture at full size, then createScaledBitmap to a third; now the same
+  (apply(true) through reflection, the hidden API Nothing calls). A capture that is still empty
+  now counts as a failure: the glass is the tint alone and Hook health lists "frosted glass
+  picture: the live wallpaper capture was empty", and a good one logs "frosted glass: live
+  wallpaper captured". Nothing OS 5 also waits up to 3 s for the wallpaper to be visible; the
+  module only captures while a home screen surface draws, when it is. Checked: compiles. Not
+  checked (needs the phone): that the capture now holds the wallpaper. Noticed in the LSPosed
+  log: another module, "Nothing Glass" (com.nothing.glass), hooks System UI's notifications,
+  volume, lock screen and blur; it does not touch the Launcher, but System UI glass from this
+  module would meet it. To test: restart the launcher, open a folder on Living Worlds: blurred
+  and 40 % darker in dark mode; closed folders and widgets the same; move the tint sliders. If
+  it is still clear, send the Hook health copy for Nothing Launcher and a new LSPosed log.
 - **0.70.30, Glass widgets: Nothing's own widgets frosted as in Nothing OS 5 (new, a switch
   and a tint slider).** Settings → Launcher → Glass widgets. Found with the new
   firmware-inspect workflow (it compares firmware on GitHub's runner and prints the result in

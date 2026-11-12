@@ -67,6 +67,8 @@ internal object Frosted {
     /** A live wallpaper's glass is captured again when it is older than this. */
     private const val LIVE_REFRESH_MS = 60_000L
     private const val RETRY_MS = 10_000L
+    /** Nothing OS 5's settle delay before the capture (setup.d0.c). */
+    private const val SETTLE_MS = 150L
 
     private val main = Handler(Looper.getMainLooper())
     private val worker = Executors.newSingleThreadExecutor()
@@ -217,8 +219,19 @@ internal object Frosted {
     }
 
     /**
-     * A live wallpaper as it is on screen now, as Nothing OS 5 captures it (setup.d0): a mirror
-     * of the wallpaper's layer under a layer of our own, captured at a third of the size.
+     * A live wallpaper as it is on screen now, captured the way Nothing OS 5 does it
+     * (com.nothing.launcher.setup.d0.b/c): a mirror of the wallpaper's layer is put under a
+     * layer of our own with setLayer(0) and Transaction.apply(true), which waits until it is
+     * applied; then 150 ms to settle; then the layer is captured at full size and made 3
+     * times smaller with createScaledBitmap (FrostedBackdropProvider.x). Nothing OS 5 first
+     * also waits up to 3 s for the wallpaper to be visible; here a capture is only asked for
+     * while a home screen surface draws, so it is.
+     *
+     * Mistake recorded (0.70.29, Dr.Essence's screenshots of 0.70.30: every glass surface fully
+     * clear): the mirror was reparented with apply(), which does not wait, and captured at
+     * once, so the capture was taken before the mirror was there: an empty, transparent
+     * picture, and Nothing's colour filter keeps the picture's alpha, so the glass was
+     * invisible at any tint. An empty capture now counts as a failure (the tint alone).
      */
     private fun capture(context: Context, width: Int, height: Int): Bitmap? {
         val globalClass = Class.forName("android.view.WindowManagerGlobal")
@@ -227,24 +240,56 @@ internal object Frosted {
             .invoke(global, context.display?.displayId ?: 0) as SurfaceControl? ?: return null
         val holder = SurfaceControl.Builder().setName("nlplusFrostedCapture").build()
         try {
-            SurfaceControl.Transaction().reparent(mirror, holder).setLayer(mirror, 1).apply()
+            val move = SurfaceControl.Transaction().reparent(mirror, holder).setLayer(mirror, 0)
+            // apply(true): applied synchronously (hidden API, as Nothing calls it).
+            try {
+                SurfaceControl.Transaction::class.java
+                    .getMethod("apply", Boolean::class.javaPrimitiveType).invoke(move, true)
+            } catch (e: ReflectiveOperationException) {
+                move.apply()
+            }
+            Thread.sleep(SETTLE_MS)
             val screen = Rect(0, 0, width * DOWNSCALE, height * DOWNSCALE)
-            val capture = (try {
+            val captureLayers = (try {
                 Class.forName("android.window.ScreenCapture")
             } catch (e: ClassNotFoundException) {
                 Class.forName("android.window.ScreenCaptureInternal") // Android 17
             }).getMethod("captureLayers", SurfaceControl::class.java, Rect::class.java,
                 Float::class.javaPrimitiveType)
-            val buffer = capture.invoke(null, holder, screen, 1f / DOWNSCALE) ?: return null
+            val buffer = captureLayers.invoke(null, holder, screen, 1f) ?: return null
             val shot = buffer.javaClass.getMethod("asBitmap").invoke(buffer) as Bitmap? ?: return null
-            // A hardware bitmap: copied to one whose pixels can be read and blurred.
-            return shot.copy(Bitmap.Config.ARGB_8888, true).also { shot.recycle() }
+            // A hardware bitmap: copied to one whose pixels can be read, then made smaller.
+            val full = shot.copy(Bitmap.Config.ARGB_8888, false)
+            shot.recycle()
+            val small = Bitmap.createScaledBitmap(full, width, height, true)
+                .copy(Bitmap.Config.ARGB_8888, true)
+            full.recycle()
+            if (isEmpty(small)) {
+                small.recycle()
+                Hooks.skipped("frosted glass picture", "the live wallpaper capture was empty")
+                return null
+            }
+            Hooks.log("frosted glass: live wallpaper captured, ${width}x$height")
+            return small
         } finally {
             // Taken off the screen's layer tree, then released.
             SurfaceControl.Transaction().reparent(holder, null).apply()
             mirror.release()
             holder.release()
         }
+    }
+
+    /** Whether most of the picture is transparent: a capture that saw nothing. */
+    private fun isEmpty(bitmap: Bitmap): Boolean {
+        var clear = 0
+        var seen = 0
+        for (y in 0 until bitmap.height step 8) {
+            for (x in 0 until bitmap.width step 8) {
+                seen++
+                if (bitmap.getPixel(x, y) ushr 24 < 16) clear++
+            }
+        }
+        return seen == 0 || clear * 2 > seen
     }
 
     /** A still wallpaper, centre-cropped to the screen at a third of its size. */
