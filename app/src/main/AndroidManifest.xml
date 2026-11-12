@@ -133,6 +133,9 @@
 
         <activity android:name=".ui.EmojiPickerActivity" />
 
+        <!-- One hooked app's hook health report (Diagnostics → Hook health). -->
+        <activity android:name=".ui.HookHealthActivity" />
+
         <!-- A custom folder's apps: icons, search, Nothing look. -->
         <activity
             android:name=".ui.AppPickerActivity"

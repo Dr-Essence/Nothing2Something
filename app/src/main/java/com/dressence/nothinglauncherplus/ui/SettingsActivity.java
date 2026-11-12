@@ -941,28 +941,16 @@ public class SettingsActivity extends Activity {
                     + " phone once after installing this version).");
             return;
         }
-        java.text.DateFormat when = java.text.DateFormat.getDateTimeInstance(
-                java.text.DateFormat.SHORT, java.text.DateFormat.SHORT);
+        // Each app one row (its process name, and how it went); a tap opens its own page.
         for (HookHealth.Report report : reports) {
-            int ok = report.getTotal() - report.getProblems().size();
-            String summary = (report.getVersion().isEmpty() ? "" : report.getVersion() + " · ")
-                    + ok + " of " + report.getTotal() + " installed"
-                    + (report.getProblems().isEmpty() ? "" : " · " + report.getProblems().size()
-                            + " not") + " · " + when.format(new java.util.Date(report.getTime()));
-            ui.row(report.getProcess(), summary, null,
-                    report.getProblems().isEmpty() ? null : ui.chevron(),
-                    report.getProblems().isEmpty() ? null : v -> {
-                        StringBuilder text = new StringBuilder();
-                        for (kotlin.Pair<String, String> p : report.getProblems()) {
-                            text.append(p.getFirst()).append('\n').append(p.getSecond())
-                                    .append("\n\n");
-                        }
-                        Dialogs.builder(this)
-                                .setTitle(report.getProcess())
-                                .setMessage(text.toString().trim())
-                                .setPositiveButton("OK", null)
-                                .show();
-                    });
+            int failed = report.getFailed().size();
+            int skipped = report.getSkipped().size();
+            String summary = failed == 0 && skipped == 0 ? "All " + report.getTotal() + " installed"
+                    : (failed == 0 ? "" : failed + " not installed")
+                            + (failed > 0 && skipped > 0 ? " · " : "")
+                            + (skipped == 0 ? "" : skipped + " left out");
+            ui.row(report.getProcess(), summary, null, ui.chevron(),
+                    v -> HookHealthActivity.open(this, report.getProcess()));
         }
     }
 
