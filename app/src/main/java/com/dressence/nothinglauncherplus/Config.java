@@ -68,6 +68,10 @@ public final class Config {
     public static final String KEY_RECENTS_MEMORY = "recents_memory";
     public static final String KEY_FOLDER_GLASS = "folder_glass";
     public static final String KEY_FOLDER_GLASS_TINT = "folder_glass_tint";
+    public static final String KEY_FOLDER_ICON_GLASS = "folder_icon_glass";
+    public static final String KEY_FOLDER_ICON_GLASS_TINT = "folder_icon_glass_tint";
+    public static final String KEY_SEARCH_BAR_GLASS = "search_bar_glass";
+    public static final String KEY_SEARCH_BAR_GLASS_TINT = "search_bar_glass_tint";
     public static final String KEY_TASK_MANAGER = "task_manager";
     public static final String KEY_LIVING_WORLDS_SOUNDS = "living_worlds_sounds";
     public static final String KEY_LIVING_WORLDS_TURN = "living_worlds_turn";
@@ -227,6 +231,11 @@ public final class Config {
     public boolean folderGlass = false;
     /** The frosted folder's tint, 0-100 % (Nothing OS 5: 40). */
     public int folderGlassTint = 40;
+    /** Nothing OS 5's frosted closed folders and dock search bar (launcher/FrostedSurfaces.kt). */
+    public boolean folderIconGlass = false;
+    public int folderIconGlassTint = 40;
+    public boolean searchBarGlass = false;
+    public int searchBarGlassTint = 40;
     /** Running services (Settings) as a task manager. */
     public boolean taskManager = false;
     /** Living Worlds' ambient sounds on the home screen and in the app drawer. */
@@ -455,6 +464,10 @@ public final class Config {
         recentsMemory = in.bool(KEY_RECENTS_MEMORY, true);
         folderGlass = in.bool(KEY_FOLDER_GLASS, false);
         folderGlassTint = Math.max(0, Math.min(100, in.number(KEY_FOLDER_GLASS_TINT, 40)));
+        folderIconGlass = in.bool(KEY_FOLDER_ICON_GLASS, false);
+        folderIconGlassTint = Math.max(0, Math.min(100, in.number(KEY_FOLDER_ICON_GLASS_TINT, 40)));
+        searchBarGlass = in.bool(KEY_SEARCH_BAR_GLASS, false);
+        searchBarGlassTint = Math.max(0, Math.min(100, in.number(KEY_SEARCH_BAR_GLASS_TINT, 40)));
         taskManager = in.bool(KEY_TASK_MANAGER, false);
         livingWorldsSounds = in.bool(KEY_LIVING_WORLDS_SOUNDS, true);
         livingWorldsTurn = in.bool(KEY_LIVING_WORLDS_TURN, true);
@@ -552,6 +565,10 @@ public final class Config {
         out.bool(KEY_RECENTS_MEMORY, recentsMemory);
         out.bool(KEY_FOLDER_GLASS, folderGlass);
         out.number(KEY_FOLDER_GLASS_TINT, folderGlassTint);
+        out.bool(KEY_FOLDER_ICON_GLASS, folderIconGlass);
+        out.number(KEY_FOLDER_ICON_GLASS_TINT, folderIconGlassTint);
+        out.bool(KEY_SEARCH_BAR_GLASS, searchBarGlass);
+        out.number(KEY_SEARCH_BAR_GLASS_TINT, searchBarGlassTint);
         out.bool(KEY_TASK_MANAGER, taskManager);
         out.bool(KEY_LIVING_WORLDS_SOUNDS, livingWorldsSounds);
         out.bool(KEY_LIVING_WORLDS_TURN, livingWorldsTurn);

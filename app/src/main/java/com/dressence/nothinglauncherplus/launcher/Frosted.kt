@@ -10,7 +10,10 @@ import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.Shader
+import android.os.SystemClock
+import android.view.SurfaceControl
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -40,6 +43,15 @@ import java.util.concurrent.Executors
  * Nothing OS 4 the module's switches do. Android's own Launcher3 blur (blurOnMoreSurfaces) is
  * NOT part of it: that flag is compiled to false in Nothing OS 5's Launcher.
  *
+ * A live wallpaper has no picture to read (WallpaperManager.getDrawable gives the phone's
+ * default image instead: Dr.Essence's screenshot of 0.70.28, a grey ringed glass over a pixel-art
+ * live wallpaper). Nothing OS 5 then captures the wallpaper layer as it is on screen
+ * (com.nothing.launcher.setup.d0: WindowManagerGlobal.mirrorWallpaperSurface, reparented under
+ * its own SurfaceControl, ScreenCaptureInternal.captureLayers; Android 16 names it
+ * android.window.ScreenCapture), which the Launcher may do (it holds READ_FRAME_BUFFER, in
+ * Nothing OS 4.1 too). The same is done here, again after a minute so a moving wallpaper's
+ * glass follows it; if the capture fails, the glass is the tint alone.
+ *
  * Not copied: Nothing moves the picture with the wallpaper's parallax and zoom
  * (Workspace.syncFrostedBackdropOffsets/Scale); here the picture is the wallpaper as the home
  * screen shows it at rest, centre-cropped to the screen, which is the same as long as the
@@ -52,6 +64,9 @@ internal object Frosted {
     private const val SATURATION = 1.15f
     /** Lucent's container_frosted_backdrop: white at 40 % in light mode, black at 40 % in dark. */
     const val DEFAULT_TINT_PERCENT = 40
+    /** A live wallpaper's glass is captured again when it is older than this. */
+    private const val LIVE_REFRESH_MS = 60_000L
+    private const val RETRY_MS = 10_000L
 
     private val main = Handler(Looper.getMainLooper())
     private val worker = Executors.newSingleThreadExecutor()
@@ -61,6 +76,10 @@ internal object Frosted {
     private var pictureWidth = 0
     private var pictureHeight = 0
     private var building = false
+    /** When the picture was made, and when making one last failed (tried again after 10 s). */
+    private var pictureTime = 0L
+    private var failedTime = 0L
+    private var live = false
     private var listening = false
     /** Surfaces to redraw when a new picture is ready (each once, and never kept alive). */
     private val waiting: MutableSet<View> = Collections.newSetFromMap(WeakHashMap())
@@ -139,11 +158,15 @@ internal object Frosted {
         val metrics = context.resources.displayMetrics
         val width = metrics.widthPixels / DOWNSCALE
         val height = metrics.heightPixels / DOWNSCALE
-        if (picture != null && width == pictureWidth && height == pictureHeight) {
+        val now = SystemClock.uptimeMillis()
+        val fresh = !live || now - pictureTime < LIVE_REFRESH_MS
+        if (picture != null && width == pictureWidth && height == pictureHeight && fresh) {
             return
         }
-        waiting.add(surface)
-        if (building || width <= 0 || height <= 0) {
+        if (picture == null) {
+            waiting.add(surface)
+        }
+        if (building || width <= 0 || height <= 0 || now - failedTime < RETRY_MS) {
             return
         }
         building = true
@@ -158,6 +181,11 @@ internal object Frosted {
             }
             main.post {
                 building = false
+                if (built == null) {
+                    failedTime = SystemClock.uptimeMillis()
+                    return@post
+                }
+                pictureTime = SystemClock.uptimeMillis()
                 picture = built
                 pictureWidth = width
                 pictureHeight = height
@@ -179,9 +207,49 @@ internal object Frosted {
         }, main)
     }
 
-    /** The wallpaper, centre-cropped to the screen at a third of its size, then blurred. */
+    /** The wallpaper at a third of the screen's size, blurred: read, or captured if it is live. */
     private fun build(context: Context, width: Int, height: Int): Bitmap? {
-        val wallpaper = WallpaperManager.getInstance(context).drawable ?: return null
+        val manager = WallpaperManager.getInstance(context)
+        live = manager.wallpaperInfo != null
+        val bitmap = if (live) capture(context, width, height) else read(manager, width, height)
+        bitmap?.let { boxBlur(it, BLUR_RADIUS) }
+        return bitmap
+    }
+
+    /**
+     * A live wallpaper as it is on screen now, as Nothing OS 5 captures it (setup.d0): a mirror
+     * of the wallpaper's layer under a layer of our own, captured at a third of the size.
+     */
+    private fun capture(context: Context, width: Int, height: Int): Bitmap? {
+        val globalClass = Class.forName("android.view.WindowManagerGlobal")
+        val global = globalClass.getMethod("getInstance").invoke(null)
+        val mirror = globalClass.getMethod("mirrorWallpaperSurface", Int::class.javaPrimitiveType)
+            .invoke(global, context.display?.displayId ?: 0) as SurfaceControl? ?: return null
+        val holder = SurfaceControl.Builder().setName("nlplusFrostedCapture").build()
+        try {
+            SurfaceControl.Transaction().reparent(mirror, holder).setLayer(mirror, 1).apply()
+            val screen = Rect(0, 0, width * DOWNSCALE, height * DOWNSCALE)
+            val capture = (try {
+                Class.forName("android.window.ScreenCapture")
+            } catch (e: ClassNotFoundException) {
+                Class.forName("android.window.ScreenCaptureInternal") // Android 17
+            }).getMethod("captureLayers", SurfaceControl::class.java, Rect::class.java,
+                Float::class.javaPrimitiveType)
+            val buffer = capture.invoke(null, holder, screen, 1f / DOWNSCALE) ?: return null
+            val shot = buffer.javaClass.getMethod("asBitmap").invoke(buffer) as Bitmap? ?: return null
+            // A hardware bitmap: copied to one whose pixels can be read and blurred.
+            return shot.copy(Bitmap.Config.ARGB_8888, true).also { shot.recycle() }
+        } finally {
+            // Taken off the screen's layer tree, then released.
+            SurfaceControl.Transaction().reparent(holder, null).apply()
+            mirror.release()
+            holder.release()
+        }
+    }
+
+    /** A still wallpaper, centre-cropped to the screen at a third of its size. */
+    private fun read(manager: WallpaperManager, width: Int, height: Int): Bitmap? {
+        val wallpaper = manager.drawable ?: return null
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val w = wallpaper.intrinsicWidth.coerceAtLeast(1)
@@ -193,7 +261,6 @@ internal object Frosted {
         wallpaper.setBounds(left, top, left + (w * fill).toInt(), top + (h * fill).toInt())
         wallpaper.isFilterBitmap = true
         wallpaper.draw(canvas)
-        boxBlur(bitmap, BLUR_RADIUS)
         return bitmap
     }
 

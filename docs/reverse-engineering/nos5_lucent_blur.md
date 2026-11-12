@@ -93,6 +93,7 @@ not frosted.
 
 - 0.70.27: glass folders with Launcher3's blur (not what Nothing OS 5 runs; replaced).
 - 0.70.28: frosted folders with Nothing's recipe (`launcher/Frosted.kt`, `launcher/FolderGlass.kt`), with a tint slider.
+- 0.70.29: live wallpapers captured as Nothing OS 5 does (`setup.d0`: mirrorWallpaperSurface + captureLayers), closed folders and the dock's search bar (`launcher/FrostedSurfaces.kt`). To do: the dock, Nothing's widgets (`FrostedCardWidgetHostView`), System UI.
 
 ## Still to find before building it
 

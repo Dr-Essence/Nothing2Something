@@ -602,17 +602,22 @@ public class SettingsActivity extends Activity {
         }
 
         ui.section("Launcher");
-        ui.switchRow("Glass folders", "Nothing OS 5's frosted folders: an open folder shows"
-                + " the wallpaper behind it, blurred and tinted, as on Nothing OS 5",
-                config.folderGlass, checked -> {
-                    config.folderGlass = checked;
-                    store.save(this);
-                });
-        addSliderRow(ui, "Folder glass tint", config.folderGlassTint,
-                value -> value + " %" + (value == 40 ? " (Nothing OS 5)" : ""), value -> {
-                    config.folderGlassTint = value;
-                    store.save(this);
-                });
+        // Nothing OS 5's frosted glass (launcher/Frosted.kt): each surface Nothing OS 5 frosts,
+        // with its tint; 40 % is Nothing OS 5's own (Lucent's container_frosted_backdrop).
+        ui.note("Glass: Nothing OS 5's frosted surfaces. The tint is how much white (light"
+                + " mode) or black (dark mode) covers the blurred wallpaper; 40 % is Nothing OS"
+                + " 5's.");
+        addGlassRows(ui, "Glass open folders", "An open folder shows the wallpaper behind it,"
+                + " blurred and tinted", config.folderGlass, config.folderGlassTint,
+                checked -> config.folderGlass = checked, value -> config.folderGlassTint = value);
+        addGlassRows(ui, "Glass closed folders", "Folder icons on the home screen and the dock",
+                config.folderIconGlass, config.folderIconGlassTint,
+                checked -> config.folderIconGlass = checked,
+                value -> config.folderIconGlassTint = value);
+        addGlassRows(ui, "Glass search bar", "The search bar in the dock",
+                config.searchBarGlass, config.searchBarGlassTint,
+                checked -> config.searchBarGlass = checked,
+                value -> config.searchBarGlassTint = value);
         ui.row("Restart Nothing Launcher", "Applies everything immediately · needs root", null,
                 null, v -> restartLauncher());
         ui.row("Restore missing home items", "Icons, folders and shortcuts the launcher still"
@@ -1147,6 +1152,24 @@ public class SettingsActivity extends Activity {
             }
         });
         ui.content.addView(slider);
+    }
+
+    private interface BoolChange {
+        void changed(boolean value);
+    }
+
+    /** One glass surface: its switch and its tint slider. */
+    private void addGlassRows(Ui ui, String title, String summary, boolean on, int tint,
+            BoolChange onSwitch, IntChange onTint) {
+        ui.switchRow(title, summary, on, checked -> {
+            onSwitch.changed(checked);
+            store.save(this);
+        });
+        addSliderRow(ui, title + " · tint", tint,
+                value -> value + " %" + (value == 40 ? " (Nothing OS 5)" : ""), value -> {
+                    onTint.changed(value);
+                    store.save(this);
+                });
     }
 
     private void addOpacityRow(Ui ui, Config config) {
