@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.27, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.28, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.27** (CMF Phone 1, Nothing OS 4.1, Android 16): glass folders, Nothing OS 5's frosted folders (new, a switch), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.28** (CMF Phone 1, Nothing OS 4.1, Android 16): glass folders, Nothing OS 5's frosted folders made as Nothing makes them, with a tint slider (new, a switch), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,33 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.28, Glass folders made exactly as Nothing OS 5 makes them, with a tint slider.**
+  Settings → Launcher → Glass folders and Folder glass tint (0-100 %, 40 % is Nothing OS 5's).
+  An open folder is Nothing OS 5's frosted glass: the wallpaper, blurred, 15 % more saturated
+  and mixed with Lucent's frosted tint (white in light mode, black in dark), lined up with where
+  the folder is on the screen. Mistake recorded, 0.70.27: it copied Android's Launcher3 folder
+  blur (a blurred recording of the home screen over Android's window blur), found in Nothing OS
+  5's Launcher but never run there: Flags.blurOnMoreSurfaces is compiled to false. Read further
+  (docs/reverse-engineering/nos5_lucent_blur.md, Correction), Nothing's glass is its own frosted
+  backdrop: one picture of the wallpaper, 3 times smaller, box-blurred at radius 3, drawn by each
+  surface through saturation 1.15 and the tint. launcher/Frosted.kt makes that picture the same
+  way (on a background thread, again when the wallpaper changes) and launcher/FolderGlass.kt
+  fills Nothing's own folder shape with it (a layer and SRC_IN), so the shape, its animation and
+  its fade stay Nothing's and only the colour is replaced, as on Nothing OS 5. Lighter than
+  0.70.27 (one small picture, no live blur) and it needs no window blur, so battery saver does
+  not change it (as on Nothing OS 5). Not copied: the wallpaper's parallax and zoom (the picture
+  is the wallpaper as the home screen shows it, centre-cropped). Checked: compiles; the colour
+  filter's order and values match Nothing's bytecode; the blur, translated line for line, gives
+  the same pixels as a plain box blur (rows, then columns, edges clamped) on random images;
+  Folder.mBackground, dispatchDraw and onFinishInflate are in the firmware's Launcher 4.0.15.
+  Not checked (needs the phone): the look against a Nothing OS 5 phone, that the glass lines up
+  with the wallpaper behind the folder, the Launcher reading the wallpaper (if it cannot, the
+  folder shows the tint alone and Hook health lists "frosted glass picture"), and 4.0.20 having
+  the same names. To test: switch Glass folders on, restart the launcher, open a folder on a
+  busy wallpaper: the colours behind should match the wallpaper around the folder; move the
+  tint slider (0 %: wallpaper only, 100 %: solid white or black) and open the folder again;
+  change the wallpaper and open it again; switch dark mode. Send a screenshot of an open folder
+  and, if you can, one of the same wallpaper on a Nothing OS 5 phone.
 - **0.70.27, Glass folders: Nothing OS 5's frosted folders on Nothing OS 4 (new, a switch,
   off by default).** Settings → Launcher → Glass folders. An open folder shows the wallpaper
   and the home screen behind it, blurred, under Nothing's own folder colour at 40 %. Found in

@@ -67,6 +67,7 @@ public final class Config {
     public static final String KEY_CONTROLLER_HOME = "controller_home";
     public static final String KEY_RECENTS_MEMORY = "recents_memory";
     public static final String KEY_FOLDER_GLASS = "folder_glass";
+    public static final String KEY_FOLDER_GLASS_TINT = "folder_glass_tint";
     public static final String KEY_TASK_MANAGER = "task_manager";
     public static final String KEY_LIVING_WORLDS_SOUNDS = "living_worlds_sounds";
     public static final String KEY_LIVING_WORLDS_TURN = "living_worlds_turn";
@@ -224,6 +225,8 @@ public final class Config {
     public boolean recentsMemory = true;
     /** Nothing OS 5's glass folders (launcher/FolderGlass.kt). */
     public boolean folderGlass = false;
+    /** The frosted folder's tint, 0-100 % (Nothing OS 5: 40). */
+    public int folderGlassTint = 40;
     /** Running services (Settings) as a task manager. */
     public boolean taskManager = false;
     /** Living Worlds' ambient sounds on the home screen and in the app drawer. */
@@ -451,6 +454,7 @@ public final class Config {
         controllerHome = in.bool(KEY_CONTROLLER_HOME, false);
         recentsMemory = in.bool(KEY_RECENTS_MEMORY, true);
         folderGlass = in.bool(KEY_FOLDER_GLASS, false);
+        folderGlassTint = Math.max(0, Math.min(100, in.number(KEY_FOLDER_GLASS_TINT, 40)));
         taskManager = in.bool(KEY_TASK_MANAGER, false);
         livingWorldsSounds = in.bool(KEY_LIVING_WORLDS_SOUNDS, true);
         livingWorldsTurn = in.bool(KEY_LIVING_WORLDS_TURN, true);
@@ -547,6 +551,7 @@ public final class Config {
         out.bool(KEY_CONTROLLER_HOME, controllerHome);
         out.bool(KEY_RECENTS_MEMORY, recentsMemory);
         out.bool(KEY_FOLDER_GLASS, folderGlass);
+        out.number(KEY_FOLDER_GLASS_TINT, folderGlassTint);
         out.bool(KEY_TASK_MANAGER, taskManager);
         out.bool(KEY_LIVING_WORLDS_SOUNDS, livingWorldsSounds);
         out.bool(KEY_LIVING_WORLDS_TURN, livingWorldsTurn);

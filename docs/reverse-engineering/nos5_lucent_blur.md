@@ -55,9 +55,44 @@ Nothing's own classes, new in 5.0 System UI: `com.nothing.widget.ui.blur.Backdro
 `com.nothing.compose.ui.NtBackdropBlurState`, `com.nothing.systemui.wallpaper.NTWallpaperBlurController`.
 The 5.0 Launcher uses the Android APIs directly (no Nothing blur classes).
 
+## Correction: what Nothing OS 5's Launcher really draws (0.70.28)
+
+The Launcher rows of the table above come from resources. Reading the code shows most of them
+never run: `com.android.launcher3.Flags.blurOnMoreSurfaces()` returns a constant false in the
+5.0 Launcher, so Launcher3's folder, pop-up, drawer and Recents blur (`QuickstepBackgroundBlurHelper`,
+`folder_blur_radius` 20 dp, `popup_blur_radius`, `AllAppsBlurStyle`, `OverviewBlurStyle`) is
+off. Nothing's glass is its own **frosted backdrop** (`com.nothing.commBase.frosted`):
+
+- `com.nothing.cardhost.frosted.FrostedBackdropProvider` reads the wallpaper
+  (`WallpaperManager`; the 4.1 Launcher holds `READ_WALLPAPER_INTERNAL` too), makes it 3 times
+  smaller (`createScaledBitmap`, filtered), blurs it with a box blur of radius 3 along rows then
+  columns (`i7.l.a/b/c`) on a background thread, and rebuilds it when the wallpaper changes.
+  It is on when `Settings.Secure nt_theme_style` is 2 (Nothing OS 5's theme style).
+- `FrostedBackdropConfig` defaults: downscaleFactor 3, blurRadius 3.0, saturationFactor 1.15,
+  tint `container_frosted_backdrop` (Lucent: `#66FFFFFF` light, `#66000000` dark).
+- `FrostedBackdropDrawable` draws its piece through a BitmapShader (CLAMP) placed with
+  scale = 3 x wallpaperScale / contentScale and
+  translate = ((screenW/2)(1 - wallpaperScale) - offsetX x wallpaperScale - x,
+  (screenH/2)(1 - wallpaperScale) - (max(fullH - screenH, 0)/2 + offsetY) x wallpaperScale - y)
+  / contentScale, where (x, y) is the surface's place on screen (`getLocationOnScreen`), offsetX
+  the wallpaper parallax (`Workspace.syncFrostedBackdropOffsets`:
+  `WallpaperOffsetInterpolator.wallpaperOffsetForScroll(scrollX) x max(fullW - width, 0)`) and
+  contentScale the workspace scale (`syncFrostedBackdropScale`). Colour filter
+  (`Companion.buildColorFilter`): saturation 1.15, then out = in (1 - a) + tint x a. No picture:
+  the tint alone ("tint only"). A new picture fades in over 300 ms.
+
+Frosted surfaces in the 5.0 Launcher (every place a `FrostedBackdropDrawable` is made or
+placed): the open folder's background (`folder.l`: frosted instead of its solid colour), folder
+icons (`folder.PreviewBackground.refreshFrostedBackdrop`), a folder being dragged or opening
+(`DragView`/`ClipIconView.bindFolderFrostedLayer`), the dock (`Hotseat.updateFrostedBackdropOffset`),
+the dock's search bar (`layout/nt_universal_search_bar_in_hotseat`, an `NTFrostedRelativeLayout`)
+and Nothing's widgets (`FrostedCardWidgetHostView`). Pop-up menus, the drawer and Recents are
+not frosted.
+
 ## Built so far
 
-- 0.70.27: glass folders (`launcher/FolderGlass.kt`), the folder blur above.
+- 0.70.27: glass folders with Launcher3's blur (not what Nothing OS 5 runs; replaced).
+- 0.70.28: frosted folders with Nothing's recipe (`launcher/Frosted.kt`, `launcher/FolderGlass.kt`), with a tint slider.
 
 ## Still to find before building it
 

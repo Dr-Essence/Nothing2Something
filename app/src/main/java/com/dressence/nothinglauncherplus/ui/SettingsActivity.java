@@ -602,11 +602,15 @@ public class SettingsActivity extends Activity {
         }
 
         ui.section("Launcher");
-        ui.switchRow("Glass folders", "Nothing OS 5's frosted folders: the wallpaper and home"
-                + " screen behind an open folder show through it, blurred · from the next folder"
-                + " you open · off while battery saver is on",
+        ui.switchRow("Glass folders", "Nothing OS 5's frosted folders: an open folder shows"
+                + " the wallpaper behind it, blurred and tinted, as on Nothing OS 5",
                 config.folderGlass, checked -> {
                     config.folderGlass = checked;
+                    store.save(this);
+                });
+        addSliderRow(ui, "Folder glass tint", config.folderGlassTint,
+                value -> value + " %" + (value == 40 ? " (Nothing OS 5)" : ""), value -> {
+                    config.folderGlassTint = value;
                     store.save(this);
                 });
         ui.row("Restart Nothing Launcher", "Applies everything immediately · needs root", null,
