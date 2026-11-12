@@ -2,7 +2,6 @@ package com.dressence.nothinglauncherplus.anim;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.graphics.Typeface;
@@ -76,9 +75,7 @@ public class AnimatedEmojiView extends TextView {
         pose.reset();
         if (on) {
             applyTransforms(pose); // The grid does the moving; the view stays put.
-            int night = getResources().getConfiguration().uiMode
-                    & Configuration.UI_MODE_NIGHT_MASK;
-            dots = new DotMatrix(night != Configuration.UI_MODE_NIGHT_NO);
+            dots = new DotMatrix();
             try {
                 dots.setText(getText(), getCurrentTextColor());
                 dots.render(pose);

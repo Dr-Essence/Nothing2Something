@@ -46,8 +46,7 @@ final class DotMatrix {
     private static final float OFF_BELOW = 0.14f;
     private static final int[] LEVEL_ALPHA = {120, 175, 225, 255};
     /** Unlit dots stay faintly visible, like a real panel. */
-    private static final int UNLIT_DARK = 0x1AFFFFFF;
-    private static final int UNLIT_LIGHT = 0x14000000;
+    private static final int UNLIT = 0x1AFFFFFF;
 
     private static final LruCache<String, Bitmap> GLYPHS = new LruCache<>(48);
     private static final LruCache<String, Bitmap> MASKS = new LruCache<>(8);
@@ -155,21 +154,29 @@ final class DotMatrix {
     private float layoutEmojiTop;
     private int layoutMargin;
 
-    DotMatrix(boolean darkBackground) {
+    /**
+     * A dot screen: always a dark display, in light mode too (0.70.36). Mistake recorded: until
+     * 0.70.35 light mode had its own look, black unlit dots on a faint smoked glass, which was
+     * never seen on the phone (Dr.Essence always used dark mode). Its first screenshot showed
+     * the green lit name hard to read on the pale bar, the light the lit dots throw into the
+     * glass blurring the emoji on white, and washed-out dots; Dr.Essence chose a dark screen
+     * inside the light card over a light style.
+     */
+    DotMatrix() {
         BitmapShader shader = new BitmapShader(frame, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             shader.setFilterMode(BitmapShader.FILTER_MODE_NEAREST);
         }
         litPaint.setShader(shader);
         litPaint.setFilterBitmap(false);
-        unlitPaint.setColor(darkBackground ? UNLIT_DARK : UNLIT_LIGHT);
+        unlitPaint.setColor(UNLIT);
         labelPaint.setFilterBitmap(false);
         shadowPaint.setXfermode(new android.graphics.PorterDuffXfermode(
                 android.graphics.PorterDuff.Mode.SRC_ATOP));
-        // Dark glass on the tile in dark mode; a faint smoked glass in light mode.
-        glassPaint.setColor(darkBackground ? 0xF0000000 : 0x1A000000);
+        // Dark glass on the tile, with a faint light rim.
+        glassPaint.setColor(0xF0000000);
         rimPaint.setStyle(Paint.Style.STROKE);
-        rimPaint.setColor(darkBackground ? 0x2EFFFFFF : 0x24000000);
+        rimPaint.setColor(0x2EFFFFFF);
         float base = RENDER * FILL / GLYPH;
         restPose.setScale(base, base);
         restPose.postTranslate((RENDER - GLYPH * base) / 2f, (RENDER - GLYPH * base) / 2f);
