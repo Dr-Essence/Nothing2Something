@@ -2682,7 +2682,8 @@ design and its NDot font, is what every feature here sets out to extend rather t
 
 ### Thank you, everyone who helped
 
-- **NothingTweaks**: the project that inspired the whole module.
+- **[NothingTweaks](https://github.com/RevealedSoulEven/NothingTweaks)** by RevealedSoulEven: the
+  project that inspired the whole module.
 - **[Nothing Archive](https://github.com/spike0en/nothing_archive)** by spike0en and its
   contributors: every Nothing OS build for every Nothing and CMF phone, kept in one place. Each
   finding about Nothing's code (Nothing OS 5's frosted glass, every check of the module against
