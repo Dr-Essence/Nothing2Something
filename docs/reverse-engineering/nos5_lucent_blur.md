@@ -57,8 +57,16 @@ The 5.0 Launcher uses the Android APIs directly (no Nothing blur classes).
 
 ## Still to find before building it
 
-- Whether the CMF Phone 1 allows blur at all: `getprop ro.surface_flinger.supports_background_blur`
-  and `ro.sf.blurs_are_expensive` from the phone (asked for).
+- Whether the CMF Phone 1 allows blur at all. Its own NOS 4.1 System UI and Launcher
+  (Tetris_B4.1-260928-1140) decide with `com.android.systemui.shared.system.BlurUtils
+  .supportsBlursOnWindows()`: `CrossWindowBlurListeners.CROSS_WINDOW_BLUR_SUPPORTED` (from
+  `ro.surface_flinger.supports_background_blur`) and `ActivityManager.isHighEndGfx()` and not
+  `persist.sysui.disableBlur`. The phone reports `supports_background_blur` 1 and
+  `ro.sf.blurs_are_expensive` 1 (Dr.Essence, 12 Nov 2026); the second is read by no Java code in
+  framework.jar, services.jar, System UI or Launcher, only by SurfaceFlinger (it schedules blurred
+  frames earlier), so it does not switch blur off. Still to read on the phone:
+  `persist.sysui.disableBlur`, `ro.config.low_ram`, the `disable_window_blurs` setting and
+  `dumpsys window` (whether system_server's blur is on now).
 - Which NOS 4.1 views each surface maps to (the decompiled 4.1 System UI and Launcher), so the
   blur is added where Nothing's own view is created, not drawn over it afterwards.
 - The animation and timing of each blur (the 5.0 classes above, decompiled).
