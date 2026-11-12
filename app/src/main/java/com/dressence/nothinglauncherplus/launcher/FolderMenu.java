@@ -169,8 +169,19 @@ final class FolderMenu {
         // A javax.inject.Provider of the launcher's own class loader: called, not cast.
         Object finder = XposedHelpers.callMethod(
                 XposedHelpers.getObjectField(model, "spaceFinderFactory"), "get");
+        // Nothing OS 5's task takes each item as a java.util.function.Supplier of its ItemInfo
+        // (AddWorkspaceItemsTask.execute: check-cast Supplier, then get()), not the
+        // android.util.Pair of item and extra that Android 16's took.
+        // Mistake recorded (0.70.32, the Nothing OS 5 tester: "add to home screen" crashed the
+        // launcher): the Pairs were passed on; the task runs later on the launcher's model
+        // thread, outside the module's guards, so the failed cast crashed the launcher.
+        List<java.util.function.Supplier<Object>> suppliers = new ArrayList<>();
+        for (Object item : items) {
+            Object info = item instanceof Pair ? ((Pair<?, ?>) item).first : item;
+            suppliers.add(() -> info);
+        }
         Object task = XposedHelpers.newInstance(XposedHelpers.findClass(
-                "com.android.launcher3.model.tasks.AddWorkspaceItemsTask", cl), items, finder);
+                "com.android.launcher3.model.tasks.AddWorkspaceItemsTask", cl), suppliers, finder);
         XposedHelpers.callMethod(model, "enqueueModelUpdateTask", task);
     }
 
