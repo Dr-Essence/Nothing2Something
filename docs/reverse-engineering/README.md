@@ -10,6 +10,13 @@ hook of the module and to prepare for updates of Nothing OS and its apps.
 | `systemui_settings_dependencies.md` | The same for System UI, Settings, Settings search, HeliBoard and Android's hidden APIs. |
 | `dot_matrix_engine.md` | Research for the Nothing Dot Matrix Display engine (roadmap). |
 
+## Supporting another Nothing OS build
+
+`tools/nos5-files.sh` collects what is needed from a rooted phone on that build (Nothing's
+system apps the module hooks, Android's framework and system_server, the emoji font, build
+info without any identifier; no logs): run `su -c "sh /sdcard/Download/nos5-files.sh"` and send
+`Download/nos5-files.tar.gz`. Diagnostics → Hook health on that phone shows which features load.
+
 ## How the module meets an update (0.70.19 to 0.70.23)
 
 1. **It shows what broke.** Each hooked app reports which features installed and which did
