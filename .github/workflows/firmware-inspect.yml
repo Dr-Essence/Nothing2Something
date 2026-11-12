@@ -1,0 +1,40 @@
+name: Inspect firmware files
+
+# Runs tools/firmware-inspect.sh on bundles the "Nothing OS firmware files" workflow made, and
+# prints what it finds to this job's log, so firmware can be compared without downloading it.
+# Edit RUN_ID / BUNDLES and the script, then push: it runs on every change to either file.
+
+on:
+  push:
+    paths:
+      - .github/workflows/firmware-inspect.yml
+      - tools/firmware-inspect.sh
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  # The firmware run whose artifacts are read, and which bundles.
+  RUN_ID: "43256504499"
+  BUNDLES: "Pacman_C5.0-261015-1824 Tetris_B4.1-260928-1140"
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download bundles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p fw
+          for b in $BUNDLES; do
+            gh run download "$RUN_ID" -R "${{ github.repository }}" -n "nos-$b" -D "fw/$b"
+          done
+          du -sh fw/*
+      - name: Inspect
+        run: |
+          AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          export AAPT2
+          bash tools/firmware-inspect.sh fw
