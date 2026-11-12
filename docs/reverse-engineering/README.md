@@ -17,6 +17,14 @@ system apps the module hooks, Android's framework and system_server, the emoji f
 info without any identifier; no logs): run `su -c "sh /sdcard/Download/nos5-files.sh"` and send
 `Download/nos5-files.tar.gz`. Diagnostics → Hook health on that phone shows which features load.
 
+Without a phone: the **Nothing OS firmware files** workflow (`.github/workflows/firmware.yml`)
+takes the newest build of each Nothing OS version of every Nothing and CMF phone from
+[spike0en/nothing_archive](https://github.com/spike0en/nothing_archive) (Nothing's official
+updates rebuilt into partition images), unpacks system, system_ext and product on GitHub's
+runner, and keeps the same files as the script, found by package name. Each build is an
+artifact kept 7 days (Nothing's files are never committed here), with an index of every app's
+package, path and version kept 30 days.
+
 ## How the module meets an update (0.70.19 to 0.70.23)
 
 1. **It shows what broke.** Each hooked app reports which features installed and which did
