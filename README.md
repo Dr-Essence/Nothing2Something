@@ -2682,6 +2682,7 @@ design and its NDot font, is what every feature here sets out to extend rather t
 
 ### Thank you, everyone who helped
 
+- **NothingTweaks**: the project that inspired the whole module.
 - **[Nothing Archive](https://github.com/spike0en/nothing_archive)** by spike0en and its
   contributors: every Nothing OS build for every Nothing and CMF phone, kept in one place. Each
   finding about Nothing's code (Nothing OS 5's frosted glass, every check of the module against
@@ -2690,6 +2691,9 @@ design and its NDot font, is what every feature here sets out to extend rather t
 - **[Iconify](https://github.com/Mahmud0808/Iconify)** by Mahmud0808: the status bar features
   are inspired by it. It showed what is possible in System UI; the dual status bar and the
   status bar colours are its ideas.
+- **[Wave Launcher](https://github.com/WaveLauncher/WaveLauncher)**: many of the gaming
+  space's ideas come from it.
+- **[One UI X](https://github.com/SoClear/OneUIX)** by SoClear: an inspiration for this project.
 - **Testers:** the people who run test builds on their own phones and send logs.
   - **[LovecraftianGodsKiller](https://github.com/LovecraftianGodsKiller)**: the first tester on
     Nothing OS 5 (Phone (3a)). Their logs, firmware files and Hook health made the module's
