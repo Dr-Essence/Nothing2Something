@@ -23,6 +23,7 @@ import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.dressence.nothinglauncherplus.Config;
 import com.dressence.nothinglauncherplus.anim.AnimatedEmojiView;
 import com.dressence.nothinglauncherplus.anim.DotEffect;
 import com.dressence.nothinglauncherplus.anim.Motion;
@@ -70,6 +71,8 @@ public class EmojiPickerActivity extends Activity {
     private String query = "";
     private long seed;
     private boolean dotMatrix;
+    /** The dots in shades of green only, as the covers are (Config.greenDots). */
+    private boolean green;
     private int accent;
     private boolean test;
     private int speed;
@@ -83,7 +86,9 @@ public class EmojiPickerActivity extends Activity {
         seed = getIntent().getLongExtra(EXTRA_SEED, 0);
         test = getIntent().getBooleanExtra(EXTRA_TEST, false);
         // The test shows the dots by default: that is what the covers are.
-        dotMatrix = test || new SettingsStore(this).config.dotMatrix;
+        Config settings = new SettingsStore(this).config;
+        dotMatrix = test || settings.dotMatrix;
+        green = settings.greenDots;
         TypedArray a = obtainStyledAttributes(new int[]{android.R.attr.colorAccent});
         accent = a.getColor(0, 0xFFD71921);
         a.recycle();
@@ -199,6 +204,7 @@ public class EmojiPickerActivity extends Activity {
                     // As dots, the cells show exactly what the cover will look like.
                     if (dotMatrix) {
                         AnimatedEmojiView dots = new AnimatedEmojiView(parent.getContext());
+                        dots.setDotGreen(green);
                         dots.setDotMatrix(true);
                         cell = dots;
                     } else {
@@ -246,6 +252,7 @@ public class EmojiPickerActivity extends Activity {
         card.setBackground(rounded(Ui.SURFACE, Ui.dp(this, 24)));
         preview = new AnimatedEmojiView(this);
         preview.setTextSize(TypedValue.COMPLEX_UNIT_SP, 52);
+        preview.setDotGreen(green);
         preview.setDotMatrix(dotMatrix);
         preview.setOnClickListener(v -> preview.react());
         card.addView(preview, new LinearLayout.LayoutParams(Ui.dp(this, 96), Ui.dp(this, 96)));
@@ -275,6 +282,7 @@ public class EmojiPickerActivity extends Activity {
                 Math.round(getResources().getDisplayMetrics().heightPixels * 0.36f));
         preview = new AnimatedEmojiView(this);
         preview.setTextSize(TypedValue.COMPLEX_UNIT_PX, side * 0.6f);
+        preview.setDotGreen(green);
         preview.setDotMatrix(dotMatrix);
         preview.setOnClickListener(v -> preview.react());
         card.addView(preview, new LinearLayout.LayoutParams(side, side));

@@ -374,6 +374,14 @@ public class SettingsActivity extends Activity {
                     store.save(this);
                     render();
                 });
+        if (config.dotMatrix) {
+            ui.switchRow("Green dot screen", "The dot-matrix emoji in shades of green only, like"
+                    + " a one-colour LED screen", config.greenDots, checked -> {
+                        config.greenDots = checked;
+                        store.save(this);
+                        render();
+                    });
+        }
         ui.row("Animation test", "Play any emoji's animation on a big dot screen", null,
                 ui.chevron(), v -> startActivity(EmojiPickerActivity.testIntent(this)));
 
@@ -393,7 +401,8 @@ public class SettingsActivity extends Activity {
             Config.Folder folder = config.folderForId(id);
             int n = folder.apps.size();
             return ui.detachedRow(folder.name, n == 1 ? "1 app" : n + " apps",
-                    ui.coverPreview(folder, 40, config.animateCovers, config.dotMatrix),
+                    ui.coverPreview(folder, 40, config.animateCovers, config.dotMatrix,
+                            config.greenDots),
                     null, v -> FolderActivity.open(this, folder.id, false));
         }, order -> {
             List<Config.Folder> sorted = new ArrayList<>();

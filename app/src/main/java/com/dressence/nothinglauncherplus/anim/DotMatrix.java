@@ -14,6 +14,8 @@ import android.os.Build;
 import android.text.TextPaint;
 import android.util.LruCache;
 
+import com.dressence.nothinglauncherplus.Palette;
+
 import java.util.Arrays;
 
 /**
@@ -231,7 +233,79 @@ final class DotMatrix {
         // Analysed on first use: most views (picker cells, previews) never run an effect.
         scene.regions = null;
         regionsStale = glyph != null;
+        greenLo = Float.NaN; // A new emoji: its green range is measured again.
         Arrays.fill(shown, 1); // Force the next render to count as a change.
+    }
+
+    /** Every dot in shades of the panel's green ({@link #setGreen}). */
+    private boolean green;
+    /** The emoji's darkest and brightest lit dots, for {@link #toGreen}; NaN: not measured. */
+    private float greenLo = Float.NaN;
+    private float greenHi;
+
+    /**
+     * Shows the emoji in shades of one green, like a single-colour LED screen (the "Green dot
+     * screen" setting, 0.70.37), instead of its own colours.
+     */
+    void setGreen(boolean on) {
+        if (green != on) {
+            green = on;
+            Arrays.fill(shown, 1); // Force the next render to count as a change.
+        }
+    }
+
+    /**
+     * Each dot in the green of the lit name ({@link Palette#LED_GREEN}), from a deep green to
+     * full, by its brightness within this emoji's own range ({@link #measureGreen}).
+     *
+     * Why the range: brightness alone (tried first, in a preview of six covers) flattened most
+     * emoji into one green blob, because their colours are about as bright as each other (a red
+     * toolbox and its latches, a grey pad and its buttons). Stretched from the emoji's darkest
+     * to its brightest dot, the parts stay apart. Measured on the emoji at rest, not per frame,
+     * so a moving emoji does not pulse as its range changes.
+     */
+    private void toGreen() {
+        if (greenLo != greenLo) {
+            measureGreen();
+        }
+        int r0 = (Palette.LED_GREEN >> 16) & 0xFF;
+        int g0 = (Palette.LED_GREEN >> 8) & 0xFF;
+        int b0 = Palette.LED_GREEN & 0xFF;
+        float span = Math.max(greenHi - greenLo, 0.08f);
+        for (int i = 0; i < dots.length; i++) {
+            int c = dots[i];
+            if ((c >>> 24) == 0) {
+                continue;
+            }
+            float t = Math.min(1f, Math.max(0f, (luma(c) - greenLo) / span));
+            float k = 0.18f + 0.82f * t;
+            dots[i] = (c & 0xFF000000) | Math.round(r0 * k) << 16 | Math.round(g0 * k) << 8
+                    | Math.round(b0 * k);
+        }
+    }
+
+    /** The emoji's range at rest: its 3rd and 97th percentile brightness, so a stray dot does not set it. */
+    private void measureGreen() {
+        float[] lit = new float[restDots.length];
+        int n = 0;
+        for (int c : restDots) {
+            if ((c >>> 24) >= 36) {
+                lit[n++] = luma(c);
+            }
+        }
+        if (n == 0) {
+            greenLo = 0f;
+            greenHi = 1f;
+            return;
+        }
+        Arrays.sort(lit, 0, n);
+        greenLo = lit[(int) (n * 0.03f)];
+        greenHi = lit[Math.min(n - 1, (int) (n * 0.97f))];
+    }
+
+    private static float luma(int c) {
+        return (0.299f * ((c >> 16) & 0xFF) + 0.587f * ((c >> 8) & 0xFF)
+                + 0.114f * (c & 0xFF)) / 255f;
     }
 
     /** Renders {@code p} into the grid; returns true if any dot changed. */
@@ -293,6 +367,9 @@ final class DotMatrix {
             effect.apply(scene);
             System.arraycopy(scene.dots, 0, dots, 0, dots.length);
             artifacts(time, seed ^ glyphKey.hashCode());
+        }
+        if (green) {
+            toGreen();
         }
         if (Arrays.equals(dots, shown)) {
             return false;

@@ -60,11 +60,12 @@ final class FolderCovers {
     /**
      * Shows {@code folder}'s cover on the tile, or restores the stock previews. Emoji covers play
      * their motion and effect when {@code animate} is set and are drawn as dots when
-     * {@code dotMatrix} is; then the folder's {@code name} is lit on the same dot screen too.
+     * {@code dotMatrix} is (in shades of green only when {@code green} is); then the folder's
+     * {@code name} is lit on the same dot screen too.
      * Without {@code emoji}, emoji covers give way to the stock previews (image covers stay).
      */
     void apply(FrameLayout tile, View previews, TextView name, Config.Folder folder,
-            boolean animate, boolean dotMatrix, boolean emoji) {
+            boolean animate, boolean dotMatrix, boolean green, boolean emoji) {
         if (folder != null && !emoji && folder.coverImageVersion == 0) {
             folder = null;
         }
@@ -102,6 +103,7 @@ final class FolderCovers {
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             }
             previews.setVisibility(View.INVISIBLE);
+            panel.setDotGreen(green);
             panel.show(folder.coverText,
                     animate ? Motion.parse(folder.coverMotion) : Motion.NONE,
                     animate ? DotEffect.parse(folder.coverEffect) : DotEffect.NONE,
@@ -124,7 +126,7 @@ final class FolderCovers {
         } else {
             cover.showText(folder.coverText,
                     animate ? Motion.parse(folder.coverMotion) : Motion.NONE, folder.id.hashCode(),
-                    dotMatrix);
+                    dotMatrix, green);
         }
     }
 
@@ -349,8 +351,9 @@ final class FolderCovers {
             text.setVisibility(GONE);
         }
 
-        void showText(String value, Motion motion, long seed, boolean dotMatrix) {
+        void showText(String value, Motion motion, long seed, boolean dotMatrix, boolean green) {
             pendingKey = null;
+            text.setDotGreen(green);
             text.setDotMatrix(dotMatrix);
             text.setEmoji(value, motion, seed);
             text.setVisibility(VISIBLE);

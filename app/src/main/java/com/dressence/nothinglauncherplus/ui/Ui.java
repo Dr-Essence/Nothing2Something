@@ -298,7 +298,8 @@ final class Ui {
      * Rounded square showing a folder's cover: its image, its emoji, or else the icon of its
      * first app.
      */
-    View coverPreview(Config.Folder folder, int sizeDp, boolean animate, boolean dotMatrix) {
+    View coverPreview(Config.Folder folder, int sizeDp, boolean animate, boolean dotMatrix,
+            boolean green) {
         int size = dp(sizeDp);
         if (found != null) {
             // Recording for search: no cover to load or animate on a page nobody sees.
@@ -324,6 +325,7 @@ final class Ui {
             badge.addView(image, new FrameLayout.LayoutParams(size, size));
         } else if (!folder.coverText.isEmpty()) {
             AnimatedEmojiView text = new AnimatedEmojiView(activity);
+            text.setDotGreen(green);
             text.setDotMatrix(dotMatrix);
             if (dotMatrix) {
                 // The whole badge is the dot screen, dots kept inside its rounded corners.

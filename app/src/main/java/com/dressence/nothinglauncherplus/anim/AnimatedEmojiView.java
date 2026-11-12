@@ -56,6 +56,8 @@ public class AnimatedEmojiView extends TextView {
     private long clockVirtual;
     private DotMatrix dots;
     /** Where the emoji square sits (null: centred) and the dot screen around it (null: none). */
+    /** The dot screen in shades of green only (setDotGreen). */
+    private boolean green;
     private Rect dotContent;
     private Rect dotPanel;
     private float dotCorner;
@@ -76,6 +78,7 @@ public class AnimatedEmojiView extends TextView {
         if (on) {
             applyTransforms(pose); // The grid does the moving; the view stays put.
             dots = new DotMatrix();
+            dots.setGreen(green);
             try {
                 dots.setText(getText(), getCurrentTextColor());
                 dots.render(pose);
@@ -87,6 +90,25 @@ public class AnimatedEmojiView extends TextView {
             dots = null;
         }
         invalidate();
+    }
+
+    /** Shows the dot-matrix emoji in shades of green only ({@code true}) or in its colours. */
+    public void setDotGreen(boolean on) {
+        if (on == green) {
+            return;
+        }
+        green = on;
+        if (dots != null) {
+            dots.setGreen(on);
+            try {
+                dots.render(pose);
+            } catch (RuntimeException e) {
+                fail(e);
+                return;
+            }
+            invalidate();
+            MotionDriver.get().wake();
+        }
     }
 
     /**
