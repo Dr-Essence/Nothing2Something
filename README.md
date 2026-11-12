@@ -2560,6 +2560,14 @@ removes them. It asks for the notification permission the first time.
   - **Understands each emoji:** its emotion, reflections, particles and 3D shape.
   - **Every emoji reworked one by one:** each one rendered in 3D, with several animations made
     for that emoji alone.
+- **Status bar colours:** paint the status bar's icons and text in any colour the user picks
+  (suggested by a user). Like the dual status bar, the idea comes from
+  [Iconify](https://github.com/Mahmud0808/Iconify). On Nothing OS 5 it needs the new status bar
+  design, as do the other status bar features.
+- **Credit everyone who helps:** every person and project that helps this module in any form
+  (code, ideas, tests, logs, firmware, tools) is named in [Credits](#credits), each with their
+  GitHub profile where they have given one. A help that is not listed there yet is a bug in
+  this README.
 
 ## For developers
 
@@ -2671,6 +2679,19 @@ This project exists because [Nothing](https://nothing.tech) builds phones that c
 owners may unlock the bootloader, and Nothing publishes its phones' kernel and device sources
 ([NothingOSS](https://github.com/NothingOSS) on GitHub). And Nothing OS itself, its dot-matrix
 design and its NDot font, is what every feature here sets out to extend rather than replace. Nothing2Something is an independent project, not made or endorsed by Nothing.
+
+### Thank you, everyone who helped
+
+- **[Nothing Archive](https://github.com/spike0en/nothing_archive)** by spike0en and its
+  contributors: every Nothing OS build for every Nothing and CMF phone, kept in one place. Each
+  finding about Nothing's code (Nothing OS 5's frosted glass, every check of the module against
+  a new Nothing OS) was read from the firmware it archives, and the module's firmware workflow
+  reads it for every phone. Making the module work for every Nothing phone rests on it.
+- **[Iconify](https://github.com/Mahmud0808/Iconify)** by Mahmud0808: the status bar features
+  are inspired by it. It showed what is possible in System UI; the dual status bar and the
+  status bar colours are its ideas.
+- **Testers:** the people who run test builds on their own phones and send logs. The Nothing OS
+  5 tester's logs and Hook health made the module's Nothing OS 5 support possible.
 
 The tools this is built on: [LSPosed](https://github.com/LSPosed/LSPosed) (hooking framework)
 and [Magisk](https://github.com/topjohnwu/Magisk) (root).
