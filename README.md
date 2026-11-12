@@ -51,6 +51,14 @@ Each section below opens when tapped.
 
 ## Status
 
+> [!WARNING]
+> **Updating to 0.70.35 or later from 0.70.34 or earlier: back up your settings first.** Before
+> installing, open Nothing2Something → **Backup** → **Export**, and save the file somewhere safe
+> (it holds your folders, options and covers). 0.70.35 moves where the settings are kept: on
+> LSPosed 2 and Vector it moves them once, with root, the first time you open the app. If root
+> is refused or the move fails, the settings page says so, and **Backup** → **Import** puts
+> everything back from your file.
+
 <details open>
 <summary><b>Current state</b> · version 0.70.35, what is pending, what still needs testing</summary>
 
@@ -129,7 +137,7 @@ Each section below opens when tapped.
   the modern API's own classes (Vector refuses a module that packs them); read against Vector's
   source: how it picks the entry, makes the entry class, keeps the old API usable at 101,
   sends settings changes and where the old file lives. **Not checked:** LSPosed 2.2.1's own
-  code (not public), and nothing has run on a phone. **To test:** install over 0.70.34, open
+  code (not public), and nothing has run on a phone. **To test:** first export a backup (Backup → Export), then install over 0.70.34, open
   Nothing2Something once (allow root if asked), check your folders and settings are all still
   there, reboot; the "deprecated feature" mark in LSPosed should be gone and the module should
   show "API 101"; change a few settings (drawer, rotation, dual status bar) and check each
@@ -1404,6 +1412,14 @@ scope, or find their place by name and stand aside when it is missing, start on.
   93+ with `xposedsharedprefs`) loads the old entry and reads a shared settings file.
 
 #### Install
+
+> [!WARNING]
+> **Updating to 0.70.35 or later from 0.70.34 or earlier: back up your settings first.** Before
+> installing, open Nothing2Something → **Backup** → **Export**, and save the file somewhere safe
+> (it holds your folders, options and covers). 0.70.35 moves where the settings are kept: on
+> LSPosed 2 and Vector it moves them once, with root, the first time you open the app. If root
+> is refused or the move fails, the settings page says so, and **Backup** → **Import** puts
+> everything back from your file.
 
 1. Build the APK (`./gradlew assembleRelease`) or download it from the *Build module* GitHub
    Actions run.
