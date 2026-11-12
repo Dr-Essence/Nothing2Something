@@ -464,14 +464,26 @@ final class DotIcons {
     }
 
     /** A declared field of {@code cls} or a superclass, made accessible. */
+    /**
+     * The field {@code name} of {@code cls} or a superclass. Nothing OS 5's Launcher3 rewrote
+     * FastBitmapDrawable in Kotlin, so its fields lost the "m" (mBitmapInfo is bitmapInfo,
+     * mPaint paint, mBadge badge, mScale scale; same types): that name is tried second
+     * (Nothing OS 5 tester's Hook health, 0.70.33).
+     */
     private static Field field(Class<?> cls, String name) {
-        for (Class<?> c = cls; c != null; c = c.getSuperclass()) {
-            try {
-                Field f = c.getDeclaredField(name);
-                f.setAccessible(true);
-                return f;
-            } catch (NoSuchFieldException e) {
-                // Try the superclass.
+        String kotlinName = name.length() > 1 && name.charAt(0) == 'm'
+                && Character.isUpperCase(name.charAt(1))
+                ? Character.toLowerCase(name.charAt(1)) + name.substring(2) : null;
+        for (String candidate : kotlinName == null ? new String[] {name}
+                : new String[] {name, kotlinName}) {
+            for (Class<?> c = cls; c != null; c = c.getSuperclass()) {
+                try {
+                    Field f = c.getDeclaredField(candidate);
+                    f.setAccessible(true);
+                    return f;
+                } catch (NoSuchFieldException e) {
+                    // Try the superclass.
+                }
             }
         }
         throw new IllegalStateException("no field " + name + " in " + cls.getName());

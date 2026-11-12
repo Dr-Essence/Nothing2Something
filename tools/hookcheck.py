@@ -115,6 +115,9 @@ def cmd_index(out, paths):
 STRING = r'"((?:[^"\\]|\\.)*)"'
 CONST = re.compile(r'(?:static\s+final\s+String|const\s+val|val)\s+([A-Z][A-Z0-9_]*)\s*(?::\s*String\s*)?=\s*' + STRING)
 CALL = re.compile(r'(XposedHelpers|XposedBridge|Hooks|Symbols)\.(\w+)\s*\(')
+# The module's own little lookup helpers (DotIcons/LiveIcons.field, FolderSheetLandscape
+# .fieldType): read too, they name fields the same way (missed until 0.70.33).
+HELPER = re.compile(r'(?<![\w.])(field|fieldType)\s*\(\s*\w+\s*,\s*' + STRING)
 CLASS_NAME = re.compile(r'^(com\.android\.|com\.nothing\.|android\.|com\.google\.android\.)[\w.$]+$')
 
 
@@ -245,6 +248,9 @@ def cmd_refs(out, src):
             else:
                 continue
             refs.append(ref)
+        for m in HELPER.finditer(text):
+            refs.append({"file": rel, "line": text.count("\n", 0, m.start()) + 1,
+                         "call": m.group(1), "kind": "field", "cls": None, "name": m.group(2)})
         # Every class-like string literal, wherever it is used (constants included).
         for raw in re.findall(STRING, text):
             lit = raw.replace("\\$", "$")
@@ -327,7 +333,16 @@ def resolve(r, idx):
         if params is not None and kind == "method":
             return "ok" if signature_fits(classes, cls, name, params) else "missing"
         return "ok"
-    return "ok" if anywhere(classes, name, kind) else "missing"
+    if not anywhere(classes, name, kind):
+        return "missing"
+    params = r.get("params")
+    if params is not None and kind == "method" and any(p is not None for p in params):
+        # A hook on a class held in a variable: some class must have this method with these
+        # parameters (missed until 0.70.33: ModelWriter.updateItemInfoProps).
+        fits = any(signature_fits(classes, c, name, params)
+                   for c, e in classes.items() if name in e["methods"])
+        return "ok" if fits else "missing"
+    return "ok"
 
 
 def owns(idx, cls):

@@ -18,6 +18,8 @@ Phone 1's Nothing OS 4.1 (Tetris_B4.1-260928-1140) as the build known to work.
    listed apart: the tool misread it, or it belongs to an app not in the index (HeliBoard,
    Living Worlds, the module's own extra fields); that list was read and holds no break.
 
+Mistake recorded (0.70.32): `refs` read only the Xposed calls, so the module's own small lookup helpers (`DotIcons/LiveIcons.field`, `FolderSheetLandscape.fieldType`) and hooks on a class held in a variable (`ModelWriter.updateItemInfoProps` on `writerClass`) were not checked; the tester's Hook health showed them. Both are read now (0.70.33).
+
 What it cannot see, checked by hand: names built at run time, a changed return type behind
 the same name (`getWorkspaceScrimColor`), compile-time flags, and anything only the phone
 shows. The tester's Hook health (Launcher 6 not installed and 1 left out, System UI 8 left
@@ -32,6 +34,8 @@ out, android 1 not installed, Settings 1 not installed) is explained by the find
 | System UI, 8 features | `sceneContainer`, `statusBarRootModernization`, `qsNewTiles` read at run time | compiled to true (`composeBouncer` false); `QSTileViewImpl` gone, tiles are Compose (`qs.panels.ui.compose.infinitegrid`) | already left out by design (`SystemUi.installUnless`); each needs a new version for the new UI |
 | Settings, task manager | `RunningProcessesView.G` list, `A1` row, `J1` item, `K1` merged item, `M1` process | list `F` (`G` is now a View), `x4`, `f5`, `g5`, `i5`; `a()` still sets the page up | the list found by its type; each name set tried through the shape check |
 | Launcher, live icons | `BubbleTextView.setNonPendingIcon(ItemInfoWithIcon)` | renamed `setStandardIcon` | whichever exists |
+| Launcher, dot-matrix icons and live icons | `FastBitmapDrawable.mBitmapInfo`, `mPaint`, `mBadge`, `mScale` | rewritten in Kotlin: `bitmapInfo`, `paint`, `badge`, `scale` (same types; `draw`, `drawInternal`, `BitmapInfo.icon` and `LOW_RES_ICON` unchanged) | the Kotlin name tried second (0.70.33; missed by 0.70.32's check, shown by the tester's Hook health) |
+| Launcher, landscape grid | `ModelWriter.updateItemInfoProps(ItemInfo, 4 ints)` | gone | the grid's safety parts do not install, so it is left out and the home screen keeps Nothing's layout (safe; with the rest of landscape on Nothing OS 5) |
 | Launcher, loader idle wait | `LoaderTask.waitForIdle`, `LooperIdleLock.awaitLocked` | gone (the loader no longer waits) | left out when absent |
 | Launcher, dot icon pack | entry class `k7.b` (4.0.20) | renamed | the class of an entry already in the map; `k7.b` only if present |
 | Launcher, folder menu | `LauncherModel.addAndBindAddedWorkspaceItems(List)` | gone; `enqueueModelUpdateTask(new model.tasks.AddWorkspaceItemsTask(list, spaceFinderFactory.get()))` | the same steps when the method is absent |
