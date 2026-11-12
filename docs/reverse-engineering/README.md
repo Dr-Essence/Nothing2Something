@@ -8,6 +8,7 @@ hook of the module and to prepare for updates of Nothing OS and its apps.
 | `system_server_hooks.md` | Every system_server hook checked against the phone's decompiled services.jar: thread, lock, signature. |
 | `launcher_dependencies.md` | About 300 dependencies on Nothing Launcher 4.0.20, each with a stable way to find it again if renamed. |
 | `systemui_settings_dependencies.md` | The same for System UI, Settings, Settings search, HeliBoard and Android's hidden APIs. |
+| `nos5_lucent_blur.md` | Nothing OS 5's translucent surfaces: blur radii, colours and the APIs that draw them, for bringing them to NOS 4. |
 | `dot_matrix_engine.md` | Research for the Nothing Dot Matrix Display engine (roadmap). |
 
 ## Supporting another Nothing OS build
