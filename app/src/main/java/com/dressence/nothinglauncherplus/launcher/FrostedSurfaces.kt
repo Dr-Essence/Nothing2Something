@@ -26,6 +26,7 @@ internal object FrostedSurfaces {
     private const val PREVIEW_BACKGROUND = "com.android.launcher3.folder.PreviewBackground"
     private const val HOTSEAT = "com.android.launcher3.Hotseat"
     private const val PAGED_VIEW = "com.android.launcher3.PagedView"
+    private const val CARD_HOST = "com.nothing.cardhost.CardWidgetHostView"
 
     private val location = IntArray(2)
     private val shape = Path()
@@ -36,6 +37,7 @@ internal object FrostedSurfaces {
     fun install(cl: ClassLoader, store: ConfigStore) {
         Hooks.install("folder icon glass") { installFolderIcons(cl, store) }
         Hooks.install("search bar glass") { installSearchBar(cl, store) }
+        Hooks.install("widget glass") { installWidgets(cl, store) }
     }
 
     /**
@@ -136,22 +138,84 @@ internal object FrostedSurfaces {
                 current.tintPercent = config.searchBarGlassTint
                 current.invalidateSelf()
             } else if (current != null) {
-                bar.background = GlassBackground(bar, current, config.searchBarGlassTint)
+                bar.background = GlassBackground(bar, current, config.searchBarGlassTint, null)
             }
         } else if (current is GlassBackground) {
             bar.background = current.original
         }
     }
 
+    /** Nothing widget cards whose background is glass now: redrawn as the home screen scrolls. */
+    private val glassCards: MutableSet<View> = Collections.newSetFromMap(WeakHashMap())
+
+    /**
+     * Nothing's widgets ("cards", from Card Lab, the card service, weather and the AI widget).
+     * Nothing OS 5's FrostedCardWidgetHostView.onParseFinished: once a card's views are made,
+     * every IFrostedBackdropSupport view in it gets the frosted backdrop; in the 5.0 card apps
+     * (firmware-inspect run 43265055010) that is the card's root container in almost every
+     * widget (battery, clocks, date, weather, pedometer, media player, compass, news...), whose
+     * background becomes the glass. Nothing OS 4.1's cards have no such views, so the card's
+     * root background is given the glass here, in its own rounded shape, at the same point
+     * (CardWidgetHostView.onParseFinished, empty in 4.1, called after every parse). Other
+     * apps' widgets are not cards and stay as they are, as on Nothing OS 5.
+     */
+    private fun installWidgets(cl: ClassLoader, store: ConfigStore) {
+        val host = XposedHelpers.findClass(CARD_HOST, cl)
+        XposedHelpers.findAndHookMethod(host, "onParseFinished", View::class.java,
+            View::class.java, Int::class.javaPrimitiveType, object : XC_MethodHook() {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    Hooks.guard("widget glass") { applyCard(param.args[0] as View?, store) }.run()
+                }
+            })
+        store.addChangeListener {
+            glassCards.toList().forEach { Hooks.guard("widget glass") { applyCard(it, store) }.run() }
+        }
+        val int = Int::class.javaPrimitiveType
+        XposedHelpers.findAndHookMethod(XposedHelpers.findClass(PAGED_VIEW, cl), "onScrollChanged",
+            int, int, int, int, object : XC_MethodHook() {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    glassCards.forEach { it.invalidate() }
+                }
+            })
+    }
+
+    /** The card's container: its root, or the root's first child, that has a background. */
+    private fun applyCard(root: View?, store: ConfigStore) {
+        val card = when {
+            root == null -> return
+            root.background != null -> root
+            root is android.view.ViewGroup && root.childCount > 0 &&
+                root.getChildAt(0).background != null -> root.getChildAt(0)
+            else -> return
+        }
+        glassCards.add(card)
+        val config = store.get()
+        val current = card.background
+        if (config.widgetGlass) {
+            if (current is GlassBackground) {
+                current.tintPercent = config.widgetGlassTint
+                current.invalidateSelf()
+            } else if (current != null) {
+                // Android's own widget corner (system_app_widget_background_radius) when the
+                // card's background does not say its own.
+                val corner = card.resources.getDimension(
+                    android.R.dimen.system_app_widget_background_radius)
+                card.background = GlassBackground(card, current, config.widgetGlassTint, corner)
+            }
+        } else if (current is GlassBackground) {
+            card.background = current.original
+        }
+    }
+
     /** Frosted glass in the original background's rounded shape (FrostedBackdropHelper). */
-    private class GlassBackground(val view: View, val original: Drawable, var tintPercent: Int) :
-        Drawable() {
+    private class GlassBackground(val view: View, val original: Drawable, var tintPercent: Int,
+            val cornerFallback: Float?) : Drawable() {
         private val area = RectF()
 
         override fun draw(canvas: Canvas) {
             area.set(bounds)
             val radius = (original as? GradientDrawable)?.cornerRadius?.takeIf { it > 0f }
-                ?: (area.height() / 2f)
+                ?: cornerFallback ?: (area.height() / 2f)
             view.getLocationOnScreen(location)
             canvas.drawRoundRect(area, radius, radius, Frosted.paint(view,
                 location[0].toFloat(), location[1].toFloat(), view.scaleX, tintPercent))

@@ -618,6 +618,10 @@ public class SettingsActivity extends Activity {
                 config.searchBarGlass, config.searchBarGlassTint,
                 checked -> config.searchBarGlass = checked,
                 value -> config.searchBarGlassTint = value);
+        addGlassRows(ui, "Glass widgets", "Nothing's own widgets (clock, weather, battery,"
+                + " pedometer and the others); other apps' widgets stay as they are",
+                config.widgetGlass, config.widgetGlassTint,
+                checked -> config.widgetGlass = checked, value -> config.widgetGlassTint = value);
         ui.row("Restart Nothing Launcher", "Applies everything immediately · needs root", null,
                 null, v -> restartLauncher());
         ui.row("Restore missing home items", "Icons, folders and shortcuts the launcher still"

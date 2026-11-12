@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.29, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.30, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.29** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders and the dock's search bar, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.30** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,25 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.30, Glass widgets: Nothing's own widgets frosted as in Nothing OS 5 (new, a switch
+  and a tint slider).** Settings → Launcher → Glass widgets. Found with the new
+  firmware-inspect workflow (it compares firmware on GitHub's runner and prints the result in
+  its log, so nothing large is downloaded): in Nothing OS 5's card apps (Card Lab and the
+  others) almost every widget's root container is an NTFrostedFrameLayout/RelativeLayout
+  (battery, clocks, date, weather, pedometer, media player, compass, news, AI widget), and
+  FrostedCardWidgetHostView.onParseFinished gives each one the frosted backdrop: the whole
+  card's background is glass, its contents drawn on it as before. The 4.1 card apps have none.
+  launcher/FrostedSurfaces.kt gives the card's root background the glass at the same point
+  (CardWidgetHostView.onParseFinished, empty in 4.1 and called after every card is built), in
+  the background's own rounded shape or Android's widget corner, redrawn while the home screen
+  scrolls; switched off, the card's own background comes back. Other apps' widgets are not
+  cards and stay as they are, as on Nothing OS 5. Checked: compiles; CardWidgetHostView
+  .onParseFinished(View, View, int) is in the firmware's 4.1 Launcher. Not checked (needs the
+  phone): which view of each 4.1 card holds its background (the root, else its first child, is
+  taken), how each widget looks. To test: switch Glass widgets on, restart the launcher, look
+  at each Nothing widget on the home screen, scroll the pages, move the tint slider; send a
+  screenshot, especially of any widget that looks wrong (glass behind only part of it, or a
+  square glass behind a round widget).
 - **0.70.29, Glass on live wallpapers, glass closed folders and glass search bar (new,
   switches with a tint slider each).** Settings → Launcher: Glass open folders, Glass closed
   folders, Glass search bar, each with its tint (40 % is Nothing OS 5's). Mistake recorded,
