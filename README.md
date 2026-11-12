@@ -52,9 +52,9 @@ Each section below opens when tapped.
 ## Status
 
 <details open>
-<summary><b>Current state</b> · version 0.70.34, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.35, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.34** (CMF Phone 1, Nothing OS 4.1, Android 16): Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.35** (CMF Phone 1, Nothing OS 4.1, Android 16): both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -103,6 +103,38 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.35, both Xposed APIs in one module, no shared settings file on LSPosed 2.** LSPosed
+  2.2.1 marked the module with "This module uses a deprecated feature that will be removed
+  soon" (Dr.Essence's screenshot): the settings app saved its settings world-readable for the
+  hooks to read (`MODE_WORLD_READABLE` + `xposedsharedprefs`), which another module's author
+  traced in LSPosed's own code as the trigger (SwiftKeyWhisper v1.3.0). Iconify and Nothing
+  Tweaks, old-API modules too, carry no such mark. Now the APK has two entries: `ModernEntry`
+  (modern libxposed API, `META-INF/xposed/`, target API 101) for LSPosed 2 and Vector, and
+  `LegacyEntry` (`assets/xposed_init`) for older frameworks; a framework with the modern API
+  loads only the modern one (Vector's `FileSystem.loadModule`). Both call `HookLoader`
+  (ModuleEntry until now), so every hook is unchanged: at target 101 the old hook calls stay
+  allowed (Vector's `blockLegacyApi = targetApiVersion >= 102`; LSPosed 2.0.3's notes say the
+  same). On the modern API the settings app keeps a private file and copies each save into the
+  framework's own store (remote preferences), which sends it to the hooked apps; nothing is
+  world-readable any more. The first time the app opens after the update it moves the old
+  settings file (folders included) into its own, with root, copies it to the framework, then
+  deletes the old file; until then the hooks keep reading the old file, so the update never
+  starts without your settings. A save now carries its time, and the launcher and the system
+  apply it only once that save has reached them (the settings and the "settings changed"
+  broadcast travel separately on the modern API). Dead code removed: `ModuleEntry`,
+  `SettingsActivity.isModuleActive`, `ConfigStore.reloadAndNotify`; the settings-file time as
+  the crash-loop guards' mark (now the save time). **Checked:** builds; the APK holds both
+  entries, `module.prop` (target 101) and `scope.list`, the service library's provider
+  (`<package>.XposedService`, the authority Vector's daemon sends its service to) and none of
+  the modern API's own classes (Vector refuses a module that packs them); read against Vector's
+  source: how it picks the entry, makes the entry class, keeps the old API usable at 101,
+  sends settings changes and where the old file lives. **Not checked:** LSPosed 2.2.1's own
+  code (not public), and nothing has run on a phone. **To test:** install over 0.70.34, open
+  Nothing2Something once (allow root if asked), check your folders and settings are all still
+  there, reboot; the "deprecated feature" mark in LSPosed should be gone and the module should
+  show "API 101"; change a few settings (drawer, rotation, dual status bar) and check each
+  applies; Hook health as before. On Vector (the Nothing OS 5 tester): the same, plus Hook
+  health. If anything is missing, a debug report (never a public LSPosed log).
 - **0.70.34, Nothing OS 5: "add to home screen" from a drawer folder no longer crashes the
   launcher.** Mistake recorded, 0.70.32 (the Nothing OS 5 tester: long-press a folder in the
   app drawer, "add to home screen", the launcher crashed): 0.70.32 replaced the
@@ -1367,7 +1399,9 @@ scope, or find their place by name and stand aside when it is missing, start on.
 
 - Nothing Launcher **4.0.20**. Later versions will probably work too, because the hooks avoid
   obfuscated names (see below).
-- LSPosed (or another Xposed implementation with API 93+ and `xposedsharedprefs` support).
+- LSPosed or Vector. The module carries both Xposed APIs: a framework with the modern API
+  (LSPosed 2, Vector) loads its modern entry and keeps the settings itself; an older one (API
+  93+ with `xposedsharedprefs`) loads the old entry and reads a shared settings file.
 
 #### Install
 
@@ -2578,7 +2612,7 @@ The module's code is grouped by where it runs:
 
 | Package | What it is |
 | --- | --- |
-| `xposed` | The entry point (`ModuleEntry`, named in `assets/xposed_init`), hook helpers (`Hooks`: installing a feature so its failure is its own, guarding code the apps call back into), the settings as hooked apps read them (`ConfigStore`) and Nothing's NDot font (`NdotFont`). |
+| `xposed` | The entry points (`ModernEntry` for the modern Xposed API, named in `META-INF/xposed/java_init.list`; `LegacyEntry` for the old one, in `assets/xposed_init`) and what both call (`HookLoader`: which app gets which part), hook helpers (`Hooks`: installing a feature so its failure is its own, guarding code the apps call back into), the settings as hooked apps read them (`ConfigStore`) and Nothing's NDot font (`NdotFont`). |
 | `launcher` | Everything in Nothing Launcher: the Smart drawer's folders and covers, the folder menu, landscape, controllers, sounds, dot-matrix icons (`DotIcons`, `IconScreen`) and scrolling names. |
 | `systemui` | The status bar and quick settings: `Clock`, `Battery`, `GreenIcons`, `GreenTexts`, `QuickSettings`, `NetworkSpeed`, all in the lit look of `Led`; the second status bar row (`DualStatusBar.kt`) and the OLED saver (`StatusBarSaver.kt`), with their shared System UI crash-loop guard (`CrashGuard`). |
 | `perf` | CMF Phone 1 only: the device check and root helper (`Device`), the Ndot performance overlay (`OverlayService` reads, `PerfHud` draws) and the per-game 120 fps unlock (`GameUnlock`), the Game Bar's buttons (`GameBar`, in the Game Bar; `GameBarReceiver`, in the module app). |
@@ -2654,8 +2688,11 @@ category key in `h.e()`. Keys that aren't in that list never appear. The module 
 The module never writes custom categories to the launcher's database. Nothing's category
 assignments stay untouched, so disabling the module restores the stock drawer.
 
-The config is stored as world-readable shared prefs (`config.xml`) through LSPosed's
-`xposedsharedprefs`. The hook reads it with `XSharedPreferences`.
+The config is saved by the settings app (`ui/SettingsStore`) and read by the hooks
+(`xposed/ConfigStore`). On the modern Xposed API the app's file is private and every save is
+copied into the framework's own store (remote preferences, `ui/ModuleService`), which sends it to
+the hooked apps. On the old API it is world-readable shared prefs (`config.xml`) through LSPosed's
+`xposedsharedprefs`, read with `XSharedPreferences`.
 
 </details>
 

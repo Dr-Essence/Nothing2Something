@@ -7,7 +7,7 @@
 > signature) for the obfuscated names, F5 (types checked in 0.70.23; same-type swaps not), F7 and the per-unit all-or-nothing installs.
 
 Scope: the code that runs inside `com.nothing.launcher` 4.0.20 (versionCode 40020216): `launcher/*`,
-`xposed/ModuleEntry.java` (launcher branch), `xposed/Hooks.java` (install semantics),
+`xposed/ModuleEntry.java` (launcher branch; `xposed/HookLoader.kt` since 0.70.35), `xposed/Hooks.java` (install semantics),
 `wallpaper/HomeShown.java`, `widgets/WidgetApps.java`. Checked against the jadx sources
 (`.../scratchpad/out/sources`) and the decoded resources (`re/nlres/resources/res`, decoded for this
 report).

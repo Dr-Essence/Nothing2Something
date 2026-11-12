@@ -531,7 +531,7 @@ internal object DualStatusBar {
 /**
  * A crash-loop guard for a System UI feature: false once System UI has started three times
  * within three minutes with the feature on, until a setting is saved again (the settings'
- * file time, [stamp], changes). Each start is recorded with that stamp in System UI's own
+ * save time, [stamp], changes: Config.KEY_SAVED; until 0.70.34 the settings file's time). Each start is recorded with that stamp in System UI's own
  * data folder (user 0, device storage). A start within a minute of the module app's
  * Restart System UI (its "planned restart" note, [PLANNED]) is not counted.
  */

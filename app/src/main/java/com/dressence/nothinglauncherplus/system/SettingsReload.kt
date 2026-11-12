@@ -48,7 +48,7 @@ internal object SettingsReload {
         val thread = HandlerThread("nlplus-settings").apply { start() }
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context, intent: Intent) {
-                Hooks.guard("settings reload") { store.reloadIfChanged() }.run()
+                Hooks.guard("settings reload") { store.afterSave(intent) {} }.run()
             }
         }
         context.registerReceiver(receiver, IntentFilter(Config.ACTION_RELOAD), null,

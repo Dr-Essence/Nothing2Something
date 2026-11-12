@@ -153,13 +153,12 @@ public final class SystemFonts {
                 if (!com.dressence.nothinglauncherplus.Broadcasts.fromModule(this)) {
                     return; // Only the module's settings may reset the font's crash guard.
                 }
-                try {
-                    store.reloadAndNotify();
-                    FAILED.delete(); // A font chosen again is given another chance.
-                    rewriteMap();
-                } catch (Throwable t) {
-                    Hooks.log("system font change failed: " + t);
-                }
+                Hooks.guard("system font change", () -> store.afterSave(intent,
+                        Hooks.guard("system font change", () -> {
+                            store.notifyChanged();
+                            FAILED.delete(); // A font chosen again is given another chance.
+                            rewriteMap();
+                        }))).run();
             }
         }, new IntentFilter(Config.ACTION_FONT), Context.RECEIVER_EXPORTED);
     }

@@ -167,8 +167,11 @@ public final class ControllerHome {
             @Override
             public void onReceive(Context c, Intent intent) {
                 Hooks.guard("controller home settings", () -> {
-                    store.reloadIfChanged();
-                    settle();
+                    if (Config.ACTION_RELOAD.equals(intent.getAction())) {
+                        store.afterSave(intent, ControllerHome::settle);
+                    } else {
+                        settle(); // Booted, or another user: the devices and home again.
+                    }
                 }).run();
             }
         };

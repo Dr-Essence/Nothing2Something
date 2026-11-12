@@ -113,7 +113,8 @@ final class FontSettings {
         store.config.systemFont = choice == null ? "" : "file:" + choice.path;
         store.save(activity);
         com.dressence.nothinglauncherplus.Broadcasts.send(activity,
-                new android.content.Intent(Config.ACTION_FONT).setPackage("android"));
+                new android.content.Intent(Config.ACTION_FONT).setPackage("android")
+                        .putExtra(Config.EXTRA_SAVED, store.config.savedAt));
         new Thread(() -> {
             SystemFont.removeOldModule();
             // Through SystemUiRestart, the one way System UI is restarted: it writes the

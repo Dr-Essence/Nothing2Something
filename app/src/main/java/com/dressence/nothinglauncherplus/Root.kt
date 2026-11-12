@@ -20,15 +20,28 @@ object Root {
     /** Runs [script] as root: null if it succeeded, else its output or why it could not run. Never throws. */
     @JvmStatic
     fun run(script: String): String? = try {
+        val (code, output) = exec(script)
+        if (code == 0) null else output.ifEmpty { "Root access was refused (exit $code)" }
+    } catch (e: Exception) {
+        e.message ?: e.toString()
+    }
+
+    /** Runs [script] as root: its output if it succeeded, else null. Never throws. */
+    @JvmStatic
+    fun read(script: String): String? = try {
+        val (code, output) = exec(script)
+        if (code == 0) output else null
+    } catch (e: Exception) {
+        null
+    }
+
+    private fun exec(script: String): Pair<Int, String> {
         val p = ProcessBuilder("su").redirectErrorStream(true).start()
         p.outputStream.use {
             it.write(script.toByteArray(StandardCharsets.UTF_8))
             it.write("\nexit\n".toByteArray(StandardCharsets.UTF_8))
         }
         val output = String(p.inputStream.readBytes(), StandardCharsets.UTF_8).trim()
-        val code = p.waitFor()
-        if (code == 0) null else output.ifEmpty { "Root access was refused (exit $code)" }
-    } catch (e: Exception) {
-        e.message ?: e.toString()
+        return p.waitFor() to output
     }
 }

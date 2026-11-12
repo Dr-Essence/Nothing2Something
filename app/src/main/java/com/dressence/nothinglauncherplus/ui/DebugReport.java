@@ -204,9 +204,10 @@ final class DebugReport {
             // sounds play on the system stream and stay quiet on silent or vibrate), and the
             // module's own settings.
             + "dumpsys audio > $D/audio.txt 2>&1\n"
-            // The settings are world-readable for LSPosed, which keeps the file in its own
-            // folder (/data/misc/<id>/prefs/<package>), not the app's shared_prefs: the copy
-            // from shared_prefs alone came out empty (DebuG23, DebuG24).
+            // On the modern Xposed API (0.70.35) the settings are the app's own, in its
+            // shared_prefs. On the old API they are world-readable for LSPosed, which keeps the
+            // file in its own folder (/data/misc/<id>/prefs/<package>): the copy from
+            // shared_prefs alone came out empty there (DebuG23, DebuG24).
             + "{ nsenter -t 1 -m -- cat /data/user/0/com.dressence.nothinglauncherplus/shared_prefs/"
             + "config.xml 2>/dev/null || nsenter -t 1 -m -- sh -c"
             + " 'cat /data/misc/*/prefs/com.dressence.nothinglauncherplus/config.xml';"

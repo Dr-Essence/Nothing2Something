@@ -93,8 +93,8 @@ public final class SaverRefreshRate {
         context.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context c, Intent intent) {
-                Hooks.guard("saver refresh apply", () -> {
-                    store.reloadIfChanged();
+                Hooks.guard("saver refresh settings", () -> store.afterSave(intent,
+                        Hooks.guard("saver refresh apply", () -> {
                     Object o = observer;
                     if (o == null) {
                         return;
@@ -103,7 +103,7 @@ public final class SaverRefreshRate {
                     synchronized (XposedHelpers.getObjectField(director, "mLock")) {
                         XposedHelpers.callMethod(o, "updateLowPowerModeSettingLocked");
                     }
-                }).run();
+                }))).run();
             }
         }, new IntentFilter(Config.ACTION_RELOAD), Context.RECEIVER_EXPORTED);
     }

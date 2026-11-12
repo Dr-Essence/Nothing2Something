@@ -16,7 +16,7 @@ import org.json.JSONObject;
 
 /**
  * Custom drawer folder configuration, shared between the settings UI (module process) and the
- * launcher hooks (read through XSharedPreferences).
+ * launcher hooks (xposed/ConfigStore: the framework's copy, or on the old API a shared file).
  */
 public final class Config {
 
@@ -111,6 +111,14 @@ public final class Config {
 
     /** Broadcast sent to the launcher and system_server after the configuration changes. */
     public static final String ACTION_RELOAD = MODULE_PKG + ".action.RELOAD";
+    /**
+     * When the settings were saved (ms): kept with them under this key by the settings app, and
+     * carried by ACTION_RELOAD and ACTION_FONT under {@link #EXTRA_SAVED}, so a hooked app acts
+     * only once that save has reached it (xposed/ConfigStore.afterSave). Also the crash-loop
+     * guards' "a setting was saved since" mark (systemui/CrashGuard).
+     */
+    public static final String KEY_SAVED = "saved_at";
+    public static final String EXTRA_SAVED = "saved_at";
     /** To the system: open the notification panel (the launcher may not). */
     public static final String ACTION_EXPAND_NOTIFICATIONS =
             MODULE_PKG + ".action.EXPAND_NOTIFICATIONS";
@@ -310,6 +318,8 @@ public final class Config {
     public boolean thermalOff = false;
     /** Battery saver keeps the screen's own refresh rate (no 60 Hz cap). */
     public boolean saverFullRefresh = false;
+    /** When these settings were saved ({@link #KEY_SAVED}); 0 before the first save. */
+    public long savedAt = 0L;
 
     private final Map<String, Folder> byComponent = new HashMap<>();
     private final Map<String, Folder> byKey = new HashMap<>();
@@ -338,6 +348,7 @@ public final class Config {
             // Corrupt config: keep whatever was parsed so far.
         }
         config.reindex();
+        config.savedAt = prefs.getLong(KEY_SAVED, 0L);
         return config;
     }
 

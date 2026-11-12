@@ -46,6 +46,9 @@
         android:label="Nothing2Something"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
 
+        <!-- The old Xposed API's description of the module (entry: assets/xposed_init). The
+             modern API reads META-INF/xposed/ (java_init.list, module.prop, scope.list) instead,
+             and a framework that has it loads only that one (xposed/ModernEntry). -->
         <meta-data android:name="xposedmodule" android:value="true" />
         <meta-data android:name="xposeddescription"
             android:value="Nothing Launcher and Nothing OS: drawer folders with dot-matrix covers, landscape home and lock screen, controllers, status bar and more" />

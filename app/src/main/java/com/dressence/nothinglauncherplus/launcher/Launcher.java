@@ -216,7 +216,8 @@ public final class Launcher {
         appContext.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                Hooks.guard("settings reload", store::reloadAndNotify).run();
+                Hooks.guard("settings reload",
+                        () -> store.afterSave(intent, store::notifyChanged)).run();
             }
         }, new IntentFilter(Config.ACTION_RELOAD), Context.RECEIVER_EXPORTED);
     }

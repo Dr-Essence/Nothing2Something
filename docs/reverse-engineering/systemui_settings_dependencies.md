@@ -41,6 +41,9 @@ Column key for the tables:
 
 ## 1. Which process runs what (from `xposed/ModuleEntry.java`)
 
+(0.70.35: `ModuleEntry.java` became `xposed/HookLoader.kt`, called by both API entries; the line
+numbers below are the old file's.)
+
 | Host process | Entry (ModuleEntry line) | Module code | Condition |
 |---|---|---|---|
 | `com.android.systemui` | `SystemUi.install` (line 101) | all of `systemui/` except FullScreenApps' app half, plus `perf/HudWindows` | not "Launcher only"; HudWindows only on `Device.isCmfPhone1()` (SystemUi.java:30) |

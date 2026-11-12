@@ -32,11 +32,6 @@ import java.util.List;
  */
 public class SettingsActivity extends Activity {
 
-    /** Replaced with {@code true} by the module's own hook when LSPosed has it enabled. */
-    public static boolean isModuleActive() {
-        return false;
-    }
-
     private static final int REQUEST_EXPORT = 1;
     private static final int REQUEST_IMPORT = 2;
 
@@ -65,6 +60,7 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        ModuleService.addChangeListener(onModuleService);
         store.reload();
         assignMissingMotions();
         render();
@@ -267,9 +263,12 @@ public class SettingsActivity extends Activity {
                         .moveToInternalStorage(pkg)).start();
             }
         }
-        if (!isModuleActive() || !store.shared) {
+        if (!store.reachesHooks()) {
             ui.note("Module not active. Enable it in LSPosed with Nothing Launcher in scope, then"
                     + " restart the launcher. Changes made now will not reach the launcher.");
+        }
+        if (ModuleService.getMoveProblem() != null) {
+            ui.note(ModuleService.getMoveProblem());
         }
 
         ui.section("Mode");
@@ -1121,8 +1120,18 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        ModuleService.removeChangeListener(onModuleService);
         preview().stopMusic(); // Previews never outlive the settings screen.
     }
+
+    /**
+     * The framework's service connected, or the settings from before an update were moved
+     * (ModuleService): the page shows the settings and the module's state as they are now.
+     */
+    private final Runnable onModuleService = () -> {
+        store.reload();
+        render();
+    };
 
     private interface IntLabel {
         String label(int value);
