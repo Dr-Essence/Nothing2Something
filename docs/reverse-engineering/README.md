@@ -36,11 +36,11 @@ info without any identifier; no logs): run `su -c "sh /sdcard/Download/nos5-file
 
 ## Still open (needs a decision or the phone)
 
-- **A resolver for obfuscated names** (`p7.e`, `h7.d`, `k7.b`, `d7.h`, `x7.c`, `smart.z`,
-  `za.a0`, Settings' `A1`/`K1`/`M1`): DexKit finds them by strings and signatures on each
-  launcher version (about 1 MB native library, a few hundred ms once per launcher update,
-  cached), or plain reflection by shape for some of them. Today they are checked, not found
-  again.
+- **More names for the resolver.** Since 0.70.26 `xposed/Symbols.kt` finds three launcher
+  methods again with DexKit after an update (`launcher/LauncherSymbols.kt`: d7.h.i, h7.d.a,
+  p7.e.e, each query tested against 4.0.20). Still checked only, not found again: `za.a0`'s
+  fields (same-type fields cannot be told apart by a query), `smart.z`'s getters, Settings'
+  `A1`/`K1`/`M1` (Settings, another process; the same Symbols can serve it).
 - Same-type swaps (two int fields exchanging names) are not caught by type checks.
 - The suspected redraw loop of Nothing's drawer tile (evidence: the debug report's
   `gfxinfo_*.txt`).

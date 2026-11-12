@@ -11,6 +11,7 @@ import android.os.Looper
 import android.provider.Settings
 import com.dressence.nothinglauncherplus.xposed.Hooks
 import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import java.util.concurrent.ConcurrentHashMap
 
@@ -71,8 +72,8 @@ internal object DotIconPack {
     /** Our entry goes into the launcher's map of packs each time it is filled. */
     private fun addEntry(cl: ClassLoader) {
         val entity = XposedHelpers.findClass("k7.b", cl)
-        XposedHelpers.findAndHookMethod("h7.d", cl, "a", Context::class.java,
-            ConcurrentHashMap::class.java, object : XC_MethodHook() {
+        // Found by its shape when an update renames it (LauncherSymbols, 4.0.20: h7.d.a).
+        XposedBridge.hookMethod(LauncherSymbols.readPacks(cl), object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     try {
                         @Suppress("UNCHECKED_CAST")
@@ -96,9 +97,8 @@ internal object DotIconPack {
      * The picker builds its list off the main thread, so the conversion happens there too.
      */
     private fun dotPreview(cl: ClassLoader) {
-        XposedHelpers.findAndHookMethod("d7.h", cl, "i", String::class.java,
-            XposedHelpers.findClass("com.android.launcher3.icons.BaseIconFactory", cl),
-            XposedHelpers.findClass("com.android.launcher3.icons.IconProvider", cl),
+        // Found by its shape when an update renames it (LauncherSymbols, 4.0.20: d7.h.i).
+        XposedBridge.hookMethod(LauncherSymbols.iconForPack(cl),
             object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     if (param.args[0] != PACK_ID) return

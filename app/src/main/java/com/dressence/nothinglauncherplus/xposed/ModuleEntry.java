@@ -77,7 +77,14 @@ public final class ModuleEntry implements IXposedHookLoadPackage {
         } else if (!lpparam.isFirstApplication) {
             return;
         } else if (Config.LAUNCHER_PKG.equals(pkg)) {
-            Launcher.install(cl, new ConfigStore());
+            // Its obfuscated names are found again after an update (Symbols, DexKit); DexKit
+            // is closed once the hooks are in.
+            Symbols.begin(lpparam.appInfo.sourceDir, lpparam.appInfo.dataDir, cl);
+            try {
+                Launcher.install(cl, new ConfigStore());
+            } finally {
+                Symbols.end();
+            }
         } else if (WidgetApps.handles(pkg)) {
             // Nothing's widget apps: their cards open over the home screen (also in
             // "Launcher only").

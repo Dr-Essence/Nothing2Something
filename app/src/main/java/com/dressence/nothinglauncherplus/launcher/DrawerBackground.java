@@ -132,10 +132,14 @@ final class DrawerBackground {
      * AllAppsState gives it, as before. False when not hooked.
      */
     private static boolean hookScrimColour(ClassLoader cl, ConfigStore store) {
-        Class<?> colours = XposedHelpers.findClassIfExists(CLS_THEME_COLOURS, cl);
-        java.lang.reflect.Method method = colours == null ? null
-                : XposedHelpers.findMethodExactIfExists(colours, "e", Context.class);
-        if (method == null || method.getReturnType() != int.class) {
+        // Found by its shape when an update renames it (LauncherSymbols, 4.0.20: p7.e.e).
+        java.lang.reflect.Method method;
+        try {
+            method = LauncherSymbols.scrimColour(cl);
+        } catch (Throwable t) {
+            method = null;
+        }
+        if (method == null) {
             Hooks.skipped("drawer scrim colour", "not found, background faded by its state");
             return false;
         }
