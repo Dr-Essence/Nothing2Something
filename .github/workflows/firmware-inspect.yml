@@ -9,6 +9,7 @@ on:
     paths:
       - .github/workflows/firmware-inspect.yml
       - tools/firmware-inspect.sh
+      - tools/hookcheck.py
 
 permissions:
   contents: read
@@ -17,7 +18,7 @@ permissions:
 env:
   # The firmware run whose artifacts are read, and which bundles.
   RUN_ID: "43256504499"
-  BUNDLES: "Pacman_C5.0-261015-1824 Tetris_B4.1-260928-1140"
+  BUNDLES: "Asteroids_C5.0-261106-1007 Tetris_B4.1-260928-1140"
 
 jobs:
   inspect:
