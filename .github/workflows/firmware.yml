@@ -36,7 +36,10 @@ permissions:
 env:
   ARCHIVE: spike0en/nothing_archive
   # The packages the module hooks (Hooks / the LSPosed scope).
-  PACKAGES: com.nothing.launcher com.android.systemui com.android.settings com.android.settings.intelligence com.nothing.ntgamedashboard com.nothing.thirdparty
+  # The packages the module hooks (Hooks / the LSPosed scope), and the apps that supply Nothing's
+  # widgets ("cards": Card Lab, the card service, weather, AI widget), whose card layouts decide
+  # which parts of a widget Nothing OS 5 frosts.
+  PACKAGES: com.nothing.launcher com.android.systemui com.android.settings com.android.settings.intelligence com.nothing.ntgamedashboard com.nothing.thirdparty com.nothing.hearthstone com.nothing.cardservice com.nothing.weather com.nothing.aiwidget
 
 jobs:
   builds:
