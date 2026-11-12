@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: debug-wait-option-release
+expected_outcome: |
+  A behaviour change is released as 0.70.27 (versionCode 310) with a README Status entry
+  under "Not tested on a phone yet" that says what was and was not checked and how to test it,
+  compiled, committed with the session's trailers and pushed to the session branch without
+  force, and the user is told what was verified and what to test.

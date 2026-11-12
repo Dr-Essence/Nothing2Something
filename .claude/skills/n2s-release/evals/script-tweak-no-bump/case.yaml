@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: script-tweak-no-bump
+expected_outcome: |
+  A change to a tool script, not the module's behaviour, is committed and pushed without a
+  version bump, with a subject naming the file and the session's trailers.
