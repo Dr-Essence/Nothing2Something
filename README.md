@@ -2690,8 +2690,10 @@ design and its NDot font, is what every feature here sets out to extend rather t
 - **[Iconify](https://github.com/Mahmud0808/Iconify)** by Mahmud0808: the status bar features
   are inspired by it. It showed what is possible in System UI; the dual status bar and the
   status bar colours are its ideas.
-- **Testers:** the people who run test builds on their own phones and send logs. The Nothing OS
-  5 tester's logs and Hook health made the module's Nothing OS 5 support possible.
+- **Testers:** the people who run test builds on their own phones and send logs.
+  - **[LovecraftianGodsKiller](https://github.com/LovecraftianGodsKiller)**: the first tester on
+    Nothing OS 5 (Phone (3a)). Their logs, firmware files and Hook health made the module's
+    Nothing OS 5 support possible, and found the crash fixed in 0.70.34.
 
 The tools this is built on: [LSPosed](https://github.com/LSPosed/LSPosed) (hooking framework)
 and [Magisk](https://github.com/topjohnwu/Magisk) (root).
