@@ -35,6 +35,7 @@ public final class Launcher {
         Hooks.install("settings entry", () -> SettingsEntry.install(cl, store));
         Hooks.install("settings module row", () -> SettingsEntry.installModuleRow(cl));
         Hooks.install("drawer background", () -> DrawerBackground.install(cl, store));
+        Hooks.install("folder glass", () -> FolderGlass.install(cl, store));
         new Landscape(cl, store).install();
         // Guarded as a whole too: its first lookups are outside its own steps.
         Hooks.install("landscape grid setup", () -> new LandscapeGrid(cl).install());

@@ -602,6 +602,13 @@ public class SettingsActivity extends Activity {
         }
 
         ui.section("Launcher");
+        ui.switchRow("Glass folders", "Nothing OS 5's frosted folders: the wallpaper and home"
+                + " screen behind an open folder show through it, blurred · from the next folder"
+                + " you open · off while battery saver is on",
+                config.folderGlass, checked -> {
+                    config.folderGlass = checked;
+                    store.save(this);
+                });
         ui.row("Restart Nothing Launcher", "Applies everything immediately · needs root", null,
                 null, v -> restartLauncher());
         ui.row("Restore missing home items", "Icons, folders and shortcuts the launcher still"

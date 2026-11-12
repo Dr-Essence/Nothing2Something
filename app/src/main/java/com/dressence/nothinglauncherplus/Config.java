@@ -66,6 +66,7 @@ public final class Config {
     public static final String KEY_CONTROLLER_NAV = "controller_nav";
     public static final String KEY_CONTROLLER_HOME = "controller_home";
     public static final String KEY_RECENTS_MEMORY = "recents_memory";
+    public static final String KEY_FOLDER_GLASS = "folder_glass";
     public static final String KEY_TASK_MANAGER = "task_manager";
     public static final String KEY_LIVING_WORLDS_SOUNDS = "living_worlds_sounds";
     public static final String KEY_LIVING_WORLDS_TURN = "living_worlds_turn";
@@ -221,6 +222,8 @@ public final class Config {
     public boolean controllerNav = true;
     /** Recents shows free memory; a tap opens running services. */
     public boolean recentsMemory = true;
+    /** Nothing OS 5's glass folders (launcher/FolderGlass.kt). */
+    public boolean folderGlass = false;
     /** Running services (Settings) as a task manager. */
     public boolean taskManager = false;
     /** Living Worlds' ambient sounds on the home screen and in the app drawer. */
@@ -447,6 +450,7 @@ public final class Config {
         controllerNav = in.bool(KEY_CONTROLLER_NAV, true);
         controllerHome = in.bool(KEY_CONTROLLER_HOME, false);
         recentsMemory = in.bool(KEY_RECENTS_MEMORY, true);
+        folderGlass = in.bool(KEY_FOLDER_GLASS, false);
         taskManager = in.bool(KEY_TASK_MANAGER, false);
         livingWorldsSounds = in.bool(KEY_LIVING_WORLDS_SOUNDS, true);
         livingWorldsTurn = in.bool(KEY_LIVING_WORLDS_TURN, true);
@@ -542,6 +546,7 @@ public final class Config {
         out.bool(KEY_CONTROLLER_NAV, controllerNav);
         out.bool(KEY_CONTROLLER_HOME, controllerHome);
         out.bool(KEY_RECENTS_MEMORY, recentsMemory);
+        out.bool(KEY_FOLDER_GLASS, folderGlass);
         out.bool(KEY_TASK_MANAGER, taskManager);
         out.bool(KEY_LIVING_WORLDS_SOUNDS, livingWorldsSounds);
         out.bool(KEY_LIVING_WORLDS_TURN, livingWorldsTurn);

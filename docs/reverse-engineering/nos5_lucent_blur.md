@@ -55,6 +55,10 @@ Nothing's own classes, new in 5.0 System UI: `com.nothing.widget.ui.blur.Backdro
 `com.nothing.compose.ui.NtBackdropBlurState`, `com.nothing.systemui.wallpaper.NTWallpaperBlurController`.
 The 5.0 Launcher uses the Android APIs directly (no Nothing blur classes).
 
+## Built so far
+
+- 0.70.27: glass folders (`launcher/FolderGlass.kt`), the folder blur above.
+
 ## Still to find before building it
 
 - Whether the CMF Phone 1 allows blur at all. Its own NOS 4.1 System UI and Launcher
