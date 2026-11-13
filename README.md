@@ -23,6 +23,14 @@ screen, game controller support, live wallpaper sounds and more.
   refresh rate in battery saver, sounds and music.
 - **Live wallpapers**: sounds and smooth turning for Living Worlds and Palette Cycle.
 
+**The look**
+
+The module's look is Nothing's own design language (the dot matrix, the NDot font, the
+frosted glass of Nothing OS 5) mixed with **retro-futurism**, above all the digital
+dashboards of 80s and 90s cars: lit segments and dot screens in green and amber behind dark
+glass, glowing into it. As the module grows, its whole look moves towards that mix: Nothing's
+language, with the feel of a retro-futuristic 80s-90s car dashboard.
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/Dr-Essence/Nothing2Something/claude/nothing-os-xposed-module-65lsca/docs/images/home-landscape.png" alt="Landscape home screen" width="100%">
 </p>
@@ -60,9 +68,9 @@ Each section below opens when tapped.
 > everything back from your file.
 
 <details open>
-<summary><b>Current state</b> · version 0.70.37, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.38, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.37** (CMF Phone 1, Nothing OS 4.1, Android 16): both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.38** (CMF Phone 1, Nothing OS 4.1, Android 16): glass app drawer and open drawer folders (new), a Green dot screen with a stronger glow (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -111,6 +119,30 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.38, glass app drawer and open drawer folders; a stronger glow on the green screen.**
+  Two new switches with tint sliders on the App drawer page, under Drawer background: **Glass
+  drawer background** and **Glass open drawer folders**, in Nothing OS 5's frosted recipe
+  (Frosted.kt), which Nothing OS 5 itself does not apply to the drawer. Found in the CMF Phone
+  1's launcher (Tetris_B4.1-260928-1140, dexdump): an open drawer folder (`SmartFullSheet`)
+  has no background in its layout (`smart_folder_full_sheet`); its colour is the slide-in
+  view's colour scrim, one full-screen view made by `AbstractSlideInView`
+  (`createColorScrim`, `color_all_apps_content_background_color`) and faded with the sheet, so
+  that view's background becomes the glass and the fade stays Nothing's. The drawer's own
+  background is the launcher scrim shared with other screens, so the glass is drawn at the
+  bottom of the drawer (`NTLauncherAllAppsContainerView.dispatchDraw`, before its apps) for
+  where it rests, so it slides in with the drawer and lines up with the wallpaper once open;
+  the Drawer background slider stays for when it is off. Both left out on Nothing OS 5.
+  `GlassBackground` moved to its own file, shared with the search bar and widgets. Green dot
+  screen now glows stronger (near light 70 to 115, wide light 120 to 200), for the feel of a
+  retro-futuristic dashboard display; colours keep the glow as it was. README: the module's
+  look, Nothing's language mixed with retro-futurism and 80s-90s car dashboards.
+  **Checked:** builds; the sheet's scrim and its layout in the 4.1 launcher; a sheet is
+  glazed once although its constructors call each other. **Not checked:** on the phone (the
+  look, the slide, scrolling a long folder, whether the folder's title band keeps Nothing's
+  solid colour when scrolled). **To test:** App drawer → Glass drawer background on, open the
+  drawer (blurred wallpaper behind the folders, slides in with it); Glass open drawer folders
+  on, open a folder (blurred wallpaper behind its apps), scroll it; the tint sliders; Green
+  dot screen on: the stronger glow; a screen recording.
 - **0.70.37, Green dot screen.** A new switch under Dot-matrix emoji (App drawer page): the
   folders' dot-matrix emoji in shades of green only, like a one-colour LED screen, in the
   green of the lit folder name (`Palette.LED_GREEN`). Each dot takes its brightness within

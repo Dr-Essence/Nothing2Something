@@ -350,6 +350,14 @@ public class SettingsActivity extends Activity {
                     store.save(this);
                 });
         addOpacityRow(ui, config);
+        addGlassRows(ui, "Glass drawer background", "The wallpaper behind the drawer, blurred and"
+                + " tinted, in place of the background above", config.drawerGlass,
+                config.drawerGlassTint, checked -> config.drawerGlass = checked,
+                value -> config.drawerGlassTint = value);
+        addGlassRows(ui, "Glass open drawer folders", "A drawer folder, when opened, shows the"
+                + " wallpaper behind it, blurred and tinted", config.drawerFolderGlass,
+                config.drawerFolderGlassTint, checked -> config.drawerFolderGlass = checked,
+                value -> config.drawerFolderGlassTint = value);
 
         ui.section("Covers");
         ui.switchRow("Emoji covers (beta)", "Off: folders show their apps as Nothing does; your emoji"

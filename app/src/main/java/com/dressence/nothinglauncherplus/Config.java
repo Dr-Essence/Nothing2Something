@@ -75,6 +75,10 @@ public final class Config {
     public static final String KEY_SEARCH_BAR_GLASS_TINT = "search_bar_glass_tint";
     public static final String KEY_WIDGET_GLASS = "widget_glass";
     public static final String KEY_WIDGET_GLASS_TINT = "widget_glass_tint";
+    public static final String KEY_DRAWER_GLASS = "drawer_glass";
+    public static final String KEY_DRAWER_GLASS_TINT = "drawer_glass_tint";
+    public static final String KEY_DRAWER_FOLDER_GLASS = "drawer_folder_glass";
+    public static final String KEY_DRAWER_FOLDER_GLASS_TINT = "drawer_folder_glass_tint";
     public static final String KEY_TASK_MANAGER = "task_manager";
     public static final String KEY_LIVING_WORLDS_SOUNDS = "living_worlds_sounds";
     public static final String KEY_LIVING_WORLDS_TURN = "living_worlds_turn";
@@ -251,6 +255,11 @@ public final class Config {
     public int searchBarGlassTint = 40;
     public boolean widgetGlass = false;
     public int widgetGlassTint = 40;
+    /** Frosted glass for the app drawer's background and an open drawer folder (DrawerGlass). */
+    public boolean drawerGlass = false;
+    public int drawerGlassTint = 40;
+    public boolean drawerFolderGlass = false;
+    public int drawerFolderGlassTint = 40;
     /** Running services (Settings) as a task manager. */
     public boolean taskManager = false;
     /** Living Worlds' ambient sounds on the home screen and in the app drawer. */
@@ -489,6 +498,11 @@ public final class Config {
         searchBarGlassTint = Math.max(0, Math.min(100, in.number(KEY_SEARCH_BAR_GLASS_TINT, 40)));
         widgetGlass = in.bool(KEY_WIDGET_GLASS, false);
         widgetGlassTint = Math.max(0, Math.min(100, in.number(KEY_WIDGET_GLASS_TINT, 40)));
+        drawerGlass = in.bool(KEY_DRAWER_GLASS, false);
+        drawerGlassTint = Math.max(0, Math.min(100, in.number(KEY_DRAWER_GLASS_TINT, 40)));
+        drawerFolderGlass = in.bool(KEY_DRAWER_FOLDER_GLASS, false);
+        drawerFolderGlassTint = Math.max(0, Math.min(100,
+                in.number(KEY_DRAWER_FOLDER_GLASS_TINT, 40)));
         taskManager = in.bool(KEY_TASK_MANAGER, false);
         livingWorldsSounds = in.bool(KEY_LIVING_WORLDS_SOUNDS, true);
         livingWorldsTurn = in.bool(KEY_LIVING_WORLDS_TURN, true);
@@ -593,6 +607,10 @@ public final class Config {
         out.number(KEY_SEARCH_BAR_GLASS_TINT, searchBarGlassTint);
         out.bool(KEY_WIDGET_GLASS, widgetGlass);
         out.number(KEY_WIDGET_GLASS_TINT, widgetGlassTint);
+        out.bool(KEY_DRAWER_GLASS, drawerGlass);
+        out.number(KEY_DRAWER_GLASS_TINT, drawerGlassTint);
+        out.bool(KEY_DRAWER_FOLDER_GLASS, drawerFolderGlass);
+        out.number(KEY_DRAWER_FOLDER_GLASS_TINT, drawerFolderGlassTint);
         out.bool(KEY_TASK_MANAGER, taskManager);
         out.bool(KEY_LIVING_WORLDS_SOUNDS, livingWorldsSounds);
         out.bool(KEY_LIVING_WORLDS_TURN, livingWorldsTurn);

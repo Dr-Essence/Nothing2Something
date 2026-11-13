@@ -86,6 +86,12 @@ final class DotMatrix {
     private static final int GLOW = GRID / 2;
     private static final int GLOW_NEAR = 70;
     private static final int GLOW_FAR = 120;
+    /**
+     * The glow with Green dot screen on, stronger, for the feel of a retro-futuristic car
+     * dashboard's display: its lit segments bleed light into the dark glass around them.
+     */
+    private static final int GLOW_NEAR_GREEN = 115;
+    private static final int GLOW_FAR_GREEN = 200;
     private final Bitmap glow = Bitmap.createBitmap(GLOW + 2, GLOW + 2, Bitmap.Config.ARGB_8888);
     private final int[] glowPixels = new int[GLOW * GLOW];
     private final RectF glowRect = new RectF();
@@ -1238,12 +1244,12 @@ final class DotMatrix {
         canvas.clipRect(screen.bounds);
         glowRect.set(emojiLeft - pitch, emojiTop - pitch, emojiLeft + (GRID + 1) * pitch,
                 emojiTop + (GRID + 1) * pitch);
-        glowPaint.setAlpha(GLOW_NEAR);
+        glowPaint.setAlpha(green ? GLOW_NEAR_GREEN : GLOW_NEAR);
         canvas.drawBitmap(frame, null, glowRect, glowPaint);
         float wide = pitch * 2;
         glowRect.set(emojiLeft - wide, emojiTop - wide, emojiLeft + (GLOW + 1) * wide,
                 emojiTop + (GLOW + 1) * wide);
-        glowPaint.setAlpha(GLOW_FAR);
+        glowPaint.setAlpha(green ? GLOW_FAR_GREEN : GLOW_FAR);
         canvas.drawBitmap(glow, null, glowRect, glowPaint);
         canvas.restore();
     }

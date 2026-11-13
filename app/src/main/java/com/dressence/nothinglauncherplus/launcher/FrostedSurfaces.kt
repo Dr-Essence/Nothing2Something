@@ -1,12 +1,7 @@
 package com.dressence.nothinglauncherplus.launcher
 
 import android.graphics.Canvas
-import android.graphics.ColorFilter
 import android.graphics.Path
-import android.graphics.PixelFormat
-import android.graphics.RectF
-import android.graphics.drawable.Drawable
-import android.graphics.drawable.GradientDrawable
 import android.view.View
 import com.dressence.nothinglauncherplus.xposed.ConfigStore
 import com.dressence.nothinglauncherplus.xposed.Hooks
@@ -211,24 +206,5 @@ internal object FrostedSurfaces {
         } else if (current is GlassBackground) {
             card.background = current.original
         }
-    }
-
-    /** Frosted glass in the original background's rounded shape (FrostedBackdropHelper). */
-    private class GlassBackground(val view: View, val original: Drawable, var tintPercent: Int,
-            val cornerFallback: Float?) : Drawable() {
-        private val area = RectF()
-
-        override fun draw(canvas: Canvas) {
-            area.set(bounds)
-            val radius = (original as? GradientDrawable)?.cornerRadius?.takeIf { it > 0f }
-                ?: cornerFallback ?: (area.height() / 2f)
-            view.getLocationOnScreen(location)
-            canvas.drawRoundRect(area, radius, radius, Frosted.paint(view,
-                location[0].toFloat(), location[1].toFloat(), view.scaleX, tintPercent))
-        }
-
-        override fun setAlpha(alpha: Int) {}
-        override fun setColorFilter(colorFilter: ColorFilter?) {}
-        @Deprecated("Drawable API") override fun getOpacity() = PixelFormat.TRANSLUCENT
     }
 }
