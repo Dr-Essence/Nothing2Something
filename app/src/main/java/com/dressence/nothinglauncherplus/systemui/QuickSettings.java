@@ -65,7 +65,13 @@ final class QuickSettings {
                                 || !Integer.valueOf(STATE_ACTIVE).equals(param.args[0])) {
                             return;
                         }
-                        param.setResult(store.get().qsAmber ? DASH_AMBER : RETRO_GREEN);
+                        // Our colour, at the opacity the tile already has: another module may
+                        // make tiles see-through (Nothing Glass: its TileHooks), and an opaque
+                        // colour here would undo that (0.70.44).
+                        int lit = store.get().qsAmber ? DASH_AMBER : RETRO_GREEN;
+                        Object given = param.getResult();
+                        int alpha = given instanceof Integer ? (Integer) given >>> 24 : 0xFF;
+                        param.setResult(alpha << 24 | (lit & 0xFFFFFF));
                         if (!litAtSource) {
                             litAtSource = true;
                             Hooks.log("quick settings: tiles lit at the source");

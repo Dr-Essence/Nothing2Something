@@ -96,11 +96,6 @@ internal object Frosted {
      * (x, y, scale), held weakly. Each frame, a surface that has moved is drawn again (#follow).
      */
     private val tracked = WeakHashMap<View, FloatArray>()
-    /**
-     * Surfaces that place their glass themselves (the drawer, for where it rests): not
-     * followed, only drawn again when a new picture is ready. Held weakly.
-     */
-    private val drawn: MutableSet<View> = Collections.newSetFromMap(WeakHashMap())
     /** The windows' view roots already watched, one listener each. */
     private val roots: MutableSet<View> = Collections.newSetFromMap(WeakHashMap())
     private val globalMatrix = Matrix()
@@ -112,9 +107,9 @@ internal object Frosted {
      * canvas's (0, 0) is on the screen, [scale] the canvas's scale there. [surface] is
      * redrawn when the picture is ready.
      */
-    fun paint(surface: View, screenX: Float, screenY: Float, scale: Float, tintPercent: Int): Paint {
+    private fun paint(surface: View, screenX: Float, screenY: Float, scale: Float,
+            tintPercent: Int): Paint {
         val context = surface.context
-        drawn.add(surface)
         ensurePicture(context)
         val tint = tint(context, tintPercent)
         val bitmap = picture
@@ -275,7 +270,7 @@ internal object Frosted {
                 pictureWidth = width
                 pictureHeight = height
                 // Every glass surface shows the new picture (also a live wallpaper's refresh).
-                (ArrayList(tracked.keys) + ArrayList(drawn)).forEach { it.invalidate() }
+                ArrayList(tracked.keys).forEach { it.invalidate() }
             }
         }
     }

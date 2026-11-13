@@ -25,8 +25,13 @@ import java.util.WeakHashMap
  *   background becomes the glass; the fade stays Nothing's.
  * - **The drawer's background** is the launcher's scrim behind the drawer (DrawerBackground),
  *   which other screens use too. The glass is drawn instead at the bottom of the drawer itself
- *   (NTLauncherAllAppsContainerView, before its children), so it shows only in the drawer and
- *   fades with it.
+ *   (before its children), so it shows only in the drawer and fades with it; the drawer's own
+ *   colours are faded out over it (DrawerBackground.opacity).
+ *
+ * Mistake recorded (0.70.38 to 0.70.43, Dr.Essence's recording): the drawer's glass was drawn
+ * for where the drawer rests, not followed, so it lined up with the wallpaper only once the
+ * drawer stopped and stayed off when it moved; and the drawer's own colour stayed over it in
+ * the strip under the status bar. Both fixed in 0.70.44.
  */
 internal object DrawerGlass {
 
@@ -74,7 +79,6 @@ internal object DrawerGlass {
         })
     }
 
-    private val drawerLocation = IntArray(2)
     /** Drawers seen drawing, redrawn when the setting changes (held weakly). */
     private val drawers: MutableSet<View> = Collections.newSetFromMap(WeakHashMap())
 
@@ -98,17 +102,11 @@ internal object DrawerGlass {
                     }
                     Hooks.guard("drawer glass draw") {
                         val view = param.thisObject as View
-                        val parent = view.parent as? View ?: return@guard
-                        // Where the drawer rests, not where it is mid-slide: the drawer slides
-                        // and fades with render properties (translation, alpha), which do not
-                        // draw it again, so the glass is drawn for its resting place and
-                        // slides in with it, lined up with the wallpaper once open.
-                        parent.getLocationOnScreen(drawerLocation)
+                        // Lined up from where the drawer is on the screen now, and drawn again
+                        // each frame it moves (Frosted.follow), as the widgets' glass is.
                         val canvas = param.args[0] as Canvas
                         canvas.drawRect(0f, 0f, view.width.toFloat(), view.height.toFloat(),
-                            Frosted.paint(view, (drawerLocation[0] + view.left).toFloat(),
-                                (drawerLocation[1] + view.top).toFloat(), 1f,
-                                config.drawerGlassTint))
+                            Frosted.paint(view, config.drawerGlassTint))
                     }.run()
                 }
             })

@@ -30,6 +30,9 @@
   middle number, which would have reached 1.0 within the alpha).
 - The module must never crash or stall what it hooks: guard everything handed to the host,
   never block the main thread, and never make the launcher delete or lose the user's items.
+- The module must never cause problems for other modules: where another module changes the
+  same thing (a colour, a transparency, a background), keep what it did and change only our
+  part, and check other modules' logs and sources before saying a problem is not ours.
 
 # Project direction
 
