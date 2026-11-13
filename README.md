@@ -31,6 +31,10 @@ dashboards of 80s and 90s cars: lit segments and dot screens in green and amber 
 glass, glowing into it. As the module grows, its whole look moves towards that mix: Nothing's
 language, with the feel of a retro-futuristic 80s-90s car dashboard.
 
+> **The look is a demo for now.** We are not satisfied with it yet: almost every part of the
+> design will be reworked before the first stable public release. Think of what you see today as
+> a preview of roughly where the final look is going, not the final look itself.
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/Dr-Essence/Nothing2Something/claude/nothing-os-xposed-module-65lsca/docs/images/home-landscape.png" alt="Landscape home screen" width="100%">
 </p>
