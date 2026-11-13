@@ -3,7 +3,9 @@ package com.dressence.nothinglauncherplus.ui
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import com.dressence.nothinglauncherplus.Broadcasts
 import com.dressence.nothinglauncherplus.Config
+import com.dressence.nothinglauncherplus.xposed.BundlePreferences
 
 /**
  * Loads and saves the module's settings in its own app, and passes each save on to the hooked
@@ -17,8 +19,8 @@ import com.dressence.nothinglauncherplus.Config
  *   sends it to the hooked apps. No world-readable file is made, which LSPosed 2.2 flags as "a
  *   deprecated feature that will be removed soon".
  *
- * Then [Config.ACTION_RELOAD], carrying the save's time, tells the launcher and the system to
- * apply it (xposed/ConfigStore.afterSave).
+ * Then [Config.ACTION_RELOAD], carrying the saved settings, tells the launcher and the system
+ * to apply them (xposed/ConfigStore.afterSave).
  */
 class SettingsStore(context: Context) {
 
@@ -72,10 +74,14 @@ class SettingsStore(context: Context) {
             ModuleService.publish(prefs)
         }
         for (target in arrayOf(Config.LAUNCHER_PKG, "android")) {
-            context.sendBroadcast(Intent(Config.ACTION_RELOAD).setPackage(target)
-                .putExtra(Config.EXTRA_SAVED, savedAt))
+            // With the sender's identity: the receivers take the settings only from this app.
+            Broadcasts.send(context, Intent(Config.ACTION_RELOAD).setPackage(target)
+                .putExtra(Config.EXTRA_SETTINGS, carried()))
         }
     }
+
+    /** The saved settings, to carry in a broadcast (Config.EXTRA_SETTINGS). */
+    fun carried(): android.os.Bundle = BundlePreferences.bundle(prefs.all)
 
     private companion object {
         @Suppress("DEPRECATION") // MODE_WORLD_READABLE: the old API's only way to share them.

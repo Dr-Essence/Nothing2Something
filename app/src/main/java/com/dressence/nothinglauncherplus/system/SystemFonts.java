@@ -153,7 +153,8 @@ public final class SystemFonts {
                 if (!com.dressence.nothinglauncherplus.Broadcasts.fromModule(this)) {
                     return; // Only the module's settings may reset the font's crash guard.
                 }
-                Hooks.guard("system font change", () -> store.afterSave(intent,
+                // Trusted: checked above (Broadcasts.fromModule).
+                Hooks.guard("system font change", () -> store.afterSave(intent, true,
                         Hooks.guard("system font change", () -> {
                             store.notifyChanged();
                             FAILED.delete(); // A font chosen again is given another chance.

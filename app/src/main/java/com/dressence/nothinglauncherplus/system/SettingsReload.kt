@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Handler
 import android.os.HandlerThread
+import com.dressence.nothinglauncherplus.Broadcasts
 import com.dressence.nothinglauncherplus.Config
 import com.dressence.nothinglauncherplus.xposed.ConfigStore
 import com.dressence.nothinglauncherplus.xposed.Hooks
@@ -48,7 +49,8 @@ internal object SettingsReload {
         val thread = HandlerThread("nlplus-settings").apply { start() }
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context, intent: Intent) {
-                Hooks.guard("settings reload") { store.afterSave(intent) {} }.run()
+                val trusted = Broadcasts.fromModule(this)
+                Hooks.guard("settings reload") { store.afterSave(intent, trusted) {} }.run()
             }
         }
         context.registerReceiver(receiver, IntentFilter(Config.ACTION_RELOAD), null,

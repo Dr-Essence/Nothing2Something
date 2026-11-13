@@ -119,13 +119,16 @@ public final class Config {
     /** Broadcast sent to the launcher and system_server after the configuration changes. */
     public static final String ACTION_RELOAD = MODULE_PKG + ".action.RELOAD";
     /**
-     * When the settings were saved (ms): kept with them under this key by the settings app, and
-     * carried by ACTION_RELOAD and ACTION_FONT under {@link #EXTRA_SAVED}, so a hooked app acts
-     * only once that save has reached it (xposed/ConfigStore.afterSave). Also the crash-loop
+     * When the settings were saved (ms), kept with them under this key by the settings app: a
+     * hooked app never goes back to older settings (xposed/ConfigStore), and the crash-loop
      * guards' "a setting was saved since" mark (systemui/CrashGuard).
      */
     public static final String KEY_SAVED = "saved_at";
-    public static final String EXTRA_SAVED = "saved_at";
+    /**
+     * The saved settings themselves, carried by ACTION_RELOAD and ACTION_FONT (a Bundle), so a
+     * save reaches the hooked apps at once (xposed/ConfigStore.afterSave).
+     */
+    public static final String EXTRA_SETTINGS = "settings";
     /** To the system: open the notification panel (the launcher may not). */
     public static final String ACTION_EXPAND_NOTIFICATIONS =
             MODULE_PKG + ".action.EXPAND_NOTIFICATIONS";

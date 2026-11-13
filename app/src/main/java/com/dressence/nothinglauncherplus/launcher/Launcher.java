@@ -218,7 +218,9 @@ public final class Launcher {
             @Override
             public void onReceive(Context context, Intent intent) {
                 Hooks.guard("settings reload",
-                        () -> store.afterSave(intent, store::notifyChanged)).run();
+                        () -> store.afterSave(intent,
+                                com.dressence.nothinglauncherplus.Broadcasts.fromModule(this),
+                                store::notifyChanged)).run();
             }
         }, new IntentFilter(Config.ACTION_RELOAD), Context.RECEIVER_EXPORTED);
     }

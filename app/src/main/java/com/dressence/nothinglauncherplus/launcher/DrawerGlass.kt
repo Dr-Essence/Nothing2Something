@@ -32,6 +32,7 @@ internal object DrawerGlass {
 
     private const val SHEET = SmartDrawer.SMART_PKG + "SmartFullSheet"
     private const val SLIDE_IN = "com.android.launcher3.views.AbstractSlideInView"
+    private const val ALL_APPS = "com.android.launcher3.allapps.ActivityAllAppsContainerView"
 
     @JvmStatic
     fun install(cl: ClassLoader, store: ConfigStore) {
@@ -80,9 +81,16 @@ internal object DrawerGlass {
     /** The drawer: the glass under everything it draws. */
     private fun installDrawer(cl: ClassLoader, store: ConfigStore) {
         val drawer = XposedHelpers.findClass(SmartDrawer.CLS_ALL_APPS_CONTAINER, cl)
-        XposedHelpers.findAndHookMethod(drawer, "dispatchDraw", Canvas::class.java,
-            object : XC_MethodHook() {
+        // Nothing's drawer does not declare dispatchDraw: Launcher3's ActivityAllAppsContainerView
+        // does (4.1 launcher, dexdump), so that is hooked, for Nothing's drawer only. (Mistake
+        // recorded, 0.70.38: hooked on Nothing's class, it failed to install on every start,
+        // "NoSuchMethodError ... NTLauncherAllAppsContainerView#dispatchDraw", Dr.Essence's log.)
+        XposedHelpers.findAndHookMethod(XposedHelpers.findClass(ALL_APPS, cl), "dispatchDraw",
+            Canvas::class.java, object : XC_MethodHook() {
                 override fun beforeHookedMethod(param: MethodHookParam) {
+                    if (!drawer.isInstance(param.thisObject)) {
+                        return
+                    }
                     drawers.add(param.thisObject as View)
                     val config = store.get()
                     if (!config.drawerGlass) {

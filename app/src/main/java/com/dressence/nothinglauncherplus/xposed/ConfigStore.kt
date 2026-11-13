@@ -2,8 +2,6 @@ package com.dressence.nothinglauncherplus.xposed
 
 import android.content.Intent
 import android.content.SharedPreferences
-import android.os.Handler
-import android.os.Looper
 import com.dressence.nothinglauncherplus.Config
 import de.robv.android.xposed.XSharedPreferences
 import java.util.concurrent.CopyOnWriteArrayList
@@ -30,49 +28,46 @@ class ConfigStore private constructor(private val source: Source) {
     private var config: Config = Config.read(source.prefs)
     private val changeListeners = CopyOnWriteArrayList<Runnable>()
 
-    init {
-        source.onChange = ::onSourceChanged
-    }
-
     fun get(): Config = config
 
-    /** Reads the settings again if they changed (a file stat, or a flag): not for every frame. */
+    /**
+     * Reads the settings again if they changed (a file stat, or a flag): not for every frame.
+     * Never goes back to older settings than it has (a save carried in a broadcast can be newer
+     * than what the framework has sent so far: [afterSave]).
+     */
     fun reloadIfChanged() {
         if (source.takeChange()) {
-            config = Config.read(source.prefs)
+            val read = Config.read(source.prefs)
+            if (read.savedAt >= config.savedAt) {
+                config = read
+            }
         }
     }
 
     /**
-     * Runs [action] once the save that sent [intent] (the settings app's ACTION_RELOAD or
-     * ACTION_FONT, carrying the save's time in [Config.EXTRA_SAVED]) has reached this process,
-     * with the settings read again. Call it from a broadcast receiver: [action] runs on the
-     * receiver's thread.
+     * Applies the save that sent [intent] (the settings app's ACTION_RELOAD or ACTION_FONT),
+     * then runs [action] (on the receiver's thread). The broadcast carries the saved settings
+     * ([Config.EXTRA_SETTINGS]); they are taken when the broadcast is [trusted] (sent by the
+     * module app: Broadcasts.fromModule) and newer than what this process has.
      *
-     * Why it waits: the broadcast and the settings travel separately on the modern API (the
-     * broadcast through the system, the settings from the framework), and nothing orders the
-     * two. Acting on the broadcast alone could read the settings from before the save. If the
-     * save never arrives (a framework that dropped it), [action] runs after [SAVE_WAIT_MS]
-     * with what there is.
+     * Why the settings travel with the broadcast (0.70.43): on the modern API the framework
+     * keeps them and sends each change to the hooked processes, but LSPosed 2.2.1 never told
+     * system_server (Dr.Essence's log: "the save did not arrive within 2000 ms", 79 times, all
+     * in system_server; the launcher got every one). 0.70.35 to 0.70.42 waited 2 s for it and
+     * then went on with the old settings, so a change for the system (rotation, the
+     * controller's Home, the font, battery saver's refresh rate) waited for a reboot. Carried
+     * in the broadcast, a save reaches every receiver at once, whatever the framework does.
      */
-    fun afterSave(intent: Intent, action: Runnable) {
-        val wanted = intent.getLongExtra(Config.EXTRA_SAVED, 0L)
+    fun afterSave(intent: Intent, trusted: Boolean, action: Runnable) {
         reloadIfChanged()
-        if (stamp() >= wanted) {
-            action.run()
-            return
-        }
-        val handler = Handler(Looper.myLooper() ?: Looper.getMainLooper())
-        val waiting = Waiting(wanted, handler, action)
-        pending.add(waiting)
-        release() // In case the save arrived between the check above and now.
-        handler.postDelayed({
-            if (pending.remove(waiting)) {
-                Hooks.log("settings: the save did not arrive within ${SAVE_WAIT_MS} ms")
-                reloadIfChanged()
-                action.run()
+        val carried = if (trusted) intent.getBundleExtra(Config.EXTRA_SETTINGS) else null
+        if (carried != null) {
+            val saved = Config.read(BundlePreferences(carried))
+            if (saved.savedAt > config.savedAt) {
+                config = saved
             }
-        }, SAVE_WAIT_MS)
+        }
+        action.run()
     }
 
     /** Lets every feature that listens refresh, after a save ([afterSave]). */
@@ -93,43 +88,18 @@ class ConfigStore private constructor(private val source: Source) {
         changeListeners.add(listener)
     }
 
-    private class Waiting(val wanted: Long, val handler: Handler, val action: Runnable)
-
-    private val pending = CopyOnWriteArrayList<Waiting>()
-
-    /** The source has new settings (modern API, on a binder thread): release waiting saves. */
-    private fun onSourceChanged() {
-        if (pending.isNotEmpty()) {
-            Hooks.guard("settings arrived", ::release).run()
-        }
-    }
-
-    /** Runs, on their own threads, the waiting saves the settings now include. */
-    private fun release() {
-        reloadIfChanged()
-        for (waiting in pending) {
-            if (stamp() >= waiting.wanted && pending.remove(waiting)) {
-                waiting.handler.post(waiting.action)
-            }
-        }
-    }
-
     /** Where the settings are read from: the shared file, or the framework's copy. */
     private interface Source {
         val prefs: SharedPreferences
 
         /** True once after the settings changed; the next [prefs] read gives the new ones. */
         fun takeChange(): Boolean
-
-        /** Called when the framework sends a change (modern API only). */
-        var onChange: () -> Unit
     }
 
     /** Old API: the settings app's file, read again when its time changes. */
     private class FileSource : Source {
         private val file = XSharedPreferences(Config.MODULE_PKG, Config.PREFS_NAME)
         override val prefs: SharedPreferences get() = file
-        override var onChange: () -> Unit = {}
 
         override fun takeChange(): Boolean {
             if (!file.hasFileChanged()) {
@@ -152,7 +122,6 @@ class ConfigStore private constructor(private val source: Source) {
         private val oldFile: SharedPreferences? = if (useRemote) null else oldFile()
         @Volatile
         private var changed = false
-        override var onChange: () -> Unit = {}
 
         override val prefs: SharedPreferences
             get() = if (useRemote) remote else oldFile ?: remote
@@ -161,7 +130,6 @@ class ConfigStore private constructor(private val source: Source) {
         private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
             useRemote = true
             changed = true
-            onChange()
         }
 
         init {
@@ -188,9 +156,6 @@ class ConfigStore private constructor(private val source: Source) {
     }
 
     companion object {
-        /** How long [afterSave] waits for a save to arrive before acting anyway. */
-        private const val SAVE_WAIT_MS = 2_000L
-
         /** The store for the old API's entry: the shared file. */
         @JvmStatic
         fun file(): ConfigStore = ConfigStore(FileSource())

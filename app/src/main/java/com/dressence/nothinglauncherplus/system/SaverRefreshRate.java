@@ -94,6 +94,7 @@ public final class SaverRefreshRate {
             @Override
             public void onReceive(Context c, Intent intent) {
                 Hooks.guard("saver refresh settings", () -> store.afterSave(intent,
+                        com.dressence.nothinglauncherplus.Broadcasts.fromModule(this),
                         Hooks.guard("saver refresh apply", () -> {
                     Object o = observer;
                     if (o == null) {

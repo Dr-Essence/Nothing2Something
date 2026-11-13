@@ -168,7 +168,9 @@ public final class ControllerHome {
             public void onReceive(Context c, Intent intent) {
                 Hooks.guard("controller home settings", () -> {
                     if (Config.ACTION_RELOAD.equals(intent.getAction())) {
-                        store.afterSave(intent, ControllerHome::settle);
+                        store.afterSave(intent,
+                                com.dressence.nothinglauncherplus.Broadcasts.fromModule(this),
+                                ControllerHome::settle);
                     } else {
                         settle(); // Booted, or another user: the devices and home again.
                     }

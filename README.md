@@ -72,9 +72,9 @@ Each section below opens when tapped.
 > everything back from your file.
 
 <details open>
-<summary><b>Current state</b> · version 0.70.42, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.43, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.42** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), glass app drawer and open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.43** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), glass app drawer and open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -123,6 +123,28 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.43, the drawer's glass installs; saves reach the system at once.** Two faults from
+  Dr.Essence's LSPosed log. Mistake recorded, 0.70.38: **Glass drawer background** never
+  installed ("failed to install drawer glass: NoSuchMethodError ...
+  NTLauncherAllAppsContainerView#dispatchDraw" at every launcher start): Nothing's drawer does
+  not declare dispatchDraw, Launcher3's ActivityAllAppsContainerView does (the 4.1 launcher,
+  dexdump), and the hook asked Nothing's class; the hooks were not checked against the
+  launcher before that build. Now that class is hooked, for Nothing's drawer only. Mistake
+  recorded, 0.70.35: on the modern API, LSPosed 2.2.1 never sent a settings change to
+  system_server ("the save did not arrive within 2000 ms", 79 times, all in system_server;
+  LSPosed's records show the module loaded through ModernEntry; the launcher got every
+  change), so the system acted on the old settings until a reboot (rotation, the controller's
+  Home, the font, battery saver's refresh rate). Each save now carries the saved settings in
+  its broadcast (ACTION_RELOAD, ACTION_FONT: Config.EXTRA_SETTINGS), sent with the app's
+  identity; a receiver takes them only from the module app (Broadcasts.fromModule) and only
+  if newer than what it has, and the store never goes back to older settings. Dead code
+  removed: the 2 s wait for a save (pending saves, their timeout) and EXTRA_SAVED.
+  **Checked:** builds; every hook these touch against the 4.1 launcher
+  (ActivityAllAppsContainerView.dispatchDraw declared there; SmartFullSheet's constructors;
+  AbstractSlideInView.mColorScrim). **Not checked:** on the phone. **To test:** App drawer →
+  Glass drawer background on, open the drawer; change Home screen rotation or Full refresh
+  rate in battery saver and check it applies without a reboot; an LSPosed log afterwards
+  (no "did not arrive" lines, no "failed to install drawer glass").
 - **0.70.42, the glass follows its surface everywhere.** Mistake recorded (Dr.Essence's
   recording, frame by frame): coming back to the home screen from an app, the widgets' glass
   showed the wallpaper from another place (big dark trees in the battery widget, where light
