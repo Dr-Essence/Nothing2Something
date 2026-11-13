@@ -20,12 +20,10 @@ internal object FrostedSurfaces {
 
     private const val PREVIEW_BACKGROUND = "com.android.launcher3.folder.PreviewBackground"
     private const val HOTSEAT = "com.android.launcher3.Hotseat"
-    private const val PAGED_VIEW = "com.android.launcher3.PagedView"
     private const val CARD_HOST = "com.nothing.cardhost.CardWidgetHostView"
 
-    private val location = IntArray(2)
     private val shape = Path()
-    /** Folder icons that drew glass: redrawn while the home screen scrolls. */
+    /** Folder icons that drew glass: redrawn when a setting changes. */
     private val glassIcons: MutableSet<View> = Collections.newSetFromMap(WeakHashMap())
 
     @JvmStatic
@@ -74,26 +72,16 @@ internal object FrostedSurfaces {
                             (XposedHelpers.callMethod(background, "getOffsetX") as Int).toFloat(),
                             (XposedHelpers.callMethod(background, "getOffsetY") as Int).toFloat(),
                             (XposedHelpers.callMethod(background, "getScaledRadius") as Int).toFloat())
-                        view.getLocationOnScreen(location)
-                        canvas.drawPath(shape, Frosted.paint(view, location[0].toFloat(),
-                            location[1].toFloat(), view.scaleX, config.folderIconGlassTint))
+                        canvas.drawPath(shape, Frosted.paint(view, config.folderIconGlassTint))
                         XposedHelpers.callMethod(background, "drawShadow", canvas)
                         glassIcons.add(view)
                         param.result = null
                     }.run()
                 }
             })
-        // Nothing OS 5 redraws folder icons' glass as the home screen scrolls
-        // (Workspace.syncFrostedBackdropOffsets -> invalidateFolderIconBackdrops): a scrolled
-        // icon draws again from where it is now, not where it was first drawn.
-        val int = Int::class.javaPrimitiveType
-        XposedHelpers.findAndHookMethod(XposedHelpers.findClass(PAGED_VIEW, cl), "onScrollChanged",
-            int, int, int, int, object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    glassIcons.forEach { it.invalidate() }
-                }
-            })
-        // A new setting shows on the icons at once.
+        // An icon that moves (a scroll, the home screen animating in) is drawn again from where
+        // it is now by Frosted.follow, as Nothing OS 5's Workspace.syncFrostedBackdropOffsets
+        // does. A new setting shows on the icons at once.
         store.addChangeListener { glassIcons.forEach { it.invalidate() } }
     }
 
@@ -146,7 +134,7 @@ internal object FrostedSurfaces {
         }
     }
 
-    /** Nothing widget cards whose background is glass now: redrawn as the home screen scrolls. */
+    /** Nothing widget cards whose background is glass now: redrawn when a setting changes. */
     private val glassCards: MutableSet<View> = Collections.newSetFromMap(WeakHashMap())
 
     /**
@@ -171,13 +159,6 @@ internal object FrostedSurfaces {
         store.addChangeListener {
             glassCards.toList().forEach { Hooks.guard("widget glass") { applyCard(it, store) }.run() }
         }
-        val int = Int::class.javaPrimitiveType
-        XposedHelpers.findAndHookMethod(XposedHelpers.findClass(PAGED_VIEW, cl), "onScrollChanged",
-            int, int, int, int, object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    glassCards.forEach { it.invalidate() }
-                }
-            })
     }
 
     /** The card's container: its root, or the root's first child, that has a background. */

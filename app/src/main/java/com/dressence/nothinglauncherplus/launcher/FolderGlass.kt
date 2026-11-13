@@ -37,7 +37,6 @@ internal object FolderGlass {
 
     private val hookedBackgrounds = HashSet<Class<*>>()
     private val replace = Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN) }
-    private val location = IntArray(2)
     /** The folder drawing now (set around its dispatchDraw), whose background is drawn. */
     private var drawing: View? = null
 
@@ -101,9 +100,7 @@ internal object FolderGlass {
                 val canvas = param.args[0] as Canvas
                 Hooks.guard("folder glass draw") {
                     val owner = param.getObjectExtra("owner") as View
-                    owner.getLocationOnScreen(location)
-                    val glass = Frosted.paint(owner, location[0].toFloat(), location[1].toFloat(),
-                        owner.scaleX, param.getObjectExtra("tint") as Int)
+                    val glass = Frosted.paint(owner, param.getObjectExtra("tint") as Int)
                     glass.xfermode = replace.xfermode
                     canvas.drawRect(param.getObjectExtra("area") as RectF, glass)
                     glass.xfermode = null

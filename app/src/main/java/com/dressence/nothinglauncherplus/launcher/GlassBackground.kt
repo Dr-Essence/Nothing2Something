@@ -25,15 +25,12 @@ internal class GlassBackground(
 ) : Drawable() {
 
     private val area = RectF()
-    private val location = IntArray(2)
 
     override fun draw(canvas: Canvas) {
         area.set(bounds)
         val radius = (original as? GradientDrawable)?.cornerRadius?.takeIf { it > 0f }
             ?: cornerFallback ?: (area.height() / 2f)
-        view.getLocationOnScreen(location)
-        canvas.drawRoundRect(area, radius, radius, Frosted.paint(view,
-            location[0].toFloat(), location[1].toFloat(), view.scaleX, tintPercent))
+        canvas.drawRoundRect(area, radius, radius, Frosted.paint(view, tintPercent))
     }
 
     override fun setAlpha(alpha: Int) {}

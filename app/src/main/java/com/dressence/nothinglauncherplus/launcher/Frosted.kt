@@ -91,8 +91,20 @@ internal object Frosted {
     private var failedTime = 0L
     private var live = false
     private var listening = false
-    /** Surfaces to redraw when a new picture is ready (each once, and never kept alive). */
-    private val waiting: MutableSet<View> = Collections.newSetFromMap(WeakHashMap())
+    /**
+     * Every surface that drew glass, with where it was on the screen when last looked at
+     * (x, y, scale), held weakly. Each frame, a surface that has moved is drawn again (#follow).
+     */
+    private val tracked = WeakHashMap<View, FloatArray>()
+    /**
+     * Surfaces that place their glass themselves (the drawer, for where it rests): not
+     * followed, only drawn again when a new picture is ready. Held weakly.
+     */
+    private val drawn: MutableSet<View> = Collections.newSetFromMap(WeakHashMap())
+    /** The windows' view roots already watched, one listener each. */
+    private val roots: MutableSet<View> = Collections.newSetFromMap(WeakHashMap())
+    private val globalMatrix = Matrix()
+    private val globalValues = FloatArray(9)
 
     /**
      * The paint that fills a surface with frosted glass: the picture lined up with the screen,
@@ -102,7 +114,8 @@ internal object Frosted {
      */
     fun paint(surface: View, screenX: Float, screenY: Float, scale: Float, tintPercent: Int): Paint {
         val context = surface.context
-        ensurePicture(context, surface)
+        drawn.add(surface)
+        ensurePicture(context)
         val tint = tint(context, tintPercent)
         val bitmap = picture
         // Made again only when the picture or the tint changes, not at every frame; one paint
@@ -163,8 +176,73 @@ internal object Frosted {
         return (alpha shl 24) or (if (night) 0x000000 else 0xFFFFFF)
     }
 
+    /**
+     * The glass filling [surface]'s own canvas, lined up with the wallpaper from where the
+     * surface is on the screen now, its parents' moves and scale included (the home screen
+     * scales as it returns from an app).
+     */
+    fun paint(surface: View, tintPercent: Int): Paint {
+        follow(surface)
+        val at = screenTransform(surface) ?: floatArrayOf(0f, 0f, 1f)
+        return paint(surface, at[0], at[1], at[2], tintPercent)
+    }
+
+    /** Where [view]'s (0, 0) is on the screen, and its scale there; null if not attached. */
+    private fun screenTransform(view: View): FloatArray? {
+        if (!view.isAttachedToWindow) {
+            return null
+        }
+        // View-local to screen: every parent's place, scroll and transform, and the window's.
+        globalMatrix.reset()
+        view.transformMatrixToGlobal(globalMatrix)
+        globalMatrix.getValues(globalValues)
+        return floatArrayOf(globalValues[Matrix.MTRANS_X], globalValues[Matrix.MTRANS_Y],
+            globalValues[Matrix.MSCALE_X])
+    }
+
+    /**
+     * Keeps [surface]'s glass lined up with the wallpaper as it moves: every frame its window
+     * draws, a glass surface whose place or scale on the screen changed since the last frame is
+     * drawn again, in that same frame (a pre-draw listener runs before the frame is drawn).
+     * Nothing OS 5 does the same by events (Workspace.syncFrostedBackdropOffsets on scroll,
+     * FrostedCardWidgetHostView.setTranslationX/Y and onLayoutChange, FrostedBackdropHelper
+     * .onLayoutChanged, a drop): this catches every move, the launcher's own animations
+     * included, with one check per glass surface per frame.
+     *
+     * Mistake recorded (0.70.42, Dr.Essence's recording): until now only a page scroll redrew
+     * the glass. Coming back to the home screen from an app, the launcher animates the home
+     * screen in by scaling it, which moves the widgets without drawing them again: their glass
+     * stayed as drawn mid-animation, showing the wallpaper from another place, until a swipe.
+     */
+    private fun follow(surface: View) {
+        if (!tracked.containsKey(surface)) {
+            tracked[surface] = screenTransform(surface) ?: FloatArray(3)
+        }
+        val root = surface.rootView
+        if (roots.add(root)) {
+            root.viewTreeObserver.addOnPreDrawListener {
+                Hooks.guard("frosted glass follow") { moved(root) }.run()
+                true
+            }
+        }
+    }
+
+    /** Draws again every glass surface in [root]'s window that moved since the last frame. */
+    private fun moved(root: View) {
+        for ((view, last) in tracked) {
+            if (view.rootView !== root) {
+                continue
+            }
+            val now = screenTransform(view) ?: continue
+            if (now[0] != last[0] || now[1] != last[1] || now[2] != last[2]) {
+                now.copyInto(last)
+                view.invalidate()
+            }
+        }
+    }
+
     /** Builds the picture once (again after the wallpaper or the screen size changes). */
-    private fun ensurePicture(context: Context, surface: View) {
+    private fun ensurePicture(context: Context) {
         val metrics = context.resources.displayMetrics
         val width = metrics.widthPixels / DOWNSCALE
         val height = metrics.heightPixels / DOWNSCALE
@@ -172,9 +250,6 @@ internal object Frosted {
         val fresh = !live || now - pictureTime < LIVE_REFRESH_MS
         if (picture != null && width == pictureWidth && height == pictureHeight && fresh) {
             return
-        }
-        if (picture == null) {
-            waiting.add(surface)
         }
         if (building || width <= 0 || height <= 0 || now - failedTime < RETRY_MS) {
             return
@@ -199,9 +274,8 @@ internal object Frosted {
                 picture = built
                 pictureWidth = width
                 pictureHeight = height
-                val surfaces = ArrayList(waiting)
-                waiting.clear()
-                surfaces.forEach { it.invalidate() }
+                // Every glass surface shows the new picture (also a live wallpaper's refresh).
+                (ArrayList(tracked.keys) + ArrayList(drawn)).forEach { it.invalidate() }
             }
         }
     }
