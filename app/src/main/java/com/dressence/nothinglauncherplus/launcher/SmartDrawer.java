@@ -715,6 +715,7 @@ final class SmartDrawer {
                 resizeTile((View) param.thisObject, previews);
                 covers.apply((FrameLayout) param.thisObject, previews, name, folder,
                         store.get().animateCovers, store.get().dotMatrix, store.get().greenDots,
+                        store.get().dotStyle,
                         emojiCoversShown(previews.getContext()));
             }
         });

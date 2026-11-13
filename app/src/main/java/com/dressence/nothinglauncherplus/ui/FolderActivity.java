@@ -68,7 +68,7 @@ public class FolderActivity extends Activity {
 
         ui.section("Cover");
         ui.row("Cover", coverSummary(folder), ui.coverPreview(folder, 56, true,
-                store.config.dotMatrix, store.config.greenDots), null, null);
+                store.config.dotMatrix, store.config.greenDots, store.config.dotStyle), null, null);
         if (!folder.coverText.isEmpty()) {
             Motion motion = Motion.parse(folder.coverMotion);
             boolean automatic = motion == EmojiCatalog.get(this).motionFor(folder.coverText);

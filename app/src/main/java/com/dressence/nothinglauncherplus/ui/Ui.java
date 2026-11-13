@@ -299,7 +299,7 @@ final class Ui {
      * first app.
      */
     View coverPreview(Config.Folder folder, int sizeDp, boolean animate, boolean dotMatrix,
-            boolean green) {
+            boolean green, int style) {
         int size = dp(sizeDp);
         if (found != null) {
             // Recording for search: no cover to load or animate on a page nobody sees.
@@ -326,6 +326,7 @@ final class Ui {
         } else if (!folder.coverText.isEmpty()) {
             AnimatedEmojiView text = new AnimatedEmojiView(activity);
             text.setDotGreen(green);
+            text.setDotStyle(style);
             text.setDotMatrix(dotMatrix);
             if (dotMatrix) {
                 // The whole badge is the dot screen, dots kept inside its rounded corners.

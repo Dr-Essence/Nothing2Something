@@ -45,6 +45,7 @@ public final class Config {
     public static final String KEY_COVERS_OFF_IN_SAVER = "covers_off_in_saver";
     public static final String KEY_DOT_MATRIX = "dot_matrix";
     public static final String KEY_GREEN_DOTS = "green_dots";
+    public static final String KEY_DOT_STYLE = "dot_style";
     public static final String KEY_NDOT_STATUS = "ndot_status_bar";
     public static final String KEY_STATUS_DATE = "status_bar_date";
     public static final String KEY_DUAL_STATUS = "dual_status_bar";
@@ -200,6 +201,18 @@ public final class Config {
     public boolean dotMatrix = true;
     /** Dot-matrix emoji in shades of green only, like a one-colour LED screen (0.70.37). */
     public boolean greenDots = false;
+    /**
+     * How the dot screen lights (0.70.40, anim/DotMatrix): the look until now, or an emulated
+     * panel where each dot is its own light (soft or strong glow, normal or smaller dots), or a
+     * vacuum fluorescent display like an 80s car dashboard's. Kept while Dr.Essence compares
+     * them on the phone; the ones not chosen will be removed.
+     */
+    public int dotStyle = DOT_STYLE_CLASSIC;
+    public static final int DOT_STYLE_CLASSIC = 0;
+    public static final int DOT_STYLE_LED_SOFT = 1;
+    public static final int DOT_STYLE_LED_STRONG = 2;
+    public static final int DOT_STYLE_LED_SMALL = 3;
+    public static final int DOT_STYLE_VFD = 4;
     /** Status bar clock and battery in glowing green NDot, like the folder screens. */
     public boolean ndotStatusBar = false;
     /** The date beside the status bar clock. */
@@ -468,6 +481,8 @@ public final class Config {
         coversOffInSaver = in.bool(KEY_COVERS_OFF_IN_SAVER, false);
         dotMatrix = in.bool(KEY_DOT_MATRIX, true);
         greenDots = in.bool(KEY_GREEN_DOTS, false);
+        dotStyle = Math.max(DOT_STYLE_CLASSIC, Math.min(DOT_STYLE_VFD,
+                in.number(KEY_DOT_STYLE, DOT_STYLE_CLASSIC)));
         ndotStatusBar = in.bool(KEY_NDOT_STATUS, false);
         statusBarDate = in.bool(KEY_STATUS_DATE, false);
         dualStatusBar = in.bool(KEY_DUAL_STATUS, false);
@@ -577,6 +592,7 @@ public final class Config {
         out.bool(KEY_COVERS_OFF_IN_SAVER, coversOffInSaver);
         out.bool(KEY_DOT_MATRIX, dotMatrix);
         out.bool(KEY_GREEN_DOTS, greenDots);
+        out.number(KEY_DOT_STYLE, dotStyle);
         out.bool(KEY_NDOT_STATUS, ndotStatusBar);
         out.bool(KEY_STATUS_DATE, statusBarDate);
         out.bool(KEY_DUAL_STATUS, dualStatusBar);

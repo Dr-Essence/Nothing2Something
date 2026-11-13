@@ -390,6 +390,16 @@ public class SettingsActivity extends Activity {
                         render();
                     });
         }
+        if (config.dotMatrix) {
+            choiceRow(ui, "Dot screen style", "How the dots light, to compare on the phone",
+                    new String[] {"Classic (until now)", "LED dots, soft glow",
+                            "LED dots, strong glow", "LED dots, strong glow, smaller dots",
+                            "VFD, like an 80s car dashboard"},
+                    new int[] {Config.DOT_STYLE_CLASSIC, Config.DOT_STYLE_LED_SOFT,
+                            Config.DOT_STYLE_LED_STRONG, Config.DOT_STYLE_LED_SMALL,
+                            Config.DOT_STYLE_VFD},
+                    config.dotStyle, value -> config.dotStyle = value);
+        }
         ui.row("Animation test", "Play any emoji's animation on a big dot screen", null,
                 ui.chevron(), v -> startActivity(EmojiPickerActivity.testIntent(this)));
 
@@ -410,7 +420,7 @@ public class SettingsActivity extends Activity {
             int n = folder.apps.size();
             return ui.detachedRow(folder.name, n == 1 ? "1 app" : n + " apps",
                     ui.coverPreview(folder, 40, config.animateCovers, config.dotMatrix,
-                            config.greenDots),
+                            config.greenDots, config.dotStyle),
                     null, v -> FolderActivity.open(this, folder.id, false));
         }, order -> {
             List<Config.Folder> sorted = new ArrayList<>();

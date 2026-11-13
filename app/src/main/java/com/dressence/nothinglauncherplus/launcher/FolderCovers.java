@@ -65,7 +65,7 @@ final class FolderCovers {
      * Without {@code emoji}, emoji covers give way to the stock previews (image covers stay).
      */
     void apply(FrameLayout tile, View previews, TextView name, Config.Folder folder,
-            boolean animate, boolean dotMatrix, boolean green, boolean emoji) {
+            boolean animate, boolean dotMatrix, boolean green, int style, boolean emoji) {
         if (folder != null && !emoji && folder.coverImageVersion == 0) {
             folder = null;
         }
@@ -104,6 +104,7 @@ final class FolderCovers {
             }
             previews.setVisibility(View.INVISIBLE);
             panel.setDotGreen(green);
+            panel.setDotStyle(style);
             panel.show(folder.coverText,
                     animate ? Motion.parse(folder.coverMotion) : Motion.NONE,
                     animate ? DotEffect.parse(folder.coverEffect) : DotEffect.NONE,
@@ -126,7 +127,7 @@ final class FolderCovers {
         } else {
             cover.showText(folder.coverText,
                     animate ? Motion.parse(folder.coverMotion) : Motion.NONE, folder.id.hashCode(),
-                    dotMatrix, green);
+                    dotMatrix, green, style);
         }
     }
 
@@ -351,9 +352,11 @@ final class FolderCovers {
             text.setVisibility(GONE);
         }
 
-        void showText(String value, Motion motion, long seed, boolean dotMatrix, boolean green) {
+        void showText(String value, Motion motion, long seed, boolean dotMatrix, boolean green,
+                int style) {
             pendingKey = null;
             text.setDotGreen(green);
+            text.setDotStyle(style);
             text.setDotMatrix(dotMatrix);
             text.setEmoji(value, motion, seed);
             text.setVisibility(VISIBLE);

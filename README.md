@@ -72,9 +72,9 @@ Each section below opens when tapped.
 > everything back from your file.
 
 <details open>
-<summary><b>Current state</b> · version 0.70.39, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.40, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.39** (CMF Phone 1, Nothing OS 4.1, Android 16): glass app drawer and open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.40** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style, five ways for the dots to light to compare (new), glass app drawer and open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -123,6 +123,27 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.40, Dot screen style: five ways for the dots to light, to compare on the phone.**
+  A new choice under Dot-matrix emoji (App drawer page), for Dr.Essence to try each before one
+  is kept: **Classic** (the look until now: 4 brightness steps, faint parts off, a smoothed
+  copy of the picture as glow), **LED dots, soft glow**, **LED dots, strong glow**, **LED dots,
+  strong glow, smaller dots**, and **VFD, like an 80s car dashboard**. Why: in Classic the glow
+  is one blurred copy of the whole picture, which fills a dark detail between bright parts,
+  and 4 steps lose fine shading (0.70.38's stronger glow made both worse). The LED styles
+  emulate a panel where each dot is its own light: smooth brightness (from 4 % coverage, no
+  steps), the glow centred on each dot (the frame stretched as a tent one dot each way, plus
+  the frame spread by a 5 x 5 Gaussian of 1.2 dots), light added to light (PorterDuff ADD) so
+  busy areas turn white-hot, not hazy, and a brighter core in each dot. The VFD style follows
+  how 80s-90s dashboards' vacuum fluorescent displays work: one blue-green zinc oxide phosphor
+  (about 505 nm) whatever the emoji's colours, flat evenly lit dots and the fine control mesh
+  faintly in front. Chosen from previews rendered beforehand on six of Dr.Essence's covers
+  (a linear-light model of each), then a second simulation of exactly these phone steps to
+  tune their strengths against those previews. Research: the Phone (3)'s Glyph Matrix is a
+  monochrome 25 x 25 grid of square micro-LEDs (about 489); the module keeps round dots, full
+  colour or green, and 32 x 32. **Checked:** builds; the steps simulated against the previews.
+  **Not checked:** on the phone (each style's look, smoothness with many animated covers).
+  **To test:** App drawer → Dot screen style, each option in turn, in colour and with Green dot
+  screen; screenshots of the drawer for each, and say which to keep.
 - **0.70.39, Green dot screen keeps the normal glow.** Mistake recorded, 0.70.38: the
   stronger glow on the green screen (near light 70 to 115, wide light 120 to 200), meant as a
   dashboard display's bleed, hid many of the emoji's details in green and broke the feel of a

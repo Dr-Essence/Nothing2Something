@@ -73,6 +73,8 @@ public class EmojiPickerActivity extends Activity {
     private boolean dotMatrix;
     /** The dots in shades of green only, as the covers are (Config.greenDots). */
     private boolean green;
+    /** How the dots light, as the covers do (Config.dotStyle). */
+    private int style;
     private int accent;
     private boolean test;
     private int speed;
@@ -89,6 +91,7 @@ public class EmojiPickerActivity extends Activity {
         Config settings = new SettingsStore(this).config;
         dotMatrix = test || settings.dotMatrix;
         green = settings.greenDots;
+        style = settings.dotStyle;
         TypedArray a = obtainStyledAttributes(new int[]{android.R.attr.colorAccent});
         accent = a.getColor(0, 0xFFD71921);
         a.recycle();
@@ -205,6 +208,7 @@ public class EmojiPickerActivity extends Activity {
                     if (dotMatrix) {
                         AnimatedEmojiView dots = new AnimatedEmojiView(parent.getContext());
                         dots.setDotGreen(green);
+                        dots.setDotStyle(style);
                         dots.setDotMatrix(true);
                         cell = dots;
                     } else {
@@ -253,6 +257,7 @@ public class EmojiPickerActivity extends Activity {
         preview = new AnimatedEmojiView(this);
         preview.setTextSize(TypedValue.COMPLEX_UNIT_SP, 52);
         preview.setDotGreen(green);
+        preview.setDotStyle(style);
         preview.setDotMatrix(dotMatrix);
         preview.setOnClickListener(v -> preview.react());
         card.addView(preview, new LinearLayout.LayoutParams(Ui.dp(this, 96), Ui.dp(this, 96)));
@@ -283,6 +288,7 @@ public class EmojiPickerActivity extends Activity {
         preview = new AnimatedEmojiView(this);
         preview.setTextSize(TypedValue.COMPLEX_UNIT_PX, side * 0.6f);
         preview.setDotGreen(green);
+        preview.setDotStyle(style);
         preview.setDotMatrix(dotMatrix);
         preview.setOnClickListener(v -> preview.react());
         card.addView(preview, new LinearLayout.LayoutParams(side, side));

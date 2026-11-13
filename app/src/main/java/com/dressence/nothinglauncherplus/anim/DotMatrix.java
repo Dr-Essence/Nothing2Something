@@ -14,6 +14,7 @@ import android.os.Build;
 import android.text.TextPaint;
 import android.util.LruCache;
 
+import com.dressence.nothinglauncherplus.Config;
 import com.dressence.nothinglauncherplus.Palette;
 
 import java.util.Arrays;
@@ -47,6 +48,8 @@ final class DotMatrix {
     /** Below this coverage a dot is off; above it, one of these opacities (crisp, not washed). */
     private static final float OFF_BELOW = 0.14f;
     private static final int[] LEVEL_ALPHA = {120, 175, 225, 255};
+    /** Emulated styles: below this a dot is off; above it, its own brightness. */
+    private static final float SMOOTH_OFF_BELOW = 0.04f;
     /** Unlit dots stay faintly visible, like a real panel. */
     private static final int UNLIT = 0x1AFFFFFF;
 
@@ -93,6 +96,12 @@ final class DotMatrix {
     private static final int GLOW_NEAR = 70;
     private static final int GLOW_FAR = 120;
     private final Bitmap glow = Bitmap.createBitmap(GLOW + 2, GLOW + 2, Bitmap.Config.ARGB_8888);
+    /** Emulated styles: the frame spread over a dot or two around each dot (see #updateWide). */
+    private final Bitmap wide = Bitmap.createBitmap(GRID + 2, GRID + 2, Bitmap.Config.ARGB_8888);
+    private final int[] widePixels = new int[GRID * GRID];
+    /** Light adds to light, as it does on a real panel (emulated styles). */
+    private static final android.graphics.PorterDuffXfermode ADD =
+            new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.ADD);
     private final int[] glowPixels = new int[GLOW * GLOW];
     private final RectF glowRect = new RectF();
     private final Paint glowPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -141,6 +150,8 @@ final class DotMatrix {
     private final DotLabel label = new DotLabel();
     private final Paint labelPaint = new Paint();
     private static final int NOTHING_RED = 0xFFD71921;
+    /** A VFD's blue-green: zinc oxide phosphor, peak near 505 nm. */
+    private static final int VFD_PHOSPHOR = 0xFF5AFFC8;
     private final Paint glassPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint rimPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint ledPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -243,6 +254,56 @@ final class DotMatrix {
         Arrays.fill(shown, 1); // Force the next render to count as a change.
     }
 
+    /** How the screen lights: one of Config's DOT_STYLE_* ({@link #setStyle}). */
+    private int style = Config.DOT_STYLE_CLASSIC;
+
+    /**
+     * How the screen lights (the "Dot screen style" setting, 0.70.40).
+     * <ul>
+     * <li>CLASSIC: the look until 0.70.39: four brightness steps, faint parts off, and a glow
+     *     laid over the screen as a smoothed copy of the picture.
+     * <li>LED_SOFT, LED_STRONG, LED_SMALL: an emulated LED panel. Each dot has its own smooth
+     *     brightness (any coverage from 4 %, no steps), light adds to light where it overlaps
+     *     (so a busy area turns white-hot instead of hazy) and the glow is centred on each dot,
+     *     so a dark dot between bright ones keeps a dark centre and the detail stays. A brighter
+     *     core in each dot, like an LED's. LED_SMALL: smaller dots, more black between them.
+     * <li>VFD: an 80s-90s car dashboard's vacuum fluorescent display: one blue-green phosphor
+     *     (zinc oxide, about 505 nm), flat evenly lit dots and the fine control mesh in front.
+     * </ul>
+     * Chosen from previews rendered beforehand (dotsim.py), where each was compared with today.
+     */
+    void setStyle(int style) {
+        if (this.style == style) {
+            return;
+        }
+        this.style = style;
+        greenLo = Float.NaN;
+        layoutWidth = -1; // Dot size and shape: the dot mask is made again.
+        if (glyph != null) {
+            rest(); // Brightness steps or smooth: the rest frame is made again.
+        }
+        Arrays.fill(shown, 1);
+    }
+
+    private boolean emulated() {
+        return style != Config.DOT_STYLE_CLASSIC;
+    }
+
+    /** A dot's diameter for this style, against the dot pitch. */
+    private float dotSize() {
+        return style == Config.DOT_STYLE_LED_SMALL ? SMALL_DOT : DOT;
+    }
+
+    /** LED styles: each dot brighter at its core. A VFD's phosphor lights evenly. */
+    private boolean hotCore() {
+        return emulated() && style != Config.DOT_STYLE_VFD;
+    }
+
+    /** LED_SMALL's dot: smaller, with more black between the dots. */
+    private static final float SMALL_DOT = 0.68f;
+    private static final int[] HOT_PROFILE = {0xFFFFFFFF, 0xECFFFFFF, 0xD9FFFFFF};
+    private static final float[] HOT_STOPS = {0f, 0.5f, 1f};
+
     /** Every dot in shades of the panel's green ({@link #setGreen}). */
     private boolean green;
     /** The emoji's darkest and brightest lit dots, for {@link #toGreen}; NaN: not measured. */
@@ -270,13 +331,13 @@ final class DotMatrix {
      * to its brightest dot, the parts stay apart. Measured on the emoji at rest, not per frame,
      * so a moving emoji does not pulse as its range changes.
      */
-    private void toGreen() {
+    private void toGreen(int tint) {
         if (greenLo != greenLo) {
             measureGreen();
         }
-        int r0 = (Palette.LED_GREEN >> 16) & 0xFF;
-        int g0 = (Palette.LED_GREEN >> 8) & 0xFF;
-        int b0 = Palette.LED_GREEN & 0xFF;
+        int r0 = (tint >> 16) & 0xFF;
+        int g0 = (tint >> 8) & 0xFF;
+        int b0 = tint & 0xFF;
         float span = Math.max(greenHi - greenLo, 0.08f);
         for (int i = 0; i < dots.length; i++) {
             int c = dots[i];
@@ -374,15 +435,21 @@ final class DotMatrix {
             System.arraycopy(scene.dots, 0, dots, 0, dots.length);
             artifacts(time, seed ^ glyphKey.hashCode());
         }
-        if (green) {
-            toGreen();
+        if (style == Config.DOT_STYLE_VFD) {
+            toGreen(VFD_PHOSPHOR); // One phosphor: a VFD is never in full colour.
+        } else if (green) {
+            toGreen(Palette.LED_GREEN);
         }
         if (Arrays.equals(dots, shown)) {
             return false;
         }
         System.arraycopy(dots, 0, shown, 0, dots.length);
         frame.setPixels(dots, 0, GRID, 1, 1, GRID, GRID);
-        updateGlow();
+        if (emulated()) {
+            updateWide();
+        } else {
+            updateGlow();
+        }
         return true;
     }
 
@@ -1099,7 +1166,12 @@ final class DotMatrix {
                 }
                 float coverage = a / (255f * n);
                 int dot = 0;
-                if (coverage >= OFF_BELOW) {
+                if (emulated()) {
+                    // Smooth: a real panel dims each dot through hundreds of steps.
+                    if (coverage >= SMOOTH_OFF_BELOW) {
+                        dot = Color.argb(Math.round(coverage * 255), r / a, g / a, b / a);
+                    }
+                } else if (coverage >= OFF_BELOW) {
                     int level = Math.min(levels, Math.max(1, Math.round(coverage * levels)));
                     dot = Color.argb(LEVEL_ALPHA[level - 1], r / a, g / a, b / a);
                 }
@@ -1145,8 +1217,18 @@ final class DotMatrix {
             drawGlass(canvas, layoutName);
         }
         canvas.drawBitmap(layoutMask, 0, 0, unlitPaint);
-        drawGlow(canvas, layoutScreen, layoutPitch, layoutEmojiLeft, layoutEmojiTop);
-        drawLit(canvas, layoutMask, layoutPitch, layoutEmojiLeft, layoutEmojiTop);
+        if (emulated()) {
+            drawEmulatedGlow(canvas, layoutScreen, layoutPitch, layoutEmojiLeft, layoutEmojiTop);
+            litPaint.setXfermode(ADD);
+            drawLit(canvas, layoutMask, layoutPitch, layoutEmojiLeft, layoutEmojiTop);
+            litPaint.setXfermode(null);
+            if (style == Config.DOT_STYLE_VFD) {
+                drawMesh(canvas, layoutScreen);
+            }
+        } else {
+            drawGlow(canvas, layoutScreen, layoutPitch, layoutEmojiLeft, layoutEmojiTop);
+            drawLit(canvas, layoutMask, layoutPitch, layoutEmojiLeft, layoutEmojiTop);
+        }
         Grid name = layoutName;
         if (name != null) {
             // Text stays clear of the round ends; the status dot sits just inside the right one.
@@ -1182,7 +1264,7 @@ final class DotMatrix {
             layoutPitch = pitch;
             layoutEmojiLeft = content.left;
             layoutEmojiTop = content.top;
-            layoutMask = mask(width, height, new Grid(pitch, GRID, GRID, content.left,
+            layoutMask = mask(width, height, dotSize(), hotCore(), new Grid(pitch, GRID, GRID, content.left,
                     content.top, new RectF(content), 0));
             return;
         }
@@ -1230,7 +1312,8 @@ final class DotMatrix {
         layoutScreen = screen;
         layoutName = name;
         layoutMargin = name != null ? (int) Math.ceil(name.rows / 2f) : 0;
-        layoutMask = name != null ? mask(width, height, screen, name) : mask(width, height, screen);
+        layoutMask = name != null ? mask(width, height, dotSize(), hotCore(), screen, name)
+                : mask(width, height, dotSize(), hotCore(), screen);
     }
 
     /**
@@ -1274,6 +1357,97 @@ final class DotMatrix {
             }
         }
         glow.setPixels(glowPixels, 0, GLOW, 1, 1, GLOW, GLOW);
+    }
+
+    /**
+     * Emulated styles: each dot's own light in the glass, added to what is there. Near: the
+     * frame stretched with smooth filtering, a tent of light one dot each way, centred on the
+     * dot. Wide: the frame spread over a dot or two first (#updateWide), stretched the same way.
+     * Both centred on the dots, so a dark dot between bright ones stays darkest at its centre.
+     * Strengths tuned against the previews (phone_sim.py, the same steps as here).
+     */
+    private void drawEmulatedGlow(Canvas canvas, Grid screen, float pitch, float emojiLeft,
+            float emojiTop) {
+        int near;
+        int far;
+        switch (style) {
+            case Config.DOT_STYLE_LED_SOFT: near = 56; far = 36; break;
+            case Config.DOT_STYLE_VFD: near = 102; far = 77; break;
+            default: near = 107; far = 87; break; // LED_STRONG, LED_SMALL
+        }
+        canvas.save();
+        canvas.clipRect(screen.bounds);
+        glowRect.set(emojiLeft - pitch, emojiTop - pitch, emojiLeft + (GRID + 1) * pitch,
+                emojiTop + (GRID + 1) * pitch);
+        glowPaint.setXfermode(ADD);
+        glowPaint.setAlpha(near);
+        canvas.drawBitmap(frame, null, glowRect, glowPaint);
+        glowPaint.setAlpha(far);
+        canvas.drawBitmap(wide, null, glowRect, glowPaint);
+        glowPaint.setXfermode(null);
+        canvas.restore();
+    }
+
+    /**
+     * The frame spread over the dots around each (a Gaussian of about 1.2 dots, 5 x 5 taps),
+     * in light (premultiplied), for the wide glow: a few thousand sums a frame, so animated
+     * covers stay cheap.
+     */
+    private void updateWide() {
+        for (int gy = 0; gy < GRID; gy++) {
+            for (int gx = 0; gx < GRID; gx++) {
+                float a = 0, r = 0, g = 0, b = 0;
+                for (int dy = -2; dy <= 2; dy++) {
+                    int y = gy + dy;
+                    if (y < 0 || y >= GRID) {
+                        continue;
+                    }
+                    for (int dx = -2; dx <= 2; dx++) {
+                        int x = gx + dx;
+                        if (x < 0 || x >= GRID) {
+                            continue;
+                        }
+                        int c = dots[y * GRID + x];
+                        float w = WIDE_TAPS[Math.abs(dy)] * WIDE_TAPS[Math.abs(dx)]
+                                * (c >>> 24);
+                        a += w;
+                        r += w * ((c >> 16) & 0xFF);
+                        g += w * ((c >> 8) & 0xFF);
+                        b += w * (c & 0xFF);
+                    }
+                }
+                widePixels[gy * GRID + gx] = a < 1 ? 0 : Color.argb(Math.min(255,
+                        Math.round(a)), Math.round(r / a), Math.round(g / a), Math.round(b / a));
+            }
+        }
+        wide.setPixels(widePixels, 0, GRID, 1, 1, GRID, GRID);
+    }
+
+    /** Gaussian taps (sigma 1.2 dots) at distance 0, 1 and 2; they sum to 1 over -2..2. */
+    private static final float[] WIDE_TAPS = {0.3434f, 0.2419f, 0.0864f};
+
+    private Paint meshPaint;
+    private float meshPitch;
+
+    /**
+     * A VFD's control mesh: the fine wire grid between the filament and the phosphor, faintly
+     * seen in front of everything (dark lines about a third of a dot apart).
+     */
+    private void drawMesh(Canvas canvas, Grid screen) {
+        if (meshPaint == null || meshPitch != screen.pitch) {
+            int step = Math.max(3, Math.round(screen.pitch / 3f));
+            Bitmap tile = Bitmap.createBitmap(step, step, Bitmap.Config.ARGB_8888);
+            Paint line = new Paint();
+            line.setColor(0x48000000);
+            Canvas c = new Canvas(tile);
+            c.drawRect(0, 0, step, 1, line);
+            c.drawRect(0, 1, 1, step, line);
+            meshPaint = new Paint();
+            meshPaint.setShader(new BitmapShader(tile, Shader.TileMode.REPEAT,
+                    Shader.TileMode.REPEAT));
+            meshPitch = screen.pitch;
+        }
+        canvas.drawRoundRect(screen.bounds, screen.corner, screen.corner, meshPaint);
     }
 
     /** Black glass with a hairline rim: what makes a dot grid read as a screen. */
@@ -1329,8 +1503,9 @@ final class DotMatrix {
      * A {@code width} x {@code height} alpha mask of round dots on each grid, skipping dots
      * that would leave its rounded rectangle. Shared by every view with the same geometry.
      */
-    private static Bitmap mask(int width, int height, Grid... grids) {
-        StringBuilder key = new StringBuilder().append(width).append('x').append(height);
+    private static Bitmap mask(int width, int height, float dot, boolean hot, Grid... grids) {
+        StringBuilder key = new StringBuilder().append(width).append('x').append(height)
+                .append('d').append(dot).append(hot ? 'h' : 'f');
         for (Grid g : grids) {
             key.append('|').append(g.key());
         }
@@ -1343,7 +1518,7 @@ final class DotMatrix {
         Canvas canvas = new Canvas(mask);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         for (Grid g : grids) {
-            float radius = g.pitch * DOT / 2f;
+            float radius = g.pitch * dot / 2f;
             // Dots keep clear of the rim: they must fit inside the glass shrunk by this.
             float inset = g.pitch * 0.25f;
             RectF glass = new RectF(g.bounds);
@@ -1358,6 +1533,11 @@ final class DotMatrix {
                     float cy = g.top + (y + 0.5f) * g.pitch;
                     if (outsideRoundRect(cx, cy, radius, inner, Math.max(corner, radius))) {
                         continue;
+                    }
+                    if (hot) {
+                        // An LED's core is brighter than its edge (centre 1, edge 0.85).
+                        paint.setShader(new android.graphics.RadialGradient(cx, cy, radius,
+                                HOT_PROFILE, HOT_STOPS, Shader.TileMode.CLAMP));
                     }
                     canvas.drawCircle(cx, cy, radius, paint);
                 }

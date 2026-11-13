@@ -58,6 +58,8 @@ public class AnimatedEmojiView extends TextView {
     /** Where the emoji square sits (null: centred) and the dot screen around it (null: none). */
     /** The dot screen in shades of green only (setDotGreen). */
     private boolean green;
+    /** How the dot screen lights: Config.DOT_STYLE_* (setDotStyle). */
+    private int style = com.dressence.nothinglauncherplus.Config.DOT_STYLE_CLASSIC;
     private Rect dotContent;
     private Rect dotPanel;
     private float dotCorner;
@@ -79,6 +81,7 @@ public class AnimatedEmojiView extends TextView {
             applyTransforms(pose); // The grid does the moving; the view stays put.
             dots = new DotMatrix();
             dots.setGreen(green);
+            dots.setStyle(style);
             try {
                 dots.setText(getText(), getCurrentTextColor());
                 dots.render(pose);
@@ -100,6 +103,25 @@ public class AnimatedEmojiView extends TextView {
         green = on;
         if (dots != null) {
             dots.setGreen(on);
+            try {
+                dots.render(pose);
+            } catch (RuntimeException e) {
+                fail(e);
+                return;
+            }
+            invalidate();
+            MotionDriver.get().wake();
+        }
+    }
+
+    /** How the dot screen lights: one of Config's DOT_STYLE_* (see DotMatrix#setStyle). */
+    public void setDotStyle(int style) {
+        if (style == this.style) {
+            return;
+        }
+        this.style = style;
+        if (dots != null) {
+            dots.setStyle(style);
             try {
                 dots.render(pose);
             } catch (RuntimeException e) {
