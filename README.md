@@ -2832,6 +2832,9 @@ design and its NDot font, is what every feature here sets out to extend rather t
   finding about Nothing's code (Nothing OS 5's frosted glass, every check of the module against
   a new Nothing OS) was read from the firmware it archives, and the module's firmware workflow
   reads it for every phone. Making the module work for every Nothing phone rests on it.
+  Thank you also to Spike, its maintainer, for listing this module (as Nothing Launcher Plus)
+  and CMF True Stereo among the community projects on
+  [nothingarchive.tech](https://nothingarchive.tech/docs/projects).
 - **[Iconify](https://github.com/Mahmud0808/Iconify)** by Mahmud0808: the status bar features
   are inspired by it. It showed what is possible in System UI; the dual status bar and the
   status bar colours are its ideas.
