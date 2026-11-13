@@ -12,6 +12,8 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
 
+import com.dressence.nothinglauncherplus.Config;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,6 +64,105 @@ public final class IconScreen {
     /** The hairline rim where glass meets bezel: what makes a dot grid read as a screen. */
     private static final float RIM_ALPHA = 0.18f;
     private static final int GLOW_SCALE = 4;
+    /** Emulated styles: a dot this faintly covered is off; above it, its own brightness. */
+    private static final float SMOOTH_OFF_BELOW = 0.12f;
+    /** LED_SMALL's dot diameter: more black between the dots. */
+    private static final float SMALL_DOT = 0.68f;
+    /** A VFD's blue-green phosphor (zinc oxide, about 505 nm), as on the folders' screens. */
+    private static final int VFD_PHOSPHOR = 0xFF5AFFC8;
+
+    /**
+     * Each style's glow: the halo round each dot (its reach in dot spacings, and its alpha at
+     * the centre and half way) and the wide bloom's strength. Classic is the look until now.
+     */
+    private static final class Glow {
+        final float reach;
+        final int centre;
+        final int middle;
+        final int bloom;
+
+        Glow(float reach, int centre, int middle, int bloom) {
+            this.reach = reach;
+            this.centre = centre;
+            this.middle = middle;
+            this.bloom = bloom;
+        }
+
+        static Glow of(int style) {
+            switch (style) {
+                case Config.DOT_STYLE_LED_SOFT: return new Glow(1.25f, 0x40, 0x14, 35);
+                case Config.DOT_STYLE_LED_STRONG:
+                case Config.DOT_STYLE_LED_SMALL: return new Glow(1.5f, 0x78, 0x26, 70);
+                case Config.DOT_STYLE_VFD: return new Glow(1.5f, 0x6A, 0x22, 60);
+                default: return new Glow(1.25f, 0x46, 0x16, 55);
+            }
+        }
+    }
+
+    /**
+     * VFD: every lit dot in the one phosphor, by its brightness within this icon's own range
+     * (3rd to 97th percentile, as the folders' green), so the icon's parts stay apart.
+     */
+    private static void toPhosphor(int[] cells) {
+        float[] luma = new float[cells.length];
+        int n = 0;
+        for (int c : cells) {
+            if (c != 0) {
+                luma[n++] = luma(c);
+            }
+        }
+        if (n == 0) {
+            return;
+        }
+        java.util.Arrays.sort(luma, 0, n);
+        float lo = luma[(int) (n * 0.03f)];
+        float span = Math.max(luma[Math.min(n - 1, (int) (n * 0.97f))] - lo, 0.08f);
+        for (int i = 0; i < cells.length; i++) {
+            int c = cells[i];
+            if (c == 0) {
+                continue;
+            }
+            float t = Math.min(1f, Math.max(0f, (luma(c) - lo) / span));
+            float k = 0.18f + 0.82f * t;
+            cells[i] = (c & 0xFF000000)
+                    | Math.round(((VFD_PHOSPHOR >> 16) & 0xFF) * k) << 16
+                    | Math.round(((VFD_PHOSPHOR >> 8) & 0xFF) * k) << 8
+                    | Math.round((VFD_PHOSPHOR & 0xFF) * k);
+        }
+    }
+
+    private static float luma(int c) {
+        return (0.299f * ((c >> 16) & 0xFF) + 0.587f * ((c >> 8) & 0xFF)
+                + 0.114f * (c & 0xFF)) / 255f;
+    }
+
+    private static int mixWhite(int c, float k) {
+        int r = (c >> 16) & 0xFF;
+        int g = (c >> 8) & 0xFF;
+        int b = c & 0xFF;
+        return Color.rgb(Math.round(r + (255 - r) * k), Math.round(g + (255 - g) * k),
+                Math.round(b + (255 - b) * k));
+    }
+
+    /** A VFD's control mesh in front of the glass: dark lines a third of a dot apart. */
+    private static void drawMesh(Canvas canvas, Bitmap glassMask, int w, int h, float pitch) {
+        Bitmap mesh = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(mesh);
+        Paint line = new Paint();
+        line.setColor(0x48000000);
+        float step = Math.max(2f, pitch / 3f);
+        for (float v = 0; v < w; v += step) {
+            c.drawRect(v, 0, v + 1, h, line);
+        }
+        for (float v = 0; v < h; v += step) {
+            c.drawRect(0, v, w, v + 1, line);
+        }
+        Paint keep = new Paint();
+        keep.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+        c.drawBitmap(glassMask, 0, 0, keep);
+        canvas.drawBitmap(mesh, 0, 0, null);
+        mesh.recycle();
+    }
 
     /** The finished screen, its parts for the power-on, and every lit dot. */
     Bitmap full;
@@ -78,6 +179,8 @@ public final class IconScreen {
     int[] color;
     float radius;
     float size;
+    /** How it lights: one of Config's DOT_STYLE_* (see #of(Bitmap, int)). */
+    int style = Config.DOT_STYLE_CLASSIC;
 
     private IconScreen() {
     }
@@ -98,6 +201,17 @@ public final class IconScreen {
     }
 
     static IconScreen of(Bitmap icon) {
+        return of(icon, Config.DOT_STYLE_CLASSIC);
+    }
+
+    /**
+     * {@code icon} as a screen lit in {@code style}, one of Config's DOT_STYLE_* (the "Dot icon
+     * style" setting, 0.70.41): the same five looks as the folders' screens (anim/DotMatrix).
+     * An icon is made once, not every frame, so the emulated styles here use the fuller light
+     * model of the previews (dotsim.py): each dot's own halo, light added to light, a brighter
+     * core, and smooth brightness.
+     */
+    static IconScreen of(Bitmap icon, int style) {
         if (icon.getConfig() == Bitmap.Config.HARDWARE) {
             icon = icon.copy(Bitmap.Config.ARGB_8888, false); // Pixels can't be read on the GPU.
         }
@@ -107,6 +221,7 @@ public final class IconScreen {
         boolean ownShape = art != icon || !isCircle(icon);
         IconScreen screen = new IconScreen();
         screen.size = w;
+        screen.style = style;
         Layout layout = ownShape ? ownShape(art != icon ? art : icon, w, h)
                 : round(icon, w, h);
         screen.build(layout, w, h);
@@ -202,7 +317,9 @@ public final class IconScreen {
     private void build(Layout l, int w, int h) {
         int n = w * h;
         float pitch = w / (float) GRID;
-        radius = pitch * DOT / 2;
+        boolean emulated = style != Config.DOT_STYLE_CLASSIC;
+        boolean vfd = style == Config.DOT_STYLE_VFD;
+        radius = pitch * (style == Config.DOT_STYLE_LED_SMALL ? SMALL_DOT : DOT) / 2;
         int[] platePx = new int[n];
         for (int y = 0; y < h; y++) {
             // The bezel lit a little from above, like a device's frame.
@@ -237,10 +354,13 @@ public final class IconScreen {
         int count = 0;
         for (int i = 0; i < cells.length; i++) {
             float[] spot = spots.get(i);
-            cells[i] = colourAt(l.art, l.glass, w, h, spot[0], spot[1], pitch);
+            cells[i] = colourAt(l.art, l.glass, w, h, spot[0], spot[1], pitch, emulated);
             if (cells[i] != 0) {
                 count++;
             }
+        }
+        if (vfd) {
+            toPhosphor(cells);
         }
         x = new float[count];
         y = new float[count];
@@ -272,18 +392,25 @@ public final class IconScreen {
         glowCanvas.save();
         glowCanvas.scale(glowBitmap.getWidth() / (float) w, glowBitmap.getHeight() / (float) h);
         Paint halo = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Glow g = Glow.of(style);
+        if (emulated) {
+            halo.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD)); // light adds up
+        }
         for (int i = 0; i < x.length; i++) {
             int rgb = color[i] & 0xFFFFFF;
-            halo.setShader(new RadialGradient(x[i], y[i], pitch * 1.25f,
-                    new int[] {rgb | 0x46000000, rgb | 0x16000000, rgb},
+            // Emulated: each dot's halo as bright as the dot is (its own alpha).
+            float bright = emulated ? (color[i] >>> 24) / 255f : 1f;
+            halo.setShader(new RadialGradient(x[i], y[i], pitch * g.reach,
+                    new int[] {rgb | Math.round(g.centre * bright) << 24,
+                            rgb | Math.round(g.middle * bright) << 24, rgb},
                     new float[] {0, 0.55f, 1}, Shader.TileMode.CLAMP));
-            glowCanvas.drawCircle(x[i], y[i], pitch * 1.25f, halo);
+            glowCanvas.drawCircle(x[i], y[i], pitch * g.reach, halo);
         }
         glowCanvas.restore();
         Bitmap wide = bloom(w, h, 12, pitch * 1.5f);
         Paint add = new Paint(Paint.FILTER_BITMAP_FLAG);
         add.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD));
-        add.setAlpha(55);
+        add.setAlpha(g.bloom);
         glowCanvas.drawBitmap(wide, null, new Rect(0, 0, glowBitmap.getWidth(),
                 glowBitmap.getHeight()), add);
         wide.recycle();
@@ -295,14 +422,32 @@ public final class IconScreen {
         Bitmap fullBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas fullCanvas = new Canvas(fullBitmap);
         fullCanvas.drawBitmap(plate, 0, 0, null);
-        fullCanvas.drawBitmap(glowBitmap, null, new Rect(0, 0, w, h),
-                new Paint(Paint.FILTER_BITMAP_FLAG));
+        Paint onto = new Paint(Paint.FILTER_BITMAP_FLAG);
+        if (emulated) {
+            onto.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD));
+        }
+        fullCanvas.drawBitmap(glowBitmap, null, new Rect(0, 0, w, h), onto);
         for (int i = 0; i < x.length; i++) {
-            paint.setColor(color[i]);
+            if (emulated && !vfd) {
+                // An LED's core is brighter, a little whiter, than its edge.
+                int c = color[i];
+                int a = c >>> 24;
+                paint.setShader(new RadialGradient(x[i], y[i], radius,
+                        new int[] {mixWhite(c, 0.25f) & 0xFFFFFF | a << 24,
+                                c & 0xFFFFFF | Math.round(a * 0.93f) << 24,
+                                c & 0xFFFFFF | Math.round(a * 0.85f) << 24},
+                        new float[] {0, 0.5f, 1}, Shader.TileMode.CLAMP));
+            } else {
+                paint.setColor(color[i]);
+            }
             litCanvas.drawCircle(x[i], y[i], radius, paint);
         }
+        paint.setShader(null);
         litCanvas.drawBitmap(glassMask, 0, 0, keep);
-        fullCanvas.drawBitmap(litBitmap, 0, 0, null);
+        fullCanvas.drawBitmap(litBitmap, 0, 0, onto);
+        if (vfd) {
+            drawMesh(fullCanvas, glassMask, w, h, pitch);
+        }
         // Kept on the GPU: no upload when drawn, and off the app's Java heap.
         mask = toHardware(glassMask);
         full = toHardware(fullBitmap);
@@ -359,7 +504,7 @@ public final class IconScreen {
      * lit as fully as the artwork beside it.
      */
     private static int colourAt(int[] art, float[] glass, int w, int h, float cx, float cy,
-            float pitch) {
+            float pitch, boolean smooth) {
         int x0 = Math.max(0, Math.round(cx - pitch / 2));
         int x1 = Math.min(w, Math.round(cx + pitch / 2));
         int y0 = Math.max(0, Math.round(cy - pitch / 2));
@@ -381,6 +526,11 @@ public final class IconScreen {
             return 0;
         }
         float coverage = Math.min(1, a / (255f * n));
+        if (smooth) {
+            // Emulated styles: each dot's own brightness, from faint to full (no steps).
+            return coverage < SMOOTH_OFF_BELOW ? 0 : Color.argb(Math.round(coverage * 255),
+                    (int) (r / a), (int) (g / a), (int) (b / a));
+        }
         if (coverage < OFF_BELOW) {
             return 0;
         }

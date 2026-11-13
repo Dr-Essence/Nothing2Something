@@ -46,6 +46,7 @@ public final class Config {
     public static final String KEY_DOT_MATRIX = "dot_matrix";
     public static final String KEY_GREEN_DOTS = "green_dots";
     public static final String KEY_DOT_STYLE = "dot_style";
+    public static final String KEY_ICON_DOT_STYLE = "icon_dot_style";
     public static final String KEY_NDOT_STATUS = "ndot_status_bar";
     public static final String KEY_STATUS_DATE = "status_bar_date";
     public static final String KEY_DUAL_STATUS = "dual_status_bar";
@@ -208,6 +209,8 @@ public final class Config {
      * them on the phone; the ones not chosen will be removed.
      */
     public int dotStyle = DOT_STYLE_CLASSIC;
+    /** The same five looks for the dot-matrix app icons (0.70.41, launcher/IconScreen). */
+    public int iconDotStyle = DOT_STYLE_CLASSIC;
     public static final int DOT_STYLE_CLASSIC = 0;
     public static final int DOT_STYLE_LED_SOFT = 1;
     public static final int DOT_STYLE_LED_STRONG = 2;
@@ -483,6 +486,8 @@ public final class Config {
         greenDots = in.bool(KEY_GREEN_DOTS, false);
         dotStyle = Math.max(DOT_STYLE_CLASSIC, Math.min(DOT_STYLE_VFD,
                 in.number(KEY_DOT_STYLE, DOT_STYLE_CLASSIC)));
+        iconDotStyle = Math.max(DOT_STYLE_CLASSIC, Math.min(DOT_STYLE_VFD,
+                in.number(KEY_ICON_DOT_STYLE, DOT_STYLE_CLASSIC)));
         ndotStatusBar = in.bool(KEY_NDOT_STATUS, false);
         statusBarDate = in.bool(KEY_STATUS_DATE, false);
         dualStatusBar = in.bool(KEY_DUAL_STATUS, false);
@@ -593,6 +598,7 @@ public final class Config {
         out.bool(KEY_DOT_MATRIX, dotMatrix);
         out.bool(KEY_GREEN_DOTS, greenDots);
         out.number(KEY_DOT_STYLE, dotStyle);
+        out.number(KEY_ICON_DOT_STYLE, iconDotStyle);
         out.bool(KEY_NDOT_STATUS, ndotStatusBar);
         out.bool(KEY_STATUS_DATE, statusBarDate);
         out.bool(KEY_DUAL_STATUS, dualStatusBar);

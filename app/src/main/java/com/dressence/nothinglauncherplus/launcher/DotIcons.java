@@ -19,6 +19,7 @@ import android.view.Choreographer;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.dressence.nothinglauncherplus.xposed.ConfigStore;
 import com.dressence.nothinglauncherplus.xposed.Hooks;
 
 import java.lang.ref.WeakReference;
@@ -143,7 +144,29 @@ final class DotIcons {
     private DotIcons() {
     }
 
-    static void install(ClassLoader cl) {
+    /** How the icons' screens light: Config's iconDotStyle (see IconScreen#of(Bitmap, int)). */
+    private static volatile int style = Config.DOT_STYLE_CLASSIC;
+
+    /** The icons' style now, for the icon pack's preview (DotIconPack). */
+    static int style() {
+        return style;
+    }
+
+    static void install(ClassLoader cl, ConfigStore store) {
+        style = store.get().iconDotStyle;
+        // A new style: every icon is made again in it, and redrawn (main thread).
+        store.addChangeListener(() -> {
+            int chosen = store.get().iconDotStyle;
+            if (chosen == style) {
+                return;
+            }
+            style = chosen;
+            CACHE.clear();
+            Activity activity = launcher.get();
+            if (activity != null) {
+                invalidateAll(activity.getWindow().getDecorView());
+            }
+        });
         Class<?> fast = XposedHelpers.findClass(CLS_FAST_BITMAP, cl);
         Class<?> bitmapInfo = XposedHelpers.findClass("com.android.launcher3.icons.BitmapInfo", cl);
         fBitmapInfo = field(fast, "mBitmapInfo");
@@ -564,11 +587,13 @@ final class DotIcons {
         PENDING.put(icon, waiting);
         WeakReference<Bitmap> source = new WeakReference<>(icon);
         converting++;
+        int madeIn = style;
         CONVERTER.execute(() -> {
             Bitmap bitmap = source.get();
             IconScreen made;
             try {
-                made = bitmap != null && !bitmap.isRecycled() ? IconScreen.of(bitmap) : FAILED;
+                made = bitmap != null && !bitmap.isRecycled() ? IconScreen.of(bitmap, madeIn)
+                        : FAILED;
             } catch (Throwable t) {
                 // Out of memory included: this one icon is drawn as it is from now on.
                 Hooks.log("dot icon failed: " + t);
@@ -580,7 +605,10 @@ final class DotIcons {
                 Bitmap key = source.get();
                 if (key != null) {
                     List<WeakReference<Drawable>> asked = PENDING.remove(key);
-                    CACHE.put(key, result);
+                    // Made in a style changed since: not kept; its icons ask again when redrawn.
+                    if (madeIn == style) {
+                        CACHE.put(key, result);
+                    }
                     if (asked != null) {
                         READY.addAll(asked);
                     }

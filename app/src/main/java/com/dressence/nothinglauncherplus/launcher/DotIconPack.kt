@@ -106,7 +106,7 @@ internal object DotIconPack {
                     if (param.args[0] != PACK_ID) return
                     val icon = param.result as? Bitmap ?: return
                     try {
-                        IconScreen.of(icon).full?.let { param.result = it }
+                        IconScreen.of(icon, DotIcons.style()).full?.let { param.result = it }
                     } catch (t: Throwable) {
                         Hooks.log("dot matrix icon pack: preview failed: $t") // plain icon stays
                     }

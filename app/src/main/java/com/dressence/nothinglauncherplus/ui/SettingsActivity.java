@@ -468,6 +468,14 @@ public class SettingsActivity extends Activity {
                 "Pick \"Dot matrix\" in Nothing's Icon Pack picker: every icon a little dot "
                         + "screen in its own shape, long names scroll", null, ui.chevron(),
                 v -> openIconPackPicker());
+        choiceRow(ui, "Dot icon style", "How the icons' dots light, to compare on the phone",
+                new String[] {"Classic (until now)", "LED dots, soft glow",
+                        "LED dots, strong glow", "LED dots, strong glow, smaller dots",
+                        "VFD, like an 80s car dashboard"},
+                new int[] {Config.DOT_STYLE_CLASSIC, Config.DOT_STYLE_LED_SOFT,
+                        Config.DOT_STYLE_LED_STRONG, Config.DOT_STYLE_LED_SMALL,
+                        Config.DOT_STYLE_VFD},
+                config.iconDotStyle, value -> config.iconDotStyle = value);
 
         ui.section("Landscape & controllers");
         ui.switchRow("Home screen rotation", "Home and app drawer follow auto-rotate (beta)",

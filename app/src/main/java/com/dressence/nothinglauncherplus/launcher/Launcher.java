@@ -57,7 +57,7 @@ public final class Launcher {
         Hooks.install("home shown", () -> hookHomeShown(cl));
         Hooks.install("controller", () -> Gamepad.install(cl, store));
         Hooks.install("recents memory", () -> RecentsRam.install(cl, store));
-        Hooks.install("dot-matrix icons", () -> DotIcons.install(cl));
+        Hooks.install("dot-matrix icons", () -> DotIcons.install(cl, store));
         Hooks.install("live icons", () -> LiveIcons.install(cl));
         Hooks.install("scrolling app names", () -> LabelScroll.install(cl));
         LauncherSounds.install(cl, store);
