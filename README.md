@@ -1,6 +1,6 @@
 <p align="center"><img src="https://raw.githubusercontent.com/Dr-Essence/Nothing2Something/claude/nothing-os-xposed-module-65lsca/docs/images/banner.png?v=15" alt="Nothing2Something: the three-eyed dot-matrix face and the name in Nothing's NDot" width="100%"></p>
 
-<p align="center"><a href="#testing"><img src="https://raw.githubusercontent.com/Dr-Essence/Nothing2Something/claude/nothing-os-xposed-module-65lsca/docs/images/testers-needed.png?v=1" alt="Testers needed: have a Nothing or CMF phone on Nothing OS 4.0, 4.1 or 5.0? See the Testing section" width="100%"></a></p>
+<p align="center"><a href="#testing"><img src="https://raw.githubusercontent.com/Dr-Essence/Nothing2Something/claude/nothing-os-xposed-module-65lsca/docs/images/testers-needed.png?v=2" alt="Testers needed: have a Nothing or CMF phone on Nothing OS 4.0, 4.1 or 5.0? See the Testing section" width="100%"></a></p>
 
 # Nothing2Something
 
