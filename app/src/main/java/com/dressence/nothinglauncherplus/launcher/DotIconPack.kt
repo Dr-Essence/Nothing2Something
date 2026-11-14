@@ -69,11 +69,37 @@ internal object DotIconPack {
             })
     }
 
+    /**
+     * The launcher's icon pack entity (what its pack reader puts into the map with
+     * new-instance and a (String, String) constructor), by its name in each launcher build:
+     * "k7.b" in 4.0.20/4.0.21, "l7.b" in 4.0.15 (the CMF Phone 1's 4.1), "ea.b" in Nothing OS
+     * 5.0's 5.0.6 (read from each build's pack reader, 0.70.61). Taken only with the entity's
+     * shape: that constructor and its String fields a and b; another class given one of
+     * these names is never put into Nothing's map. Mistake recorded: until 0.70.61 only
+     * "k7.b" was tried, which in 4.0.15 is an unrelated class, so the empty-map fallback
+     * failed there (logged, nothing else).
+     */
+    private fun packEntity(cl: ClassLoader): Class<*>? {
+        for (name in arrayOf("k7.b", "l7.b", "ea.b")) {
+            val found = XposedHelpers.findClassIfExists(name, cl) ?: continue
+            val shaped = try {
+                found.getDeclaredConstructor(String::class.java, String::class.java)
+                found.getDeclaredField("a").type == String::class.java &&
+                    found.getDeclaredField("b").type == String::class.java
+            } catch (e: ReflectiveOperationException) {
+                false
+            }
+            if (shaped) {
+                return found
+            }
+        }
+        return null
+    }
+
     /** Our entry goes into the launcher's map of packs each time it is filled. */
     private fun addEntry(cl: ClassLoader) {
-        // Only a fallback for an empty map (renamed in Nothing OS 5, so it may be absent:
-        // tools/hookcheck.py, 0.70.32); the class of an entry already there is used first.
-        val entity: Class<*>? = XposedHelpers.findClassIfExists("k7.b", cl)
+        // Only a fallback for an empty map; the class of an entry already there is used first.
+        val entity: Class<*>? = packEntity(cl)
         // Found by its shape when an update renames it (LauncherSymbols, 4.0.20: h7.d.a).
         XposedBridge.hookMethod(LauncherSymbols.readPacks(cl), object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
@@ -81,10 +107,7 @@ internal object DotIconPack {
                         @Suppress("UNCHECKED_CAST")
                         val packs = param.args[1] as ConcurrentHashMap<Any, Any>
                         // The class of an entry already in Nothing's map, which is the right
-                        // one by definition; "k7.b" (its name in 4.0.20, obfuscated) only when
-                        // the map is empty. A later build giving that name to another class
-                        // would have put a foreign object into Nothing's map (dependency map,
-                        // F4).
+                        // one by definition; packEntity's only when the map is empty.
                         val kind = packs.values.firstOrNull()?.javaClass ?: entity ?: return
                         packs.putIfAbsent(PACK_ID, XposedHelpers.newInstance(kind, PACK_ID, LABEL))
                     } catch (t: Throwable) {

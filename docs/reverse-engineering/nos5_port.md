@@ -61,3 +61,51 @@ with 4 ints, `makeWorkspaceItem`, `FolderInfo.add`, `MODEL_EXECUTOR`).
   scene container lock screen and shade).
 - On the phone: everything above, with Hook health and a debug report from a Nothing OS 5
   tester.
+
+## The names missing on Nothing OS 5.0, mapped (2026-11-14)
+
+From the hook check on every build (hookcheck_all_builds.md), each name the module uses that
+Nothing OS 5.0 lacks, matched by role in the 5.0 launcher (Phone (2a), Pacman_C5.0-261015-1824,
+launcher 5.0.6) and System UI (the tester's Phone (3a), C5.0-261023), against the 4.1 launcher.
+Dexdump reading only, nothing run on a phone.
+
+Fixed in 0.70.61 (certain):
+- Dot icon pack entity: `ea.b` in 5.0 (the pack reader `ba.d.b` makes it with new-instance and
+  a (String, String) constructor), `l7.b` in 4.0.15, `k7.b` in 4.0.20/21; the module tries
+  each, by shape.
+- Long-press popup width: `PopupContainerWithArrow.containerWidth` (was `mContainerWidth`).
+
+Already handled by the module's own fallbacks: `FastBitmapDrawable.bitmapInfo` (was
+`mBitmapInfo`), `BubbleTextView.setStandardIcon` (was `setNonPendingIcon`; in 5.0 an
+AutomatedIconDelegate can defer setIcon, so hooking setIcon(FastBitmapDrawable) would cover
+both), `AppWidgetResizeFrame.maxHSpan/maxVSpan`, `addAndBindAddedWorkspaceItems` (gone; the
+fallback AddWorkspaceItemsTask path is right), `awaitLocked` (gone with the idle lock; already
+skipped), the tile editor's `ivApp` (the 5.0 editor is Compose: nothing to match, harmless).
+
+Needs a redesign (not done):
+- **DeviceProfile**: 5.0 builds it from immutable sub-profiles through factories
+  (WorkspaceProfile, HotseatProfile, FolderProfile, AllAppsProfile, DeviceProperties); there
+  is no NtDeviceProfile subclass. `hotseatBarSizePx` → `HotseatProfile.barSizePx`,
+  `hotseatCellHeightPx` → `HotseatProfile.cellHeightPx` (likely), `mIconDrawablePadding
+  OriginalPx` → `WorkspaceProfile.iconDrawablePaddingOriginalPx`, `allAppsCellHeightPx` →
+  `AllAppsProfile.cellHeightPx`, `folderContentPaddingTop`/`folderFooterHeightPx` →
+  `FolderProfile.contentPaddingTop`/`footerHeightPx`, `heightPx`/`availableWidthPx` →
+  `DeviceProperties`; `updateHotseatSizes`, `updateFolderIconSize`, `updateIconSize`,
+  `getDesiredIconDrawablePadding`, `getFixedCellWidth/Height`, `updateCellLayoutPadding` are
+  folded into the factories (`HotseatProfile$Factory.createHotseatProfile`,
+  `FolderProfile$Factory.createFolderProfileNonScalable`, `WorkspaceProfile$Factory
+  .createWorkspaceProfile`). The landscape home screen must hook the factories (WorkspaceProfile
+  has setters; the others need copy() and DeviceProfile.setXxxProfile), not write fields after.
+- **Landscape grid**: `ModelWriter.updateItemModel(ItemInfo, int, int, int, int)` is
+  updateItemInfoProps (same body; ModelWriter is Kotlin: `bgDataModel`, `cellPosMapper`), with
+  a new caller `commitBatchMove`. Not ported alone: the grid's safety parts must all hold first.
+- **Widget picker**: the sheet is gone; Nothing's picker is still a View (`NtWidgetPickerView`
+  in `QuickstepWidgetPickerActivity`, which keeps itself across a turn: configChanges 0xd80),
+  with the AOSP part in Compose (correcting the note above). The profile `za.a0` is `rd.c0`
+  (identical), at `NtWidgetPickerView.widgetsDeviceProfile`. 5.0 places the page indicator
+  over the navigation bar itself (`updatePageIndicatorBottomMargin`): that part of the
+  module's fix should not be ported. `isInPickerDetails` → `isDetailVisible` (likely).
+- **Green quick settings tiles**: QSTileViewImpl is gone; tile colours come from Compose
+  (`TileDefaults.getColorForState(TileUiState, boolean, Composer, int)` → `TileColors`, packed
+  Color longs), Nothing's editor from `TileContentColorsKt.resolveTileContentColors`. A new hook
+  on the result, tested on a phone.

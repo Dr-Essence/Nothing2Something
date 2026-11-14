@@ -32,7 +32,7 @@ final class PopupLandscape {
         StringBuilder line = new StringBuilder("menu: container ").append(container.getWidth())
                 .append('x').append(container.getHeight()).append(" rows ");
         try {
-            line.append(XposedHelpers.getIntField(menu, "mContainerWidth"));
+            line.append(containerWidth(menu));
         } catch (Throwable t) {
             line.append('?');
         }
@@ -85,7 +85,7 @@ final class PopupLandscape {
                     int portrait = height - 2 * margin;
                     if (portrait > 0 && (Integer) param.args[0] > portrait) {
                         param.args[0] = portrait;
-                        XposedHelpers.setIntField(param.thisObject, "mContainerWidth", portrait);
+                        setContainerWidth(param.thisObject, portrait);
                         // The menu itself and its shortcut grid are match_parent in Nothing's
                         // layout (nt_popup_container): the grid's background spanned the
                         // turned screen behind the narrower rows (DebuG19). The menu is
@@ -195,5 +195,23 @@ final class PopupLandscape {
                         }).run();
                     }
                 });
+    }
+
+    /**
+     * The menu's width field: "mContainerWidth" up to Nothing OS 4.1, "containerWidth" in
+     * Nothing OS 5.0's launcher (PopupContainerWithArrow, Kotlin, with getContainerWidth and
+     * setContainerWidth; read from the 5.0 launcher, 0.70.61).
+     */
+    private static String containerWidthField(Object menu) {
+        return XposedHelpers.findFieldIfExists(menu.getClass(), "mContainerWidth") != null
+                ? "mContainerWidth" : "containerWidth";
+    }
+
+    private static int containerWidth(Object menu) {
+        return XposedHelpers.getIntField(menu, containerWidthField(menu));
+    }
+
+    private static void setContainerWidth(Object menu, int width) {
+        XposedHelpers.setIntField(menu, containerWidthField(menu), width);
     }
 }

@@ -72,9 +72,9 @@ Each section below opens when tapped.
 > everything back from your file.
 
 <details>
-<summary><b>Current state</b> · version 0.70.60, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.61, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.60** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), a live-blurred glass app drawer, as the quick settings panel, and glass open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.61** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), a live-blurred glass app drawer, as the quick settings panel, and glass open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -123,6 +123,26 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.61, two Nothing OS 5 names found; the rest mapped.** Every name the module misses on
+  Nothing OS 5.0 was matched by role in the 5.0 launcher and System UI (dexdump; the mapping
+  is in docs/reverse-engineering/nos5_port.md). Fixed where the evidence leaves no doubt and the
+  change completes the feature:
+  - *Dot matrix icon pack entry*: the launcher's pack entity is `ea.b` in 5.0, `l7.b` in
+    4.0.15 (the CMF Phone 1's 4.1) and `k7.b` in 4.0.20/21; each is tried, taken only with the
+    entity's shape (a (String, String) constructor, String fields a and b). Mistake recorded:
+    only `k7.b` was tried, an unrelated class in 4.0.15, so the empty-map fallback failed on
+    the CMF Phone 1 too (logged; the usual path takes the class of an entry already there).
+  - *Long-press menu in landscape*: its width field is `containerWidth` in 5.0 (was
+    `mContainerWidth`); the one that exists is used.
+  Mapped but not changed, as each needs a rework rather than a new name: the landscape home
+  screen (5.0 builds DeviceProfile from immutable sub-profiles through factories), the
+  landscape grid's write check, the widget picker (a new view; 5.0 already places its page
+  indicator over the navigation bar), green quick settings tiles (Compose colours). Already
+  covered by the module's fallbacks: dot and live icons' bitmapInfo and setStandardIcon, widget
+  resize spans, the folder menu's add task, the loader's idle wait. README Testing updated.
+  **Checked:** builds with the real Xposed API; names read from each build. **Not checked:** on
+  a phone (5.0 or the CMF Phone 1's empty-map case). **To test (5.0 testers):** pick the Dot
+  matrix icon pack; a long-press menu with the home screen turned.
 - **0.70.60, the landscape widget picker on Nothing OS 4.0.** The hook check on every build
   found one hook missing on Nothing OS 4.0 (and early 4.1 builds of Frogger, FroggerPro and
   SuperContra): the widget picker's profile class, `za.a0` in the 4.1 launcher. Read from the
@@ -1842,7 +1862,7 @@ working somewhere); the last update says which version it describes.
 <details open>
 <summary><b>Which phones and versions</b> · checked against every Nothing OS build, without a phone</summary>
 
-*As of 0.70.60.* Only one phone is tested for real: a **CMF Phone 1 on Nothing OS 4.1**. For the
+*As of 0.70.61.* Only one phone is tested for real: a **CMF Phone 1 on Nothing OS 4.1**. For the
 others, every build of every Nothing and CMF phone in
 [nothing_archive](https://github.com/spike0en/nothing_archive) (232 builds, 13 phones, Nothing OS
 1.5 to 5.0) was checked automatically: each build's Nothing Launcher, System UI, Settings and
@@ -1857,7 +1877,7 @@ names it.
 |---|---|---|---|
 | **4.1** (Android 16) | Phone (2), (2a), (2a) Plus, (3), (3a), (3a) Pro, CMF Phone 1, CMF Phone 2 Pro, and the newer Galaxian, Frogger, FroggerPro and SuperContra | **0** | Every feature should install. What can still differ is how a screen looks or behaves on another screen size or model: that needs your report. Early 4.1 builds of Frogger, FroggerPro and SuperContra missed the same one as 4.0, found the same way since 0.70.60. |
 | **4.0** (Android 16) | the same phones before their 4.1 update | 0 since 0.70.60 | Every feature should install: the one missing hook (the landscape widget picker's profile class, renamed in 4.0's launcher) is found under its 4.0 name since 0.70.60, read from the CMF Phone 1's own 4.0 build. Not yet tried on a 4.0 phone. |
-| **5.0** (Android 16) | Phone (2a), (2a) Plus, (3), (3a), (3a) Pro, Frogger, FroggerPro | 41-42 | Many features left out: landscape home screen and widget picker, dot-matrix and live icons, the folder menu's extras, the drawer's live blur, green quick settings tiles, the tile editor fix. Nothing OS 5 frosts its own glass, so the module's glass stays off there. Try **Launcher only** mode and expect gaps; a Nothing OS 5 port is planned. |
+| **5.0** (Android 16) | Phone (2a), (2a) Plus, (3), (3a), (3a) Pro, Frogger, FroggerPro | 41-42 | Many features left out: landscape home screen and widget picker, dot-matrix and live icons, the folder menu's extras, the drawer's live blur, green quick settings tiles, the tile editor fix. Nothing OS 5 frosts its own glass, so the module's glass stays off there. Since 0.70.61 the Dot matrix icon pack's entry and the long-press menu's width in landscape find their 5.0 names. Try **Launcher only** mode and expect gaps; the rest is mapped (docs/reverse-engineering/nos5_port.md) and needs a rework: a Nothing OS 5 port is planned. |
 | **3.x and older** (Android 15 and earlier) | Phone (1) and the others before Nothing OS 4 | 38-150 | Not supported: the module is made for Nothing OS 4 (Android 16). |
 
 What this check cannot see: hooks found by their shape rather than their name (searched on the
