@@ -17,7 +17,7 @@ import de.robv.android.xposed.XposedHelpers;
 /**
  * Nothing's widget picker (NtWidgetsFullSheet) on the turned home screen.
  *
- * <p>Its sizes come from one profile ({@code za.a0}): fractions of the screen's width and
+ * <p>Its sizes come from one profile ({@code za.a0} in 4.1, {@code ya.a0} in 4.0): fractions of the screen's width and
  * height, worked out once from the window's size when the picker is first opened and kept for
  * the launcher's life ({@code a0.N}). A profile made in one orientation was used in the other,
  * and Nothing's options sheet (a widget's previews and sizes, NtWidgetPickerDetails) is half
@@ -32,7 +32,16 @@ import de.robv.android.xposed.XposedHelpers;
  */
 final class WidgetPickerLandscape {
 
-    private static final String PROFILE = "za.a0";
+    /**
+     * The profile class's name in each launcher build: {@code za.a0} in Nothing OS 4.1's
+     * launcher (4.0.15 and later), {@code ya.a0} in Nothing OS 4.0's (4.0.10). Read from both
+     * builds (4.0: the CMF Phone 1's Tetris_B4.0-260225-1904, unpacked by
+     * tools/firmware-inspect.sh in GitHub Actions): only the package letter differs; every field
+     * and method has the same name and type, and NtWidgetsFullSheet reaches it the same way
+     * ({@code $a.c(Context)}). The first name that is there and passes {@link #checkShape} is
+     * used (0.70.60: until then the widget picker was left out on Nothing OS 4.0).
+     */
+    private static final String[] PROFILE_NAMES = {"za.a0", "ya.a0"};
     private static final String SHEET = "com.nothing.launcher.widgets.view.NtWidgetsFullSheet";
 
     /** Nothing's picker profile for each orientation, made by Nothing (portrait, landscape). */
@@ -47,9 +56,8 @@ final class WidgetPickerLandscape {
     }
 
     void install() {
-        Class<?> profile = XposedHelpers.findClass(PROFILE, cl);
-        checkShape(profile);
-        Class<?> cache = XposedHelpers.findClass(PROFILE + "$a", cl);
+        Class<?> profile = profileClass();
+        Class<?> cache = XposedHelpers.findClass(profile.getName() + "$a", cl);
         // The cached profile, for the orientation the picker opens in.
         XposedBridge.hookAllMethods(cache, "c", new XC_MethodHook() {
             @Override
@@ -248,6 +256,25 @@ final class WidgetPickerLandscape {
      * leaves the picker as Nothing has it (Hooks.install; dependency map, F5). Same-type
      * swaps are not caught by this; they need the resolver the map describes.
      */
+    /** The first of {@link #PROFILE_NAMES} in this launcher with the profile's shape. */
+    private Class<?> profileClass() {
+        Throwable last = null;
+        for (String name : PROFILE_NAMES) {
+            Class<?> found = XposedHelpers.findClassIfExists(name, cl);
+            if (found == null) {
+                continue;
+            }
+            try {
+                checkShape(found);
+                return found;
+            } catch (Throwable t) {
+                last = t; // A class of that name with another shape: not this one.
+            }
+        }
+        throw new NoSuchFieldError("no widget picker profile (" + String.join(", ", PROFILE_NAMES)
+                + ")" + (last != null ? ": " + last.getMessage() : ""));
+    }
+
     private static void checkShape(Class<?> profile) {
         Object[][] fields = {
                 {"c", int.class}, {"d", int.class}, {"e", Insets.class}, {"i", int.class},
@@ -258,7 +285,8 @@ final class WidgetPickerLandscape {
         for (Object[] f : fields) {
             Class<?> found = XposedHelpers.findField(profile, (String) f[0]).getType();
             if (found != f[1]) {
-                throw new NoSuchFieldError(PROFILE + "." + f[0] + " is a " + found.getName()
+                throw new NoSuchFieldError(profile.getName() + "." + f[0] + " is a "
+                        + found.getName()
                         + ", not a " + ((Class<?>) f[1]).getName() + " (launcher changed)");
             }
         }

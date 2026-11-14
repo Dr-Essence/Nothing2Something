@@ -35,8 +35,10 @@ newer phones whose model names are not confirmed here. A dash: no such build in 
   SuperContra:** one, `launcher/WidgetPickerLandscape.java` names the launcher's obfuscated
   profile class `za.a0`, which those launcher builds (4.0.10, early 4.0.2x) name otherwise.
   It is installed inside `Hooks.install`, so only the landscape widget picker is left out
-  there, with its reason in Hook health. To do: find the class by its shape (Symbols), as
-  the drawer scrim colour is.
+  there, with its reason in Hook health. Fixed in 0.70.60: in the 4.0 launcher (4.0.10, read
+  from Tetris_B4.0-260225-1904 by tools/firmware-inspect.sh) the class is `ya.a0`, with every
+  field and method under the same name and type; the module takes the first of `za.a0`,
+  `ya.a0` whose fields pass its shape check.
 - **Nothing OS 5.0 (41-42):** the launcher 5.0.6's renames: the widget picker
   (NtWidgetsFullSheet, WidgetsFullSheet), the landscape profile fields (hotseat and folder
   sizes, updateIconSize, updateHotseatSizes), the landscape grid's `mMaxHSpan` and
