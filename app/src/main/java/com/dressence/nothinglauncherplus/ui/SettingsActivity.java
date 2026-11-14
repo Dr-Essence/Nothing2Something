@@ -101,9 +101,9 @@ public class SettingsActivity extends Activity {
 
     private static String pageTitle(String page) {
         switch (page) {
-            case PAGE_DRAWER: return "Drawer & folders";
+            case PAGE_DRAWER: return "App drawer";
             case PAGE_DOTS: return "Dot matrix";
-            case PAGE_GLASS: return "Glass & transparency";
+            case PAGE_GLASS: return "Glass";
             case PAGE_GAMING: return "Gaming";
             case PAGE_SYSTEM_UI: return "Status bar & quick settings";
             case PAGE_ROTATION: return "Rotation & landscape";
@@ -292,15 +292,44 @@ public class SettingsActivity extends Activity {
             ui.note(ModuleService.getMoveProblem());
         }
 
+        ui.section("Mode");
+        ui.switchRow("Launcher only", "Change only Nothing Launcher and Nothing's widget apps,"
+                + " with home screen rotation; System UI, the lock screen, fonts and other apps are"
+                + " left as Nothing made them. If other features are buggy on your phone, or to"
+                + " keep the system stock · the system's part follows after a reboot",
+                store.config.launcherOnly,
+                checked -> {
+                    store.config.launcherOnly = checked;
+                    store.save(this);
+                    render();
+                });
+
         ui.section("Nothing Launcher");
-        ui.row("Drawer & folders", "Your folders, how the drawer sorts, restart the launcher",
-                null, ui.chevron(), v -> openPage(PAGE_DRAWER));
-        ui.row("Dot matrix", "Dot icons and the folders' emoji covers, and how their dots light",
-                null, ui.chevron(), v -> openPage(PAGE_DOTS));
-        ui.row("Glass & transparency", "The drawer's background, glass folders, widgets and"
-                + " search bar", null, ui.chevron(), v -> openPage(PAGE_GLASS));
+        ui.row("App drawer", "Custom folders, covers and emoji, background", null, ui.chevron(),
+                v -> openPage(PAGE_DRAWER));
+        ui.row("Dot matrix", "Dot-matrix app icons and how their dots light", null,
+                ui.chevron(), v -> openPage(PAGE_DOTS));
+        ui.row("Glass", "Glass folders, widgets and search bar on the home screen", null,
+                ui.chevron(), v -> openPage(PAGE_GLASS));
         ui.row("Gaming", "Gaming launcher, Nothing Gaming Space, game controller", null,
                 ui.chevron(), v -> openPage(PAGE_GAMING));
+        ui.row("Restart Nothing Launcher", "Applies everything immediately · needs root", null,
+                null, v -> restartLauncher());
+        ui.row("Restore missing home items", "Icons, folders and shortcuts the launcher still"
+                + " has from another grid size, put back where they were · nothing is removed",
+                null, null, v -> new android.app.AlertDialog.Builder(this)
+                        .setTitle("Restore missing home items?")
+                        .setMessage("Nothing Launcher keeps a separate home screen for each grid"
+                                + " size. Icons, folders and shortcuts that the other grid of"
+                                + " the same width still has, and yours does not, are added back"
+                                + " at their places where those are free. Nothing is removed"
+                                + " or moved. Widgets cannot come back this way: the launcher"
+                                + " shows which ones to add again.")
+                        .setNegativeButton("Cancel", null)
+                        .setPositiveButton("Restore", (d, w) -> sendBroadcast(
+                                new android.content.Intent(Config.ACTION_RESTORE_ITEMS)
+                                        .setPackage(Config.LAUNCHER_PKG)))
+                        .show());
 
         ui.section("Phone");
         if (!store.config.launcherOnly) { // System UI is left as Nothing made it there
@@ -329,17 +358,6 @@ public class SettingsActivity extends Activity {
 
     private void sectionModule(Ui ui) {
         ui.section("Module");
-        ui.switchRow("Launcher only", "Change only Nothing Launcher and Nothing's widget apps,"
-                + " with home screen rotation; System UI, the lock screen, fonts and other apps are"
-                + " left as Nothing made them. If other features are buggy on your phone, or to"
-                + " keep the system stock · the system's part follows after a reboot",
-                store.config.launcherOnly,
-                checked -> {
-                    store.config.launcherOnly = checked;
-                    store.save(this);
-                    render();
-                });
-
         ui.switchRow("Show app icon", "Off: the icon leaves the app drawer and home screen; open"
                 + " the module from the Nothing2Something row in Settings, Settings search or"
                 + " LSPosed · needs the module active in the system (after a reboot), or Android"
@@ -351,7 +369,6 @@ public class SettingsActivity extends Activity {
                 v -> openPage(PAGE_DIAGNOSTICS));
     }
 
-    /** Drawer & folders: how the Smart drawer sorts, your folders, and the launcher's tools. */
     private void renderDrawer(Ui ui, Config config) {
         ui.section("Drawer");
         ui.switchRow("Custom folders first", "Show your folders before Nothing's categories",
@@ -369,98 +386,17 @@ public class SettingsActivity extends Activity {
                     config.looseApps = checked;
                     store.save(this);
                 });
-
-        ui.section("Folders · " + config.folders.size());
-        if (config.folders.isEmpty()) {
-            ui.note("Create a folder, pick its apps, and it appears in the Smart (Beta) drawer.");
-        }
-        if (config.folders.size() > 1) {
-            ui.note("Drag ≡ to change the order in the drawer: folders fill its rows two at a"
-                    + " time, in this order.");
-        }
-        List<String> ids = new ArrayList<>();
-        for (Config.Folder folder : config.folders) {
-            ids.add(folder.id);
-        }
-        ui.content.addView(new ReorderList(ui, ids, 72, id -> {
-            Config.Folder folder = config.folderForId(id);
-            int n = folder.apps.size();
-            return ui.detachedRow(folder.name, n == 1 ? "1 app" : n + " apps",
-                    ui.coverPreview(folder, 40, config.animateCovers, config.dotMatrix,
-                            config.greenDots, config.dotStyle),
-                    null, v -> FolderActivity.open(this, folder.id, false));
-        }, order -> {
-            List<Config.Folder> sorted = new ArrayList<>();
-            for (String id : order) {
-                sorted.add(config.folderForId(id));
-            }
-            config.folders.clear();
-            config.folders.addAll(sorted);
-            store.save(this);
-        }));
-        ui.pill("New folder", true, v -> Dialogs.promptText(this, "New folder", "", "Name",
-                name -> {
-                    Config.Folder folder = new Config.Folder(
-                            Long.toString(System.currentTimeMillis(), 36), name);
-                    config.folders.add(folder);
-                    store.save(this);
-                    FolderActivity.open(this, folder.id, true);
-                }));
-
-        ui.section("Nothing Launcher");
-        ui.row("Restart Nothing Launcher", "Applies everything immediately · needs root", null,
-                null, v -> restartLauncher());
-        ui.row("Restore missing home items", "Icons, folders and shortcuts the launcher still"
-                + " has from another grid size, put back where they were · nothing is removed",
-                null, null, v -> new android.app.AlertDialog.Builder(this)
-                        .setTitle("Restore missing home items?")
-                        .setMessage("Nothing Launcher keeps a separate home screen for each grid"
-                                + " size. Icons, folders and shortcuts that the other grid of"
-                                + " the same width still has, and yours does not, are added back"
-                                + " at their places where those are free. Nothing is removed"
-                                + " or moved. Widgets cannot come back this way: the launcher"
-                                + " shows which ones to add again.")
-                        .setNegativeButton("Cancel", null)
-                        .setPositiveButton("Restore", (d, w) -> sendBroadcast(
-                                new android.content.Intent(Config.ACTION_RESTORE_ITEMS)
-                                        .setPackage(Config.LAUNCHER_PKG)))
-                        .show());
-    }
-
-    /**
-     * Nothing Launcher's Icon Pack picker (its exported activity), where "Dot matrix" is one of
-     * the packs; if this launcher build has no such screen, the reason is shown.
-     */
-    private void openIconPackPicker() {
-        try {
-            startActivity(new Intent("com.nothing.launcher.icon_pack_picker")
-                    .setPackage("com.nothing.launcher")
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        } catch (Exception e) {
-            Toast.makeText(this, "Nothing Launcher's Icon Pack picker was not found: open "
-                    + "Customisation > Icon Pack", Toast.LENGTH_LONG).show();
-        }
-    }
-
-    /**
-     * Dot matrix: everything drawn as Nothing's dot screens, the app icons and the folders'
-     * emoji covers, with the style of each.
-     */
-    private void renderDots(Ui ui, Config config) {
-        ui.section("Icons");
-        // An icon pack in Nothing's own picker now (launcher/DotIconPack.kt), not a switch here.
-        ui.row("Dot-matrix app icons",
-                "Pick \"Dot matrix\" in Nothing's Icon Pack picker: every icon a little dot "
-                        + "screen in its own shape, long names scroll", null, ui.chevron(),
-                v -> openIconPackPicker());
-        choiceRow(ui, "Dot icon style", "How the icons' dots light, to compare on the phone",
-                new String[] {"Classic (until now)", "LED dots, soft glow",
-                        "LED dots, strong glow", "LED dots, strong glow, smaller dots",
-                        "VFD, like an 80s car dashboard"},
-                new int[] {Config.DOT_STYLE_CLASSIC, Config.DOT_STYLE_LED_SOFT,
-                        Config.DOT_STYLE_LED_STRONG, Config.DOT_STYLE_LED_SMALL,
-                        Config.DOT_STYLE_VFD},
-                config.iconDotStyle, value -> config.iconDotStyle = value);
+        addOpacityRow(ui, config);
+        addGlassRows(ui, "Glass drawer background", "The wallpaper behind the drawer blurred live,"
+                + " as the quick settings panel, under its tint · off while Android has blurs off"
+                + " (battery saver)",
+                config.drawerGlass,
+                config.drawerGlassTint, checked -> config.drawerGlass = checked,
+                value -> config.drawerGlassTint = value);
+        addGlassRows(ui, "Glass open drawer folders", "A drawer folder, when opened, shows the"
+                + " wallpaper behind it, blurred and tinted", config.drawerFolderGlass,
+                config.drawerFolderGlassTint, checked -> config.drawerFolderGlass = checked,
+                value -> config.drawerFolderGlassTint = value);
 
         ui.section("Covers");
         ui.switchRow("Emoji covers (beta)", "Off: folders show their apps as Nothing does; your emoji"
@@ -505,27 +441,87 @@ public class SettingsActivity extends Activity {
         }
         ui.row("Animation test", "Play any emoji's animation on a big dot screen", null,
                 ui.chevron(), v -> startActivity(EmojiPickerActivity.testIntent(this)));
+
+        ui.section("Folders · " + config.folders.size());
+        if (config.folders.isEmpty()) {
+            ui.note("Create a folder, pick its apps, and it appears in the Smart (Beta) drawer.");
+        }
+        if (config.folders.size() > 1) {
+            ui.note("Drag ≡ to change the order in the drawer: folders fill its rows two at a"
+                    + " time, in this order.");
+        }
+        List<String> ids = new ArrayList<>();
+        for (Config.Folder folder : config.folders) {
+            ids.add(folder.id);
+        }
+        ui.content.addView(new ReorderList(ui, ids, 72, id -> {
+            Config.Folder folder = config.folderForId(id);
+            int n = folder.apps.size();
+            return ui.detachedRow(folder.name, n == 1 ? "1 app" : n + " apps",
+                    ui.coverPreview(folder, 40, config.animateCovers, config.dotMatrix,
+                            config.greenDots, config.dotStyle),
+                    null, v -> FolderActivity.open(this, folder.id, false));
+        }, order -> {
+            List<Config.Folder> sorted = new ArrayList<>();
+            for (String id : order) {
+                sorted.add(config.folderForId(id));
+            }
+            config.folders.clear();
+            config.folders.addAll(sorted);
+            store.save(this);
+        }));
+        ui.pill("New folder", true, v -> Dialogs.promptText(this, "New folder", "", "Name",
+                name -> {
+                    Config.Folder folder = new Config.Folder(
+                            Long.toString(System.currentTimeMillis(), 36), name);
+                    config.folders.add(folder);
+                    store.save(this);
+                    FolderActivity.open(this, folder.id, true);
+                }));
     }
 
     /**
-     * Glass & transparency: the drawer's opacity and every glass surface, the drawer's and the
-     * home screen's, in one place (they were split between the drawer and home pages).
+     * Nothing Launcher's Icon Pack picker (its exported activity), where "Dot matrix" is one of
+     * the packs; if this launcher build has no such screen, the reason is shown.
+     */
+    private void openIconPackPicker() {
+        try {
+            startActivity(new Intent("com.nothing.launcher.icon_pack_picker")
+                    .setPackage("com.nothing.launcher")
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (Exception e) {
+            Toast.makeText(this, "Nothing Launcher's Icon Pack picker was not found: open "
+                    + "Customisation > Icon Pack", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * Dot matrix: the app icons as Nothing's dot screens, and how their dots light (the
+     * folders' emoji covers stay on the App drawer page, with the folders).
+     */
+    private void renderDots(Ui ui, Config config) {
+        ui.section("Icons");
+        // An icon pack in Nothing's own picker now (launcher/DotIconPack.kt), not a switch here.
+        ui.row("Dot-matrix app icons",
+                "Pick \"Dot matrix\" in Nothing's Icon Pack picker: every icon a little dot "
+                        + "screen in its own shape, long names scroll", null, ui.chevron(),
+                v -> openIconPackPicker());
+        choiceRow(ui, "Dot icon style", "How the icons' dots light, to compare on the phone",
+                new String[] {"Classic (until now)", "LED dots, soft glow",
+                        "LED dots, strong glow", "LED dots, strong glow, smaller dots",
+                        "VFD, like an 80s car dashboard"},
+                new int[] {Config.DOT_STYLE_CLASSIC, Config.DOT_STYLE_LED_SOFT,
+                        Config.DOT_STYLE_LED_STRONG, Config.DOT_STYLE_LED_SMALL,
+                        Config.DOT_STYLE_VFD},
+                config.iconDotStyle, value -> config.iconDotStyle = value);
+    }
+
+    /**
+     * Glass: the home screen's frosted surfaces (the drawer's background and its folders keep
+     * theirs on the App drawer page, beside the drawer's opacity).
      */
     private void renderGlass(Ui ui, Config config) {
-        ui.section("Drawer");
-        addOpacityRow(ui, config);
-        addGlassRows(ui, "Glass drawer background", "The wallpaper behind the drawer blurred live,"
-                + " as the quick settings panel, under its tint · off while Android has blurs off"
-                + " (battery saver)",
-                config.drawerGlass,
-                config.drawerGlassTint, checked -> config.drawerGlass = checked,
-                value -> config.drawerGlassTint = value);
-        addGlassRows(ui, "Glass open drawer folders", "A drawer folder, when opened, shows the"
-                + " wallpaper behind it, blurred and tinted", config.drawerFolderGlass,
-                config.drawerFolderGlassTint, checked -> config.drawerFolderGlass = checked,
-                value -> config.drawerFolderGlassTint = value);
-
-        ui.section("Home screen");
+        ui.section("Glass");
         // Nothing OS 5's frosted glass (launcher/Frosted.kt): each surface Nothing OS 5 frosts,
         // with its tint; 40 % is Nothing OS 5's own (Lucent's container_frosted_backdrop).
         ui.note("Glass: Nothing OS 5's frosted surfaces. The tint is how much white (light"
