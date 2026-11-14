@@ -5,8 +5,6 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapShader
-import android.graphics.Canvas
-import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
@@ -19,6 +17,7 @@ import android.os.Looper
 import android.view.View
 import java.util.Collections
 import java.util.WeakHashMap
+import com.dressence.nothinglauncherplus.FrostedRecipe
 import com.dressence.nothinglauncherplus.xposed.Hooks
 import java.util.concurrent.Executors
 
@@ -67,9 +66,7 @@ internal object Frosted {
     fun nativeIn(cl: ClassLoader) = de.robv.android.xposed.XposedHelpers.findClassIfExists(
         "com.nothing.commBase.frosted.stdview.FrostedBackdropDrawable", cl) != null
 
-    private const val DOWNSCALE = 3
-    private const val BLUR_RADIUS = 3
-    private const val SATURATION = 1.15f
+    private const val DOWNSCALE = FrostedRecipe.DOWNSCALE
     /** Lucent's container_frosted_backdrop: white at 40 % in light mode, black at 40 % in dark. */
     const val DEFAULT_TINT_PERCENT = 40
     /** A live wallpaper's glass is captured again when it is older than this. */
@@ -127,7 +124,7 @@ internal object Frosted {
         }
         if (tint != filterTint || filter == null) {
             filterTint = tint
-            filter = colourFilter(tint)
+            filter = FrostedRecipe.colourFilter(tint)
         }
         // One picture pixel covers DOWNSCALE screen pixels; the canvas starts at
         // (screenX, screenY) and may be scaled (a folder while it opens).
@@ -146,22 +143,6 @@ internal object Frosted {
     private var shader: BitmapShader? = null
     private var filter: ColorMatrixColorFilter? = null
     private var filterTint = 0
-
-    /** Nothing's FrostedBackdropDrawable.Companion.buildColorFilter: saturation, then the tint. */
-    private fun colourFilter(tint: Int): ColorMatrixColorFilter {
-        val a = (tint ushr 24) / 255f
-        val r = (tint shr 16 and 0xFF) / 255f
-        val g = (tint shr 8 and 0xFF) / 255f
-        val b = (tint and 0xFF) / 255f
-        val keep = 1f - a
-        val mix = ColorMatrix(floatArrayOf(
-            keep, 0f, 0f, 0f, r * a * 255f,
-            0f, keep, 0f, 0f, g * a * 255f,
-            0f, 0f, keep, 0f, b * a * 255f,
-            0f, 0f, 0f, 1f, 0f))
-        val saturation = ColorMatrix().apply { setSaturation(SATURATION) }
-        return ColorMatrixColorFilter(ColorMatrix().apply { setConcat(mix, saturation) })
-    }
 
     /** Lucent's frosted backdrop tint for the current light or dark mode, at [percent]. */
     private fun tint(context: Context, percent: Int): Int {
@@ -290,8 +271,8 @@ internal object Frosted {
     private fun build(context: Context, width: Int, height: Int): Bitmap? {
         val manager = WallpaperManager.getInstance(context)
         live = manager.wallpaperInfo != null
-        val bitmap = if (live) capture(context, width, height) else read(manager, width, height)
-        bitmap?.let { boxBlur(it, BLUR_RADIUS) }
+        val bitmap = if (live) capture(context, width, height) else FrostedRecipe.read(manager, width, height)
+        bitmap?.let { FrostedRecipe.blur(it) }
         return bitmap
     }
 
@@ -369,63 +350,4 @@ internal object Frosted {
         return seen == 0 || clear * 2 > seen
     }
 
-    /** A still wallpaper, centre-cropped to the screen at a third of its size. */
-    private fun read(manager: WallpaperManager, width: Int, height: Int): Bitmap? {
-        val wallpaper = manager.drawable ?: return null
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val w = wallpaper.intrinsicWidth.coerceAtLeast(1)
-        val h = wallpaper.intrinsicHeight.coerceAtLeast(1)
-        // Fill the screen and centre it, as the home screen shows the wallpaper.
-        val fill = maxOf(width.toFloat() / w, height.toFloat() / h)
-        val left = ((width - w * fill) / 2).toInt()
-        val top = ((height - h * fill) / 2).toInt()
-        wallpaper.setBounds(left, top, left + (w * fill).toInt(), top + (h * fill).toInt())
-        wallpaper.isFilterBitmap = true
-        wallpaper.draw(canvas)
-        return bitmap
-    }
-
-    /**
-     * Nothing's blur (i7.l.a): a box blur along the rows, then along the columns, each pixel
-     * the average of the 2 x [radius] + 1 pixels around it, the edge pixel repeated past the
-     * edge.
-     */
-    private fun boxBlur(bitmap: Bitmap, radius: Int) {
-        val w = bitmap.width
-        val h = bitmap.height
-        val pixels = IntArray(w * h)
-        val out = IntArray(w * h)
-        bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
-        blurPass(pixels, out, w, h, radius, 1, w)   // rows
-        blurPass(out, pixels, h, w, radius, w, 1)   // columns
-        bitmap.setPixels(pixels, 0, w, 0, 0, w, h)
-    }
-
-    /**
-     * One pass over [lines] lines of [length] pixels: [step] moves along a line, [next] to the
-     * next line. A running sum, so each pixel costs the same whatever the radius.
-     */
-    private fun blurPass(src: IntArray, dst: IntArray, length: Int, lines: Int, radius: Int,
-            step: Int, next: Int) {
-        val window = 2 * radius + 1
-        for (line in 0 until lines) {
-            val start = line * next
-            var a = 0; var r = 0; var g = 0; var b = 0
-            for (i in -radius..radius) {
-                val p = src[start + i.coerceIn(0, length - 1) * step]
-                a += p ushr 24; r += p shr 16 and 0xFF; g += p shr 8 and 0xFF; b += p and 0xFF
-            }
-            for (i in 0 until length) {
-                dst[start + i * step] = (a / window shl 24) or (r / window shl 16) or
-                    (g / window shl 8) or (b / window)
-                val leaving = src[start + (i - radius).coerceIn(0, length - 1) * step]
-                val entering = src[start + (i + radius + 1).coerceIn(0, length - 1) * step]
-                a += (entering ushr 24) - (leaving ushr 24)
-                r += (entering shr 16 and 0xFF) - (leaving shr 16 and 0xFF)
-                g += (entering shr 8 and 0xFF) - (leaving shr 8 and 0xFF)
-                b += (entering and 0xFF) - (leaving and 0xFF)
-            }
-        }
-    }
 }

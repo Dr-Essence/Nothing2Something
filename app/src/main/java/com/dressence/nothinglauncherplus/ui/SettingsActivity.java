@@ -359,8 +359,9 @@ public class SettingsActivity extends Activity {
     private void sectionModule(Ui ui) {
         ui.section("Module");
         Config config = store.config;
-        addGlassRows(ui, "Glass settings screens", "This app's screens over your wallpaper, a"
-                + " live one moving too, blurred and tinted", config.settingsGlass,
+        addGlassRows(ui, "Glass settings screens", "This app's screens in Nothing OS 5's frosted"
+                + " glass over your wallpaper · a still wallpaper needs All files access to be"
+                + " read; a live one is blurred live as it moves", config.settingsGlass,
                 config.settingsGlassTint, checked -> {
                     config.settingsGlass = checked;
                     getWindow().getDecorView().post(this::render);

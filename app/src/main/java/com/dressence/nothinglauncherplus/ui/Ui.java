@@ -110,28 +110,27 @@ final class Ui {
         return ui;
     }
 
-    /** The live blur behind a glass screen, in dp (the drawer's glass uses System UI's). */
-    private static final int GLASS_BLUR_DP = 40;
-
     /**
-     * The module's own screen, black, or glass (Glass settings screens, 0.70.50): the
-     * wallpaper, a still or a live one as it moves, shown behind the window (Android's
-     * FLAG_SHOW_WALLPAPER, what launchers use), blurred live by Android, under a black tint
-     * (black in both modes, as the pages' texts are light). While Android has blurs off
-     * (battery saver, heat) the tint lies over the plain wallpaper. Returns the colour the
-     * page's own views take: transparent over glass, else black.
+     * The module's own screen, black, or glass (Glass settings screens): Nothing OS 5's
+     * frosted glass (0.70.52, Dr.Essence: "Nothing's own translucent code"). A still
+     * wallpaper becomes Nothing's frosted picture (FrostedScreen, FrostedRecipe), drawn as the
+     * window's background. A live wallpaper, which no app can read, is shown behind the window
+     * (FLAG_SHOW_WALLPAPER, what launchers use) and blurred live by Android at Nothing's
+     * strength (FLAG_BLUR_BEHIND), under the same tint; so is a still one until its picture is
+     * made, or when the app has no All files access to read it. The tint is Lucent's black (the
+     * pages are dark, with light texts), at the slider (Nothing OS 5: 40 %). While Android has
+     * blurs off (battery saver, heat) the live blur is not drawn; the picture still is.
+     * Returns the colour the page's own views take: transparent over glass, else black.
      *
-     * Which blur, read in the CMF Phone 1's Nothing OS 4.1 framework (dexdump):
-     * Window.setBackgroundBlurRadius, used first, is drawn by DecorView only when the window
-     * is translucent by its theme (updateBackgroundBlurRadius: PhoneWindow.isTranslucent),
-     * which these screens are not, so 0.70.50 showed the wallpaper unblurred (Dr.Essence).
-     * FLAG_BLUR_BEHIND with setBlurBehindRadius is drawn by the system under the window
-     * whenever blurs are on (services' WindowState.shouldDrawBlurBehind: the flag and
-     * BlurController.getBlurEnabled, nothing else), so it is the one used.
+     * Which live blur, read in the CMF Phone 1's Nothing OS 4.1 framework (dexdump):
+     * Window.setBackgroundBlurRadius is drawn by DecorView only for a window translucent by its
+     * theme (updateBackgroundBlurRadius: PhoneWindow.isTranslucent), which these are not, so
+     * 0.70.50 showed the wallpaper unblurred; FLAG_BLUR_BEHIND is drawn by the system whenever
+     * blurs are on (services' WindowState.shouldDrawBlurBehind).
      *
      * Mistake recorded, 0.70.50: switching the setting changed the open window's flags in
      * place; showing the wallpaper does not follow such a change, and Dr.Essence had to force
-     * stop the app. A screen whose window does not match the setting is now made again
+     * stop the app. A screen whose window does not match the setting is made again
      * (Activity.recreate), with the setting in place before its window is shown.
      */
     static int applyBackground(Activity activity) {
@@ -152,11 +151,29 @@ final class Ui {
         int tint = Color.argb((config.settingsGlassTint * 255 + 50) / 100, 0, 0, 0);
         window.setFormat(android.graphics.PixelFormat.TRANSLUCENT);
         window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(tint));
-        android.view.WindowManager.LayoutParams attributes = window.getAttributes();
-        attributes.flags |= wallpaper | blurBehind;
-        attributes.setBlurBehindRadius(dp(activity, GLASS_BLUR_DP));
-        window.setAttributes(attributes);
+        setBlurBehind(window, true);
+        if (FrostedScreen.INSTANCE.canRead(activity)) {
+            FrostedScreen.INSTANCE.load(activity, tint, picture -> {
+                if (picture == null || activity.isFinishing() || activity.isDestroyed()) {
+                    return kotlin.Unit.INSTANCE;
+                }
+                window.setBackgroundDrawable(picture);
+                setBlurBehind(window, false); // The picture is opaque: nothing to blur.
+                return kotlin.Unit.INSTANCE;
+            });
+        }
         return Color.TRANSPARENT;
+    }
+
+    /** The live blur under the window, at Nothing's strength, on or off. */
+    private static void setBlurBehind(android.view.Window window, boolean on) {
+        android.view.WindowManager.LayoutParams attributes = window.getAttributes();
+        int flags = android.view.WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER
+                | (on ? android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND : 0);
+        attributes.flags = (attributes.flags
+                & ~android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND) | flags;
+        attributes.setBlurBehindRadius(on ? FrostedScreen.INSTANCE.liveBlurPx() : 0);
+        window.setAttributes(attributes);
     }
 
     /**

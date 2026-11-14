@@ -281,7 +281,7 @@ public final class Config {
     public int drawerGlassTint = 40;
     /** The module's own screens over the wallpaper, blurred live (ui/Ui.applyBackground). */
     public boolean settingsGlass = false;
-    public int settingsGlassTint = 60;
+    public int settingsGlassTint = 40;
     public boolean drawerFolderGlass = false;
     public int drawerFolderGlassTint = 40;
     /** Running services (Settings) as a task manager. */
@@ -529,7 +529,7 @@ public final class Config {
         drawerGlass = in.bool(KEY_DRAWER_GLASS, false);
         drawerGlassTint = Math.max(0, Math.min(100, in.number(KEY_DRAWER_GLASS_TINT, 40)));
         settingsGlass = in.bool(KEY_SETTINGS_GLASS, false);
-        settingsGlassTint = Math.max(0, Math.min(100, in.number(KEY_SETTINGS_GLASS_TINT, 60)));
+        settingsGlassTint = Math.max(0, Math.min(100, in.number(KEY_SETTINGS_GLASS_TINT, 40)));
         drawerFolderGlass = in.bool(KEY_DRAWER_FOLDER_GLASS, false);
         drawerFolderGlassTint = Math.max(0, Math.min(100,
                 in.number(KEY_DRAWER_FOLDER_GLASS_TINT, 40)));
