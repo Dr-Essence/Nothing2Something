@@ -7,8 +7,9 @@
   --milestone (only when Dr.Essence has called a milestone in their own words) 0.X.Y ->
   0.(X+1).0 instead. Refuses anything that would reach 1.0.0: the module is an alpha.
 - README.md: replaces "version <old>, what is pending" and "**Current build: <old>**" with
-  the new version, and inserts the entry file's text right after the "**Not tested on a phone
-  yet**" line, with every {VERSION} in it replaced by the new version.
+  the new version; adds the build's row at the top of the Builds table (its title, "Not
+  tested yet"), and puts the entry file's text at the top of "Full notes of every build",
+  with every {VERSION} in it replaced by the new version.
 - Prints the new version and versionCode. Changes nothing if any step cannot be done.
 """
 import argparse
@@ -19,7 +20,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[4]  # .claude/skills/n2s-release/scripts -> repo
 GRADLE = ROOT / "app" / "build.gradle"
 README = ROOT / "README.md"
-MARKER = "**Not tested on a phone yet**\n"
+TABLE = "| Build | What changed | On a phone |\n|---|---|---|\n"
+NOTES = "<summary><b>Full notes of every build</b> · newest first</summary>\n\n"
 
 
 def fail(why):
@@ -50,13 +52,20 @@ def main():
     if not entry.startswith(f"- **{new}"):
         fail(f'the entry must start with "- **{{VERSION}}, <title>.**" (got: {entry[:40]!r})')
 
+    title = re.match(r"- \*\*[\d.]+,\s*(.*?)\*\*", entry, re.S)
+    if not title:
+        fail('the entry must start with "- **{VERSION}, <title>.**"')
+    title = " ".join(title.group(1).split()).rstrip(".").replace("|", "/")
+    row = f"| {new} | {title[0].upper() + title[1:]} | Not tested yet |\n"
+
     readme = README.read_text()
-    for needle in (f"version {old}, what is pending", f"**Current build: {old}**", MARKER):
+    for needle in (f"version {old}, what is pending", f"**Current build: {old}**", TABLE, NOTES):
         if readme.count(needle) != 1:
             fail(f"README.md: expected exactly one {needle.strip()!r}")
     readme = readme.replace(f"version {old}, what is pending", f"version {new}, what is pending")
     readme = readme.replace(f"**Current build: {old}**", f"**Current build: {new}**")
-    readme = readme.replace(MARKER, MARKER + entry, 1)
+    readme = readme.replace(TABLE, TABLE + row, 1)
+    readme = readme.replace(NOTES, NOTES + entry, 1)
 
     gradle = gradle.replace(f"versionCode {code.group(1)}", f"versionCode {new_code}", 1)
     gradle = gradle.replace(f"versionName '{old}'", f"versionName '{new}'", 1)

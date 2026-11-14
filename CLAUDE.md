@@ -24,6 +24,9 @@
   have not been tested on a phone yet, which tests are pending (and what evidence they need),
   and the bugs fixed. A change is not finished while the Status section still describes the
   build before it.
+- **The README is written professionally:** state results as facts ("confirmed on the
+  phone", "reported: …", "not yet recorded after a reboot"), never as quotes of chat messages
+  ("seems fixed", "I think it works") or in the first person.
 - **Keep the README's Testing section current:** whenever a change affects what works on a
   phone or Nothing OS version other than the CMF Phone 1 (a fix for another version, a new hook,
   a rerun of the hook check on every build), update its table and its "As of" version in the same

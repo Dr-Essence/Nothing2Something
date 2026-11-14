@@ -129,53 +129,151 @@ in the last builds.
 - Both Xposed APIs in one module; LSPosed 2 and Vector keep the settings themselves. *New*
 - The crash-loop guard counts only crashes, not System UI restarts by other modules or LSPosed.
 
-**Verified on the phone**
-- 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
-  0.63.0 (screenshot: Sonic Forces' banner through the dots). Asked next, in 0.64.1: the
-  screen bigger, matching by hand, choosing the trailer.
-- 0.59.0, Nothing Gaming Space opens, plays the intro and lists the categories and apps
-  (screenshots: Games with 25 apps, 8 Ball Pool selected). Dr.Essence's changes, in 0.59.1:
-  the whole top half one dot screen (it was a small display box), the categories like the
-  drawer's folders (one dot card, the name lit in NDot), and apps moved through as on the
-  PlayStation's cross menu. The turning 3D dot boxes for the apps come in the next part.
-- 0.58.1, HeliBoard across the whole width (switch in Landscape & controllers): the keyboard
-  runs edge to edge in landscape (Dr.Essence: "heliboard fixed"). How it was found: Android
-  keeps a window out of the camera's strip unless it asks for cutout mode ALWAYS
-  (`WindowLayout.computeFrames`; the keyboard window asked for nothing, dump
-  `frame=[106,103][2400,1080]`); HeliBoard sized its keys to the screen minus the cutout
-  (`getDefaultKeyboardWidth`, moved by R8 into `KtxKt` in the 4.3-beta1 APK); and in 0.57.0,
-  with both changed, the keys were still 106 px in and cut off on the right, because the
-  phone's `InsetsState` counts the cutout in the views' legacy system window insets. The
-  keyboard window now asks for ALWAYS, HeliBoard's width leaves out only the bars, and the
-  window root hands its views the insets without the cutout. The diagnostic line of 0.58.1
-  is removed.
-- 0.58.0, Full-screen apps: a picked app goes full screen once it is also ticked in the
-  module's LSPosed scope (Dr.Essence: "if i tick the app i want in lsposed it works"); before
-  ticking, nothing happened, as expected. Asked next: no ticking. Checked and left out: LSPosed
-  hands its "request scope" service only to modules on the modern API (`LSPModuleService`:
-  `!module.file.legacy`, also in the Vector fork), and the phone's LSPosed 2.2.1 `lspctl`
-  says it is not to be used by apps; so the scope stays ticked by hand. Which modes and the
-  swipe were tried is not reported yet.
-- 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
-  the other icons, the date in full ("SUNDAY, 8 NOVEMBER") and the notifications under it,
-  apps under the taller bar (screenshots). The gap between the rows was too large; see 0.54.0.
-- 0.54.0, dual status bar: the tighter gap (the second row just under the clock, the top row
-  where it was), the year option, and in landscape the notifications at the end of the left
-  half under the right icons (screenshots). The OLED saver hid the bar (instantly) and moved
-  it (log: "move every 60 s by 2 dp").
-- 0.55.2, app icon: the dot-matrix face in the launcher (Dr.Essence: "perfect").
-- 0.55.1, Nothing2Something in Settings: the row shows and opens the app (Dr.Essence: "I
-  think it works"; the icon's tint in light mode and the LSPosed log line not checked yet).
-- 0.54.10, the dock turning with the home screen: the squeezed dock not seen again in use
-  (Dr.Essence: "seems fixed"; not yet recorded after a reboot or on battery saving).
-- 0.54.9, Check orientation on wake and unlock: the screen came on and unlocked in the way
-  the phone was held (Dr.Essence: "seems to work"; the LSPosed log not checked yet).
+**Builds**, newest first, one row each (each build's full notes are under *Full notes of
+every build* below; *Verified* means checked on the phone).
 
-- 0.56.0, the module's settings in Settings search: searching in Nothing's Settings lists the
-  module's settings, its folders too (they are rows of the App drawer page, which the list is
-  made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
-  reported separately.
-**Not tested on a phone yet**
+| Build | What changed | On a phone |
+|---|---|---|
+| 0.70.61 | Two Nothing OS 5 names found; the rest mapped | Not tested yet |
+| 0.70.60 | The landscape widget picker on Nothing OS 4.0 | Not tested yet |
+| 0.70.59 | Diagnostics says what is collected (nothing) and how to report | Not tested yet |
+| 0.70.58 | Audit pass 3: scenarios | Not tested yet |
+| 0.70.57 | Audit pass 4: the audit's own fixes reviewed | Not tested yet |
+| 0.70.56 | Audit pass 1 (System UI and system): the system font and saves | Not tested yet |
+| 0.70.55 | Audit passes 1 and 2 (first part): settings never lost, less drawing | Not tested yet |
+| 0.70.54 | The frosted drawer no longer solid black | Not tested yet |
+| 0.70.53 | The drawer in Nothing OS 5's frosted glass again, the live blur as a second look | Not tested yet |
+| 0.70.52 | Glass settings screens in Nothing OS 5's frosted glass | Not tested yet |
+| 0.70.51 | Glass settings screens blur, and switch without a force stop | Not tested yet |
+| 0.70.50 | Glass settings screens (new) | Not tested yet |
+| 0.70.49 | Glass tints folded away; builds with the real Xposed API | Not tested yet |
+| 0.70.48 | The App drawer page as it was; Launcher only on top again | Not tested yet |
+| 0.70.47 | The settings sorted by what they change | Not tested yet |
+| 0.70.46 | The drawer's glass is a live blur, as the quick settings panel; clearer VFD details; no green blobs in the… | Not tested yet |
+| 0.70.45 | The drawer's glass covers the whole screen; Restart System UI touches only System UI | Not tested yet |
+| 0.70.44 | The drawer's glass follows the drawer and covers it; tiles keep other modules' transparency | Not tested yet |
+| 0.70.43 | The drawer's glass installs; saves reach the system at once | Not tested yet |
+| 0.70.42 | The glass follows its surface everywhere | Not tested yet |
+| 0.70.41 | Dot icon style: the five looks for the dot-matrix app icons too | Not tested yet |
+| 0.70.40 | Dot screen style: five ways for the dots to light, to compare on the phone | Not tested yet |
+| 0.70.39 | Green dot screen keeps the normal glow | Not tested yet |
+| 0.70.38 | Glass app drawer and open drawer folders; a stronger glow on the green screen | Not tested yet |
+| 0.70.37 | Green dot screen | Not tested yet |
+| 0.70.36 | Dot screens dark in light mode, the folder card stays white | Not tested yet |
+| 0.70.35 | Both Xposed APIs in one module, no shared settings file on LSPosed 2 | Not tested yet |
+| 0.70.34 | Nothing OS 5: "add to home screen" from a drawer folder no longer crashes the launcher | Not tested yet |
+| 0.70.33 | Nothing OS 5: dot-matrix icons and live icons | Not tested yet |
+| 0.70.32 | Nothing OS 5 (Android 17): every broken hook found and fixed or left out cleanly | Not tested yet |
+| 0.70.31 | The glass is visible on live wallpapers: the capture copied exactly from Nothing OS 5 | Not tested yet |
+| 0.70.30 | Glass widgets: Nothing's own widgets frosted as in Nothing OS 5 (new, a switch and a tint slider) | Not tested yet |
+| 0.70.29 | Glass on live wallpapers, glass closed folders and glass search bar (new, switches with a tint slider each) | Not tested yet |
+| 0.70.28 | Glass folders made exactly as Nothing OS 5 makes them, with a tint slider | Not tested yet |
+| 0.70.27 | Glass folders: Nothing OS 5's frosted folders on Nothing OS 4 (new, a switch, off by default) | Not tested yet |
+| 0.70.26 | DexKit: renamed launcher methods found again | Not tested yet |
+| 0.70.25 | Hook health in detail | Not tested yet |
+| 0.70.24 | Folders never empty the drawer | Not tested yet |
+| 0.70.23 | Obfuscated names checked before use | Not tested yet |
+| 0.70.22 | More from the dependency maps | Not tested yet |
+| 0.70.21 | Ready for updates: no half-applied features | Not tested yet |
+| 0.70.20 | From the phone's own system_server code | Not tested yet |
+| 0.70.19 | Hook health (new, Diagnostics) | Not tested yet |
+| 0.70.18 | Open audit items that needed no phone evidence | Not tested yet |
+| 0.70.17 | Full audit, passes 3 and 4 | Not tested yet |
+| 0.70.16 | Full audit, part 3 | Not tested yet |
+| 0.70.15 | Full audit, part 2 | Not tested yet |
+| 0.70.14 | Full audit, part 1: bugs found by reading every file, fixed | Not tested yet |
+| 0.70.13 | Cleanup step 4, part 3: LockScreenTurn split | Not tested yet |
+| 0.70.12 | Cleanup step 4, part 2: DotEffect split | Not tested yet |
+| 0.70.11 | Cleanup step 4, part 1: SettingsActivity split | Not tested yet |
+| 0.70.10 | Cleanup step 3: Nothing Gaming Space in a package of its own | Not tested yet |
+| 0.70.9 | Cleanup step 2, part 3: one controller test, one place for class names | Not tested yet |
+| 0.70.8 | Cleanup step 2, part 2: one way to download | Not tested yet |
+| 0.70.7 | Cleanup step 2 (shared helpers), part 1: one way to run root commands | Not tested yet |
+| 0.70.6 | Gaming Space: games' icons turn as solid dot shapes | Not tested yet |
+| 0.70.5 | Gaming Space: Android games get their Google Play banner | Not tested yet |
+| 0.70.4 | Gaming Space: a trailer no longer shows its artwork through it | Not tested yet |
+| 0.70.3 | The settings no longer crash with the app icon hidden | Not tested yet |
+| 0.70.2 | Gaming Space: artwork shows again, no ghost on trailers, searches say why they fail | Not tested yet |
+| 0.70.1 | Gaming Space's dot screen lit like the folders' covers; finer banner dots; the category animations removed | Not tested yet |
+| 0.70.0 | Gaming Space: Steam's microtrailers, and your own clip | Not tested yet |
+| 0.69.1 | The dot balls of 0.69.0 removed | Not tested yet |
+| 0.69.0 | Gaming Space: round icons are dot balls | Not tested yet |
+| 0.68.1 | Gaming Space: renaming really saves, and the boxes stay whole | Not tested yet |
+| 0.68.0 | Gaming Space: the lower half as on the XMB, and typing that saves by touch | Not tested yet |
+| 0.67.0 | Show app icon (Module section) | Not tested yet |
+| 0.66.0 | Search inside the module | Not tested yet |
+| 0.65.3 | First cleanup from the code audit (four bugs) | Not tested yet |
+| 0.65.2 | No squeezed home screen on a turn | Not tested yet |
+| 0.65.0 | A "Nothing Gaming Space" folder for the artwork and trailers | Not tested yet |
+| 0.64.1 | The whole top a dot screen; games and trailers chosen by hand | Not tested yet |
+| 0.64.0 | Steam trailers as a saved clip | Not tested yet |
+| 0.63.1 | SteamGridDB artwork on the big dot screen; Gaming Space no longer crashes on saved artwork | Verified |
+| 0.63.0 | Gaming Space: Steam trailers, a bigger banner, adjusting the artwork | Not tested yet |
+| 0.62.0 | Gaming Space: its own menus, choosing artwork, animated banners, touch | Not tested yet |
+| 0.61.2 | The artwork shows | Not tested yet |
+| 0.61.1 | Nothing Gaming Space: renaming, and the artwork's lookups shown | Not tested yet |
+| 0.61.0 | Nothing Gaming Space, third part: game artwork; marked (alpha) (demo) | Not tested yet |
+| 0.60.0 | Nothing Gaming Space, second part: 3D boxes and category animations | Not tested yet |
+| 0.59.1 | Nothing Gaming Space: one dot screen and the cross menu | Not tested yet |
+| 0.59.0 | Nothing Gaming Space opens, plays the intro and lists the categories and apps; Nothing Gaming Space (first part of three) | Verified |
+| 0.58.1 | HeliBoard across the whole width (switch in Landscape & controllers) | Verified |
+| 0.58.0 | Full-screen apps | Verified |
+| 0.56.1 | The Launcher only switch's description, and the README, present it as the way to keep the launcher's… | Fixed |
+| 0.56.0 | The module's settings in Settings search | Verified |
+| 0.55.11 | At 34 dots across, a rounded-square icon's left edge ended in a dark strip before the bezel while its… | Fixed |
+| 0.55.10 | Finer dot icons | Not tested yet |
+| 0.55.9 | CMF Stereo's live icon stayed still at times | Fixed |
+| 0.55.8 | With 0.55.7 every dot icon was an empty dark screen, no dot lit (seen on the phone, screenshot) | Fixed |
+| 0.55.7 | Dot icons end in the bezel's outline, every shape | Not tested yet |
+| 0.55.6 | No green edge on dot icons | Not tested yet |
+| 0.55.4 | "Dot matrix" in Nothing's Icon Pack picker | Not tested yet |
+| 0.55.3 | CMF Stereo's live icon | Not tested yet |
+| 0.55.2 | App icon | Verified |
+| 0.55.1 | Nothing2Something in Settings | Verified |
+| 0.55.0 | Launcher only | Not tested yet |
+| 0.54.12 | The crash-loop guard counts crashes only | Not tested yet |
+| 0.54.11 | The dual status bar's date hides with the clock | Not tested yet |
+| 0.54.10 | The dock turning with the home screen | Verified |
+| 0.54.9 | Check orientation on wake and unlock | Verified |
+| 0.54.8 | The lock screen turns straight into its layout | Not tested yet |
+| 0.54.7 | OLED saver over full-screen apps | Not tested yet |
+| 0.54.5 | Restart System UI put LSPosed into safe mode when pressed three times within 30 s; With Notifications at the end, the notification row reached the bar's end (no overflow dot in portrait any… | Fixed |
+| 0.54.3 | Dual status bar: Notifications at the end and Date at the end | Not tested yet |
+| 0.54.1 | OLED saver; Restart System UI; The dual status bar's year showed as "26" (android.text.format.DateFormat writes a lone "y" as two digits); The OLED saver's hidden bar came back every 2 s on the home screen (seen on the phone) | Not tested yet |
+| 0.54.0 | Dual status bar | Verified |
+| 0.53.1 | Dual status bar; The dual status bar did nothing but take the date off the clock | Verified |
+| 0.52.5 | Dot-matrix icons powering on in step again; Live icons | Not tested yet |
+| 0.52.4 | Controller; Controller menus are Nothing's own, as on a long-press | Not tested yet |
+| 0.52.3 | Controller; Rings on widgets no longer treat them as containers or squash them | Not tested yet |
+| 0.52.2 | Drawer folder tiles lift inside the drawer again, and their emoji reacts on focus | Fixed |
+| 0.52.1 | The landscape home menu keeps its portrait width | Fixed |
+| 0.52.0 | One focus ring in each item's own shape | Fixed |
+
+**Pending**
+- **Signing key move (0.52.5):** the release key is private now; CI builds only once its three
+  secrets are added to the repository. Updating from 0.52.4 needs one switch: Backup → Export,
+  uninstall, install, re-enable in LSPosed if asked, Backup → Import.
+- **Landscape lock screen and the Customisation page layout:** in progress.
+- **PS2-style interface sounds:** waiting for recordings of the cursor, confirm, back, error and
+  memory-card sounds.
+- **Nothing Dot Matrix Display:** the engine that replaces the emoji-cover beta (see Roadmap).
+- **README pictures:** all views are in (home, app drawer with emoji covers and with normal
+  folders, both orientations; landscape lock screen and AOD). They come from alpha builds and
+  will be retaken for the public release.
+- **Fingerprint on the turned lock screen and always-on display: fails at times, cause not
+  found.** Failing (DebuG24 and the module log, 04:15 to 04:22): in landscape the touch panel's
+  firmware reported no finger on the sensor (`KEY_GESTURE_FOD`), and each session ended
+  cancelled; every unlock then came in portrait. Working (LSPosed log at 04:49 to 04:50): every
+  finger the panel reported unlocked, in both landscape sides, on the always-on display and the
+  lock screen (one took 1.1 s instead of about 0.25 s). Ruled out: Nothing's edge mode
+  (`NtWindowManagerService.updateRotation`, `sys.touch.edge_mode.enable`): it was turned on
+  at every landscape turn in the working period too. Needs: a debug report (or LSPosed log)
+  started within a minute or two of a failure, so the system log still covers it, and what
+  the failure looked like (no reaction, "not recognised", or slow).
+
+<details>
+<summary><b>Full notes of every build</b> · newest first</summary>
+
 - **0.70.61, two Nothing OS 5 names found; the rest mapped.** Every name the module misses on
   Nothing OS 5.0 was matched by role in the 5.0 launcher and System UI (dexdump; the mapping
   is in docs/reverse-engineering/nos5_port.md). Fixed where the evidence leaves no doubt and the
@@ -1351,8 +1449,8 @@ in the last builds.
     built without seeing their real answers.
   Compiled; the microtrailers checked on Steam's servers as above. Not run on the phone yet.
   To test: "Choose trailer" on a Steam game, pick one, and see the clip on the big screen.
-- **0.69.1, the dot balls of 0.69.0 removed.** Dr.Essence: "a sphere of NDot doesn't look
-  good at all". Round icons are boxes again, as every other icon; the code is back as it was
+- **0.69.1, the dot balls of 0.69.0 removed.** On the phone the dot
+  spheres did not look right. Round icons are boxes again, as every other icon; the code is back as it was
   in 0.68.1 (`DotBallView` and the `TurningIcon` interface deleted, `IconScreen.isCircle`
   private again). The lesson kept for the course: a render of the idea, shown before
   building it into the app, would have settled this sooner.
@@ -1515,8 +1613,11 @@ in the last builds.
   per game. Steam's search can pick another game of a similar name (Crazy Taxi gave "Crazy
   Taxi: World Tour"): Rename fixes it. Checked here: it compiles; the clip-making was done by
   hand on the live playlists. Needs: a trailer playing on the phone.
-- **0.63.1, Gaming Space no longer crashes on saved artwork.** Dr.Essence: "the gaming
-  launcher seems to crash". Found in the LSPosed log (FATAL EXCEPTION in
+- 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
+  0.63.0 (screenshot: Sonic Forces' banner through the dots). Asked next, in 0.64.1: the
+  screen bigger, matching by hand, choosing the trailer.
+- **0.63.1, Gaming Space no longer crashes on saved artwork.** Reported on the phone: the
+  gaming launcher crashed. Found in the LSPosed log (FATAL EXCEPTION in
   com.dressence.nothinglauncherplus): "Software rendering doesn't support hardware bitmaps" at
   `DotAnimationView.fitPicture`. Since 0.62.0 saved artwork is read with `ImageDecoder`, whose
   default puts a still picture in a GPU (hardware) bitmap, and fitting it to the dots draws it
@@ -1558,7 +1659,7 @@ in the last builds.
   it compiles. Needs: each menu with the controller and by touch, choosing artwork, an
   animated banner playing, the swipes. Next asked: real game footage (Steam's trailers) as a
   further source.
-- **0.61.2, the artwork shows.** Dr.Essence: "Check the key" says the key is correct, yet
+- **0.61.2, the artwork shows.** "Check the key" said the key was correct, yet
   no artwork. Cause, found in the code: the artwork's view started hidden (GONE), and Android
   never measures a hidden view; the picture could only be fitted to the dots once the view had
   a size, and the view was shown only once the picture was fitted, so it never was. It is now
@@ -1625,6 +1726,11 @@ in the last builds.
   screen. The names are now on top, as on the drawer's folders, the picture centred below.
   Checked here: it compiles. Needs: screenshots of a category and of an app selected, and how
   moving feels.
+- 0.59.0, Nothing Gaming Space opens, plays the intro and lists the categories and apps
+  (screenshots: Games with 25 apps, 8 Ball Pool selected). Dr.Essence's changes, in 0.59.1:
+  the whole top half one dot screen (it was a small display box), the categories like the
+  drawer's folders (one dot card, the name lit in NDot), and apps moved through as on the
+  PlayStation's cross menu. The turning 3D dot boxes for the apps come in the next part.
 - **0.59.0, Nothing Gaming Space (first part of three).** Asked by Dr.Essence: with a
   controller connected and Nothing Launcher as home, a gaming launcher in Nothing's style.
   It is a home screen in the module app (`ui/GamingSpaceActivity`), so it can be picked as the
@@ -1649,6 +1755,40 @@ in the last builds.
 - Found while checking HeliBoard (not the module): HeliBoard 4.2 never splits the keyboard
   (its split flag is never passed to the keyboard builder); fixed in HeliBoard 4.3-beta1
   (commit e1a981b). Taking HeliBoard out of the scope did not change it, and 4.3-beta1 splits.
+- 0.58.1, HeliBoard across the whole width (switch in Landscape & controllers): the keyboard
+  runs edge to edge in landscape (confirmed on the phone). How it was found: Android
+  keeps a window out of the camera's strip unless it asks for cutout mode ALWAYS
+  (`WindowLayout.computeFrames`; the keyboard window asked for nothing, dump
+  `frame=[106,103][2400,1080]`); HeliBoard sized its keys to the screen minus the cutout
+  (`getDefaultKeyboardWidth`, moved by R8 into `KtxKt` in the 4.3-beta1 APK); and in 0.57.0,
+  with both changed, the keys were still 106 px in and cut off on the right, because the
+  phone's `InsetsState` counts the cutout in the views' legacy system window insets. The
+  keyboard window now asks for ALWAYS, HeliBoard's width leaves out only the bars, and the
+  window root hands its views the insets without the cutout. The diagnostic line of 0.58.1
+  is removed.
+- 0.58.0, Full-screen apps: a picked app goes full screen once it is also ticked in the
+  module's LSPosed scope (confirmed on the phone); before
+  ticking, nothing happened, as expected. Asked next: no ticking. Checked and left out: LSPosed
+  hands its "request scope" service only to modules on the modern API (`LSPModuleService`:
+  `!module.file.legacy`, also in the Vector fork), and the phone's LSPosed 2.2.1 `lspctl`
+  says it is not to be used by apps; so the scope stays ticked by hand. Which modes and the
+  swipe were tried is not reported yet.
+- 0.56.1: the Launcher only switch's description, and the README, present it as the way to keep
+  the launcher's features if the others are buggy on a phone, not as a mode for other phones
+  (Dr.Essence).
+- 0.56.0, the module's settings in Settings search: searching in Nothing's Settings lists the
+  module's settings, its folders too (they are rows of the App drawer page, which the list is
+  made from); folders confirmed searchable on the phone. Opening a result at its row not
+  reported separately.
+- 0.55.11: at 34 dots across, a rounded-square icon's left edge ended in a dark strip before
+  the bezel while its right edge ran under it (seen in the render of 0.55.10). The grid started at the bitmap's corner, so the columns met the bezel
+  differently on each side, and a dot was kept by the depth at the pixel its centre fell in,
+  with a margin. The grid is now laid out from the screen's centre (a dot on the centre), a
+  dot is kept if any of it touches the glass, and the depth is read at its exact centre.
+  Checked by running the real `IconScreen.grid` on a circle and a rounded square: every dot
+  mirrored left-right and top-bottom, the widest dark gap at the circle's edge 0.49 px on both
+  sides (under the 1.13 px between dots), and the rounded square's dots under the bezel on
+  both sides.
 - **0.55.10, finer dot icons.** Asked by Dr.Essence: more and smaller dots. The grid is 34
   dots across instead of 22 (about 2.4 times the dots, each two thirds the size); the bezel's
   reach over the grid, the glow and the power-on all follow the dot spacing. Checked here:
@@ -1656,13 +1796,18 @@ in the last builds.
   screen at icon size); the class compiles. Needs on the phone: the icons at 34, and whether
   the drawer or the home screen stutters while icons power on (each draws 2.4 times the dots
   during the 0.56 s power-on; if it does, the density or the power-on is the place to look).
-- **0.55.6, no green edge on dot icons.** Seen on the phone: icons in a shape of their own
-  showed a green outline, which Dr.Essence found did not look good. Their glass was lit green
-  (`GLASS_GREEN`) with green unlit dots, and the glass between the outermost dots and the bezel
-  read as a green edge. Every shape now has the round icons' dark glass and unlit dots (the
-  green colours and the per-shape choice removed). The faint green scan line that now and
-  then rolls down an icon stays. Checked here: the class compiles against Android 36. Needs on
-  the phone: icons of every shape with no green, the rim and bezel as before.
+- 0.55.9: CMF Stereo's live icon stayed still at times: the LSPosed log (16:08) showed "live
+  icons analyse failed: … pixel access is not supported on Config#HARDWARE bitmaps" 9 times.
+  The launcher keeps some icon bitmaps on the GPU; the analysis now reads a copy, as the dot
+  icons already did (`IconScreen.of`).
+- 0.55.8: with 0.55.7 every dot icon was an empty dark screen, no dot lit (seen on the phone,
+  screenshot). Mistake recorded: when the dot colour started counting only the glass under a
+  dot (0.55.7), the new count was added but the old `n++` was left in the same loop, so each
+  cell counted its area twice, coverage never passed 50% and every dot stayed under the 55%
+  that lights it. The 0.55.7 check drew the rules again in Python instead of running the Java,
+  so it could not see this. Now checked by running the real `IconScreen.colourAt` on the
+  computer (reflection, Android 36 library): a covered dot lit in the art's colour, a dot half
+  under the bezel lit as fully, an empty one dark; the 0.55.7 code gave all three dark.
 - **0.55.7, dot icons end in the bezel's outline, every shape** (0.55.5 put round icons'
   dots in rings; Dr.Essence preferred the square grid as before with a bigger bezel, for all
   shapes). Seen on the phone: the dots stopped at the last whole dot that fit the glass, and a
@@ -1675,6 +1820,13 @@ in the last builds.
   thicker bezel only, bezel covering the edge dots). Checked here: both classes compile against
   Android 36; a round and a rounded-square icon drawn with the same numbers and rules. Needs on
   the phone: round and other shapes with clean edges, the power-on cut the same, no slower.
+- **0.55.6, no green edge on dot icons.** Seen on the phone: icons in a shape of their own
+  showed a green outline, which Dr.Essence found did not look good. Their glass was lit green
+  (`GLASS_GREEN`) with green unlit dots, and the glass between the outermost dots and the bezel
+  read as a green edge. Every shape now has the round icons' dark glass and unlit dots (the
+  green colours and the per-shape choice removed). The faint green scan line that now and
+  then rolls down an icon stays. Checked here: the class compiles against Android 36. Needs on
+  the phone: icons of every shape with no green, the rim and bezel as before.
 - **0.55.4, "Dot matrix" in Nothing's Icon Pack picker.** Asked by Dr.Essence: the dot icons
   as a choice next to Nothing's own packs, not something that takes over every icon. The
   module's "Dot-matrix app icons" switch is gone (a row on the Home screen page opens
@@ -1704,6 +1856,9 @@ in the last builds.
   launcher draws it. Checked here: the class compiles against Android 36 with stand-ins for
   the Xposed calls. Needs on the phone: the waves white with a dip passing through, in Default;
   in the Nothing style, the icon as the launcher draws it (no extra dots).
+- 0.55.2, app icon: the dot-matrix face in the launcher (confirmed on the phone).
+- 0.55.1, Nothing2Something in Settings: the row shows and opens the app (confirmed on the
+  phone; the icon's tint in light mode and the LSPosed log line not checked yet).
 - **0.55.0, Launcher only** (main page, Mode; off by default). With it on, the module changes
   only Nothing Launcher and Nothing's widget apps (Nothing Widgets, NothingCardService), and in
   the system only home screen rotation's part (`CardOrientation`: the home screen and widget
@@ -1741,16 +1896,12 @@ in the last builds.
   portrait lock screen with nothing at the top edge; the date back with the clock once
   unlocked. The debug report also copies the module's settings again (LSPosed keeps them in
   its own folder; the copy came out empty in DebuG23 and DebuG24).
-- **Fingerprint on the turned lock screen and always-on display: fails at times, cause not
-  found.** Failing (DebuG24 and the module log, 04:15 to 04:22): in landscape the touch panel's
-  firmware reported no finger on the sensor (`KEY_GESTURE_FOD`), and each session ended
-  cancelled; every unlock then came in portrait. Working (LSPosed log at 04:49 to 04:50): every
-  finger the panel reported unlocked, in both landscape sides, on the always-on display and the
-  lock screen (one took 1.1 s instead of about 0.25 s). Ruled out: Nothing's edge mode
-  (`NtWindowManagerService.updateRotation`, `sys.touch.edge_mode.enable`): it was turned on
-  at every landscape turn in the working period too. Needs: a debug report (or LSPosed log)
-  started within a minute or two of a failure, so the system log still covers it, and what
-  the failure looked like (no reaction, "not recognised", or slow).
+- 0.54.10, the dock turning with the home screen: the squeezed dock not seen again in use
+  (not yet recorded after a reboot or on battery saving).
+- 0.54.9, Check orientation on wake and unlock: the screen came on and unlocked in the way
+  the phone was held (confirmed on the phone;
+  the LSPosed log not checked yet).
+
 - **0.54.8, the lock screen turns straight into its layout.** DebuG23 (a recording on
   perfmtk battery saving, with the log beside it, looked at frame by frame): after each turn
   the landscape lock screen was first drawn with the portrait layout (weather pills across the
@@ -1777,6 +1928,19 @@ in the last builds.
   phone: a swipe over a full-screen app with the bar hidden (the bar shows at once, LSPosed
   log "status bar saver: shown again (full-screen swipe)"), and the start-up line "full-screen
   swipes watched (4 hooks)".
+- 0.54.5: Restart System UI put LSPosed into safe mode when pressed three times within 30 s
+  (seen on the phone: three System UI deaths with no crash report, then LSPosed's safe-mode
+  notification: LSPosed cannot tell a restart from a crash). It now restarts at most once
+  every 90 s and says how long to wait. The module itself did not crash.
+- 0.54.5: with Notifications at the end, the notification row reached the bar's end (no
+  overflow dot in portrait any more) but its icons stayed at its start (seen on the phone).
+  System UI puts the icon container into the row after the bar is built, where the module
+  set it at the end, so it was not there yet; it is now set at the end at each measure of
+  the row, before that pass lays it out.
+- Renamed **Nothing2Something** (was Nothing Launcher+): the app's name, its pages and
+  notifications, the LSPosed log's tag (`Nothing2Something: …`) and the build's artifact. The
+  package stays `com.dressence.nothinglauncherplus`, so it installs as an update: settings,
+  LSPosed scope and signing key carry over.
 - **0.54.3, dual status bar: Notifications at the end and Date at the end**, two switches
   that work in every combination. Notifications at the end puts the notification icons at
   the bar's right end, under the Wi-Fi/signal/battery icons, in both orientations: the
@@ -1809,6 +1973,25 @@ in the last builds.
   restart" note in System UI's folder, so the crash-loop guards do not count that start.
   Needs on the phone: the options applying after it; pressing it three times within three
   minutes leaves the dual status bar and the saver on.
+- 0.54.1: the dual status bar's year showed as "26" (android.text.format.DateFormat writes a
+  lone "y" as two digits); the date is made with ICU's formatter, which writes it in full.
+- 0.54.1: the OLED saver's hidden bar came back every 2 s on the home screen (seen on the
+  phone): every notification update counted as a new notification, and a download posts its
+  progress every second or two. Only new notifications, or updates that alert again, wake it
+  now, and the shade only when a pull starts.
+- 0.54.0, dual status bar: the tighter gap (the second row just under the clock, the top row
+  where it was), the year option, and in landscape the notifications at the end of the left
+  half under the right icons (screenshots). The OLED saver hid the bar (instantly) and moved
+  it (log: "move every 60 s by 2 dp").
+- 0.53.1, dual status bar: two rows in portrait and landscape, the clock alone on top with
+  the other icons, the date in full ("SUNDAY, 8 NOVEMBER") and the notifications under it,
+  apps under the taller bar (screenshots). The gap between the rows was too large; see 0.54.0.
+- 0.53.1: the dual status bar did nothing but take the date off the clock (seen on the phone:
+  one row, no date). Its layout step stored what it changes on System UI's views under an
+  Android-owned tag id, which Android refuses ("The key must be an application-specific
+  resource id", in the LSPosed log on every layout), so it stopped before changing anything;
+  the guard kept System UI running. What it keeps per view is now held in the module's own
+  weak maps, never in System UI's view tags.
 - **0.52.5, dot-matrix icons powering on in step again:** icons drawn while their view was still
   hidden (the first frames of the drawer or a folder opening, when Android fades and slides the
   page without redrawing icons) waited for a 1 s recheck, so they lit up late and one by one. They
@@ -1828,74 +2011,11 @@ in the last builds.
   frame time unchanged.
 - **0.52.4, controller:** an item's menu (A held, or the menu button) opens Nothing's own
   long-press menu instead of the module's. Needs a debug report with a controller.
+- 0.52.4: controller menus are Nothing's own, as on a long-press.
 - **0.52.3, controller:** focus rings on widgets in their true shape, drawer tiles staying in
   place when focused, focus returning to the item after a menu closes. Built from the DebuG22
   report; needs a new report to confirm.
 
-**Pending**
-- **Signing key move (0.52.5):** the release key is private now; CI builds only once its three
-  secrets are added to the repository. Updating from 0.52.4 needs one switch: Backup → Export,
-  uninstall, install, re-enable in LSPosed if asked, Backup → Import.
-- **Landscape lock screen and the Customisation page layout:** in progress.
-- **PS2-style interface sounds:** waiting for recordings of the cursor, confirm, back, error and
-  memory-card sounds.
-- **Nothing Dot Matrix Display:** the engine that replaces the emoji-cover beta (see Roadmap).
-- **README pictures:** all views are in (home, app drawer with emoji covers and with normal
-  folders, both orientations; landscape lock screen and AOD). They come from alpha builds and
-  will be retaken for the public release.
-
-**Fixed recently**
-- 0.56.1: the Launcher only switch's description, and the README, present it as the way to keep
-  the launcher's features if the others are buggy on a phone, not as a mode for other phones
-  (Dr.Essence).
-- 0.55.11: at 34 dots across, a rounded-square icon's left edge ended in a dark strip before
-  the bezel while its right edge ran under it (Dr.Essence spotted it in the render sent with
-  0.55.10; I had not). The grid started at the bitmap's corner, so the columns met the bezel
-  differently on each side, and a dot was kept by the depth at the pixel its centre fell in,
-  with a margin. The grid is now laid out from the screen's centre (a dot on the centre), a
-  dot is kept if any of it touches the glass, and the depth is read at its exact centre.
-  Checked by running the real `IconScreen.grid` on a circle and a rounded square: every dot
-  mirrored left-right and top-bottom, the widest dark gap at the circle's edge 0.49 px on both
-  sides (under the 1.13 px between dots), and the rounded square's dots under the bezel on
-  both sides.
-- 0.55.9: CMF Stereo's live icon stayed still at times: the LSPosed log (16:08) showed "live
-  icons analyse failed: … pixel access is not supported on Config#HARDWARE bitmaps" 9 times.
-  The launcher keeps some icon bitmaps on the GPU; the analysis now reads a copy, as the dot
-  icons already did (`IconScreen.of`).
-- 0.55.8: with 0.55.7 every dot icon was an empty dark screen, no dot lit (seen on the phone,
-  screenshot). Mistake recorded: when the dot colour started counting only the glass under a
-  dot (0.55.7), the new count was added but the old `n++` was left in the same loop, so each
-  cell counted its area twice, coverage never passed 50% and every dot stayed under the 55%
-  that lights it. The 0.55.7 check drew the rules again in Python instead of running the Java,
-  so it could not see this. Now checked by running the real `IconScreen.colourAt` on the
-  computer (reflection, Android 36 library): a covered dot lit in the art's colour, a dot half
-  under the bezel lit as fully, an empty one dark; the 0.55.7 code gave all three dark.
-- 0.54.5: Restart System UI put LSPosed into safe mode when pressed three times within 30 s
-  (seen on the phone: three System UI deaths with no crash report, then LSPosed's safe-mode
-  notification: LSPosed cannot tell a restart from a crash). It now restarts at most once
-  every 90 s and says how long to wait. The module itself did not crash.
-- 0.54.5: with Notifications at the end, the notification row reached the bar's end (no
-  overflow dot in portrait any more) but its icons stayed at its start (seen on the phone).
-  System UI puts the icon container into the row after the bar is built, where the module
-  set it at the end, so it was not there yet; it is now set at the end at each measure of
-  the row, before that pass lays it out.
-- Renamed **Nothing2Something** (was Nothing Launcher+): the app's name, its pages and
-  notifications, the LSPosed log's tag (`Nothing2Something: …`) and the build's artifact. The
-  package stays `com.dressence.nothinglauncherplus`, so it installs as an update: settings,
-  LSPosed scope and signing key carry over.
-- 0.54.1: the dual status bar's year showed as "26" (android.text.format.DateFormat writes a
-  lone "y" as two digits); the date is made with ICU's formatter, which writes it in full.
-- 0.54.1: the OLED saver's hidden bar came back every 2 s on the home screen (seen on the
-  phone): every notification update counted as a new notification, and a download posts its
-  progress every second or two. Only new notifications, or updates that alert again, wake it
-  now, and the shade only when a pull starts.
-- 0.53.1: the dual status bar did nothing but take the date off the clock (seen on the phone:
-  one row, no date). Its layout step stored what it changes on System UI's views under an
-  Android-owned tag id, which Android refuses ("The key must be an application-specific
-  resource id", in the LSPosed log on every layout), so it stopped before changing anything;
-  the guard kept System UI running. What it keeps per view is now held in the module's own
-  weak maps, never in System UI's view tags.
-- 0.52.4: controller menus are Nothing's own, as on a long-press.
 - 0.52.3: rings on widgets no longer treat them as containers or squash them; the ring's
   shape ignores the dot badge; focused tiles no longer push their neighbours; focus comes back
   to the item after a menu.
@@ -1903,6 +2023,9 @@ in the last builds.
 - 0.52.1: the landscape home menu keeps its portrait width; Nothing's settings pages rotate.
 - 0.52.0: one focus ring in each item's own shape; widgets act on A (clock opens the clock app,
   L1/R1/X/Start drive the music widget).
+
+
+</details>
 
 </details>
 

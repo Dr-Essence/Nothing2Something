@@ -19,8 +19,10 @@ same. Stop and tell the user instead of pushing if a step fails.
    python3 .claude/skills/n2s-release/scripts/release_prep.py --entry <file>
    ```
    It raises only the last number and versionCode + 1 (`--milestone` only on Dr.Essence's
-   word; never 1.0), updates both version strings in Status and puts the entry under
-   "**Not tested on a phone yet**". New or ended features: also edit the Current build list
+   word; never 1.0), updates both version strings in Status, adds the build's row at the
+   top of the **Builds** table (newest first, one row per build) and puts the entry at the top
+   of "Full notes of every build". When a build is checked on the phone, change its row's last
+   column to *Verified*. New or ended features: also edit the Current build list
    and the Roadmap by hand. A change that affects another phone or Nothing OS version (a new
    or renamed hook, a fix for 4.0 or 5.0): also update the README's **Testing** section (its
    table and "As of" version), and rerun `.github/workflows/hookcheck-all.yml` when hooks
