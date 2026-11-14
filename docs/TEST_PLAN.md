@@ -4,6 +4,20 @@ The module is in a **stability phase**: no new features until everything below h
 the phone and every failure found has been fixed. This file is the list. Work through it in order,
 one part at a time, and report each result by its id (for example `A3 pass`, `D2 fail`).
 
+## Order
+
+Easier parts first; the drawer folders and covers last.
+
+1. **A** safety (always first: it protects the phone and the data)
+2. **M** diagnostics, **H** system, **I** sound
+3. **G** status bar and quick settings, **D** dot icons
+4. **E** glass, **F** rotation and landscape
+5. **J** keyboard and controller, **K** performance, **L** Gaming Space
+6. **B** drawer folders, later
+7. **C** emoji covers: only checked for crashes and battery use (C2, C3, C8). Their look
+   and animations are not tested in detail, because the Nothing Dot Matrix Display engine will
+   replace them (see the Roadmap). That engine is built after this stability phase.
+
 ## How to test
 
 1. **Use only CI builds.** Install the build from GitHub Actions, not a local one. Write down the
@@ -66,6 +80,8 @@ These come before everything else, because they protect the phone and the user's
 | B9 | Folder cover image: set, change, remove | RL, RB | The image shows square and sharp; removing it brings back the apps |
 
 ## C. Covers and dot matrix (beta)
+
+For now only C2, C3 and C8 (crashes and battery). The rest waits for the dot matrix engine.
 
 | Id | Test | Scenarios | Expected |
 |---|---|---|---|
