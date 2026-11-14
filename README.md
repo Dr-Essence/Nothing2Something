@@ -1807,6 +1807,53 @@ Each section below opens when tapped.
 
 </details>
 
+## Testing
+
+What to expect on each phone and Nothing OS version, for now. **Updated with every change that
+affects a phone or version** (a fix for another version, a feature that newly works or stops
+working somewhere); the last update says which version it describes.
+
+<details open>
+<summary><b>Which phones and versions</b> · checked against every Nothing OS build, without a phone</summary>
+
+*As of 0.70.58.* Only one phone is tested for real: a **CMF Phone 1 on Nothing OS 4.1**. For the
+others, every build of every Nothing and CMF phone in
+[nothing_archive](https://github.com/spike0en/nothing_archive) (232 builds, 13 phones, Nothing OS
+1.5 to 5.0) was checked automatically: each build's Nothing Launcher, System UI, Settings and
+Android framework were unpacked, and every class, method, field and resource the module hooks by
+name was looked up in them (*Hook check on every Nothing OS build* in GitHub Actions; full report
+in [docs/reverse-engineering/hookcheck_all_builds.md](docs/reverse-engineering/hookcheck_all_builds.md)).
+A "missing hook" is one the CMF Phone 1 has and that build does not; that feature is then left out
+on its own (the module never crashes for it), and the module's *Diagnostics → Hook health* page
+names it.
+
+| Nothing OS | Phones | Missing hooks | What to expect |
+|---|---|---|---|
+| **4.1** (Android 16) | Phone (2), (2a), (2a) Plus, (3), (3a), (3a) Pro, CMF Phone 1, CMF Phone 2 Pro, and the newer Galaxian, Frogger, FroggerPro and SuperContra | **0** | Every feature should install. What can still differ is how a screen looks or behaves on another screen size or model: that needs your report. Early 4.1 builds of Frogger, FroggerPro and SuperContra miss one (as 4.0). |
+| **4.0** (Android 16) | the same phones before their 4.1 update | 1 | Everything but the **landscape widget picker**, which is left out. Updating to 4.1 is best. |
+| **5.0** (Android 16) | Phone (2a), (2a) Plus, (3), (3a), (3a) Pro, Frogger, FroggerPro | 41-42 | Many features left out: landscape home screen and widget picker, dot-matrix and live icons, the folder menu's extras, the drawer's live blur, green quick settings tiles, the tile editor fix. Nothing OS 5 frosts its own glass, so the module's glass stays off there. Try **Launcher only** mode and expect gaps; a Nothing OS 5 port is planned. |
+| **3.x and older** (Android 15 and earlier) | Phone (1) and the others before Nothing OS 4 | 38-150 | Not supported: the module is made for Nothing OS 4 (Android 16). |
+
+What this check cannot see: hooks found by their shape rather than their name (searched on the
+phone itself), and behaviour that changed under the same names. That is what testers find.
+
+</details>
+
+<details>
+<summary><b>How to help test</b> · what to send, and keeping your account private</summary>
+
+- Open the module's **Diagnostics → Hook health** first: a screenshot of it shows what installed
+  on your phone, without any personal data.
+- Say your phone, Nothing OS version (Settings → About phone) and the module's version.
+- For something that looks wrong, a screen recording; for a screen that turns wrong, a debug report
+  (*Diagnostics and debug report* under Features).
+- **An LSPosed log holds account details** (account names and app data in other modules' lines):
+  share it **privately** with the developer, never in a public issue or chat.
+- Test one feature at a time, with a backup made (*Before you install*), so a problem is easy to
+  place.
+
+</details>
+
 ## Getting started
 
 <details>
@@ -1816,7 +1863,8 @@ Each section below opens when tapped.
   Nothing's System UI, Nothing Widgets, NothingCardService). It does nothing useful on other
   phones and is not meant for them.
 - **Tested on one phone so far:** a CMF Phone 1 on Nothing OS 4.1 (Android 16). Other Nothing
-  devices and Nothing OS versions are untested.
+  devices are untested on a phone; see **Testing** above for what every Nothing OS build is
+  expected to support.
 - **Launcher only mode** is there if the other features are buggy on your Nothing phone (the
   main page's first switch): the module then changes only Nothing Launcher and Nothing's widget
   apps, with home screen rotation, and leaves System UI, the lock screen, the system font,
@@ -1830,7 +1878,9 @@ Each section below opens when tapped.
   another phone, please open an issue with:
   - your device and Nothing OS version;
   - what works and what doesn't;
-  - an LSPosed log (LSPosed → Logs → save), and a screen recording if something looks wrong;
+  - a screenshot of Diagnostics → Hook health, and a screen recording if something looks wrong;
+  - an LSPosed log (LSPosed → Logs → save) only privately, never attached to a public issue: it
+    holds account details;
 
   - for a screen that looks or turns wrong, a debug report (see *Diagnostics and debug report* under Features).
 

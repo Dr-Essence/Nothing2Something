@@ -21,7 +21,10 @@ same. Stop and tell the user instead of pushing if a step fails.
    It raises only the last number and versionCode + 1 (`--milestone` only on Dr.Essence's
    word; never 1.0), updates both version strings in Status and puts the entry under
    "**Not tested on a phone yet**". New or ended features: also edit the Current build list
-   and the Roadmap by hand.
+   and the Roadmap by hand. A change that affects another phone or Nothing OS version (a new
+   or renamed hook, a fix for 4.0 or 5.0): also update the README's **Testing** section (its
+   table and "As of" version), and rerun `.github/workflows/hookcheck-all.yml` when hooks
+   changed.
    A commit that changes no behaviour (a tool, a doc, this skill) skips this step and names
    the file in its subject instead of a version.
 3. **Build.** `export ANDROID_HOME=/opt/android-sdk; ./gradlew -q :app:assembleRelease`

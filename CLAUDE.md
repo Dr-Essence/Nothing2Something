@@ -24,6 +24,10 @@
   have not been tested on a phone yet, which tests are pending (and what evidence they need),
   and the bugs fixed. A change is not finished while the Status section still describes the
   build before it.
+- **Keep the README's Testing section current:** whenever a change affects what works on a
+  phone or Nothing OS version other than the CMF Phone 1 (a fix for another version, a new hook,
+  a rerun of the hook check on every build), update its table and its "As of" version in the same
+  commit.
 - **Versions while in alpha:** every build raises only the last number (0.70.1, 0.70.2, ...),
   with versionCode + 1. The middle number changes only when Dr.Essence calls a milestone, and
   1.0.0 is never reached while the module is an alpha (until 0.70.0 each feature raised the
