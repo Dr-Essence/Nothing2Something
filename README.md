@@ -72,9 +72,9 @@ Each section below opens when tapped.
 > everything back from your file.
 
 <details open>
-<summary><b>Current state</b> · version 0.70.46, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.47, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.46** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), a live-blurred glass app drawer, as the quick settings panel, and glass open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.47** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), a live-blurred glass app drawer, as the quick settings panel, and glass open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -123,6 +123,26 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.47, the settings sorted by what they change.** Dr.Essence: with this many settings
+  the pages confused users, the Home screen page above all (HeliBoard, Gaming Space, recents,
+  wallpaper sounds and the home glass were all there). The menu now has: **Nothing Launcher**
+  (Drawer & folders: sorting, the folder list, restart the launcher, restore home items; Dot
+  matrix: dot icons and their style, the emoji covers and their dot screen; Glass &
+  transparency: the drawer's opacity and all six glass surfaces, which were split between two
+  pages; Gaming: the gaming launcher, Nothing Gaming Space, artwork, trailers, the key, the
+  controller), **Phone** (Status bar & quick settings; Rotation & landscape: home screen, system
+  screens, lock screen, always-on display, the live wallpapers in landscape, with Restart
+  System UI; Sound: interface sounds, music and the live wallpapers' sounds; System: font,
+  battery saver's refresh rate, Keyboard with both HeliBoard rows, recents and the task
+  manager), CMF Phone 1, and **Module** (Launcher only moved here, show app icon, backup,
+  diagnostics). Nothing else changed: every row is the same code, the same setting and the
+  same saved value (backups import as before); Launcher only still hides the system's rows.
+  A Settings search result saved by an older version for a page that is gone ("home",
+  "lock") opens the menu; the index is built again with the new pages. The README's guide
+  names the new places. **Checked:** builds; every row title of the old screen is on the new
+  one (compared by script), only the menu's entries renamed. **Not checked:** on the phone.
+  **To test:** go through each page, with Launcher only off and on; search for a setting
+  (in the module and in Settings) and open it.
 - **0.70.46, the drawer's glass is a live blur, as the quick settings panel; clearer VFD
   details; no green blobs in the tile editor.** Mistake recorded, 0.70.45 (Dr.Essence, with
   an LSPosed log): the drawer's glass was the module's frosted picture (a still, small blur
@@ -1671,7 +1691,7 @@ scope, or find their place by name and stand aside when it is missing, start on.
    the card), so after an update, and whenever its page is opened, the module moves itself
    back to the phone's storage (root; `pm move-package com.dressence.nothinglauncherplus
    internal`), and its page says so.
-3. Force-stop Nothing Launcher, or use "Restart Nothing Launcher" (root) on the app's Home screen page.
+3. Force-stop Nothing Launcher, or use "Restart Nothing Launcher" (root) on the app's Drawer & folders page.
 4. In Nothing Launcher settings, set *Drawer layout* to **Smart (Beta)** and tap **Custom folders**.
 
 #### Updates and signing
@@ -2404,7 +2424,7 @@ on the lock screen, SystemUI's own everywhere else.
 
 #### Memory in recents
 
-*Home screen → Memory in recents* (on by default): recents shows how much memory is free of the
+*System → Memory in recents* (on by default): recents shows how much memory is free of the
 phone's total (rounded up to the size it is sold as, 8 GB not 7.4), and below it the swap
 (zram) free of its size when the phone has swap, as crDroid's and Infinity X's recents do. It
 is one more button in recents' row of action buttons (`OverviewActionsView`'s
@@ -2427,7 +2447,7 @@ after updating), developer options opens instead.
 Running services also opens from a quick settings tile (*Running services*, in the tile
 editor) and from a shortcut: the module is listed where launchers offer shortcuts (Launcher3's
 widget list), as Settings offers its own *Settings shortcut*, and placing it puts a Running
-services icon on the home screen; the module icon's long-press has it too. *Home screen →
+services icon on the home screen; the module icon's long-press has it too. *System →
 Running services shortcut* turns the shortcuts off (the shortcut entry is disabled, the
 long-press shortcut removed, placed icons greyed). Each opens an invisible activity
 (`ui.RunningServices`) that asks system_server for the page, as recents' memory button does,
@@ -2435,7 +2455,7 @@ or opens developer options when the system does not answer.
 
 #### Task manager in Running services
 
-*Home screen → Task manager in Running services* (off by default: it hooks Nothing Settings'
+*System → Task manager in Running services* (off by default: it hooks Nothing Settings'
 internal classes, whose names change from build to build; Settings in the module's LSPosed
 scope). Nothing's own Developer options → Running services page becomes a task
 manager; nothing of it is replaced:
@@ -2504,7 +2524,7 @@ app left unhandled (`interceptUnhandledKey`), and a game that uses the button ke
 
 #### Gaming launcher with a controller
 
-*Home screen → Gaming launcher with a controller* (off by default) and *Gaming launcher* (any
+*Gaming → Gaming launcher with a controller* (off by default) and *Gaming launcher* (any
 installed home app). While a game controller is connected, by USB or Bluetooth, Android's home
 app is the gaming launcher: the module changes the home choice itself (the HOME role, from
 system_server), as picking a home app in Android's settings does, so the home button, the home
@@ -2581,7 +2601,7 @@ Both off by default; switch them on in the module's **Sound** page.
 
 #### Living Worlds sounds on the home screen
 
-*Home screen → Living Worlds sounds* (on by default; Living Worlds in the module's LSPosed
+*Sound → Living Worlds sounds* (on by default; Living Worlds in the module's LSPosed
 scope). Living Worlds 2.12.74 plays each of its 12 worlds' ambient sounds in the app only: its
 live wallpaper's JavaScript runs with fixed settings that have no *Ambient Sounds*
 (`Storage.wallpaperItems`), so it asks for none, and the wallpaper's message handler
@@ -2599,7 +2619,7 @@ last shown is heard.
 
 #### Living Worlds smooth turning
 
-*Home screen → Living Worlds smooth turning* (on by default). Living Worlds' default wallpaper
+*Rotation & landscape → Living Worlds smooth turning* (on by default). Living Worlds' default wallpaper
 drawing ("Alt wallpaper tech", from Android 8) shows its page in a WebView on a virtual display
 the size of the wallpaper's surface, and at every surface change (each turn)
 `createPresentation` tore both down and built them again: the page reloaded and started over.
@@ -2620,7 +2640,7 @@ reload. The page draws about 16× fewer pixels than at screen size; scaling it u
 draw. Should a phone be unable to draw the page's frames, the log says so and Living Worlds'
 own drawing is used. With the switch off, Living Worlds draws as it always has.
 
-*Home screen → Living Worlds in landscape* (with smooth turning on): a slider from the top of
+*Rotation & landscape → Living Worlds in landscape* (with smooth turning on): a slider from the top of
 the scene (sky) to the bottom (water, ground), 50 by default, which is Living Worlds' own
 centring. Every world ships only as a 345×455 crop of the desktop program's 640×480 art (the
 `*.LBM.cropped.json` scenes; the full pictures are not in the app), so filling a landscape
@@ -2639,7 +2659,7 @@ addresses, read as they are now served.
 
 #### Palette Cycle sounds
 
-*Home screen → Palette Cycle sounds* (on by default). Palette Cycle has no sound; the two web
+*Sound → Palette Cycle sounds* (on by default). Palette Cycle has no sound; the two web
 demos its pictures come from give them looping ambient sounds, played the same way by both
 (`main.js`: `audio/{sound}.mp3`, looping, 2 s fade in to the scene's volume, 0.5 by default,
 half a second out):
@@ -2665,7 +2685,7 @@ screen or in the app drawer, as Living Worlds' sounds are.
 
 #### Palette Cycle framing and cycling
 
-- *Home screen → Palette Cycle in landscape*: a slider from the top of the picture (sky) to
+- *Rotation & landscape → Palette Cycle in landscape*: a slider from the top of the picture (sky) to
   the bottom (water, ground), 50 by default. Palette Cycle keeps one pan for both
   orientations, so landscape showed the portrait pan's height, usually the top. The window it
   draws (`getOffsetImage`) is moved to the slider's height as it is drawn; its own pan and

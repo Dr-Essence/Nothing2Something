@@ -73,16 +73,24 @@ public class SettingsActivity extends Activity {
 
     /** Pages this screen shows (its {@link Config#EXTRA_SETTINGS_PAGE}); none: the menu. */
     private static final String PAGE_DRAWER = Config.PAGE_DRAWER;
-    private static final String PAGE_HOME = "home";
+    private static final String PAGE_DOTS = "dots";
+    private static final String PAGE_GLASS = "glass";
+    private static final String PAGE_GAMING = "gaming";
     private static final String PAGE_SYSTEM_UI = "systemui";
-    private static final String PAGE_LOCK = "lock";
+    private static final String PAGE_ROTATION = "rotation";
     private static final String PAGE_SOUND = "sound";
+    private static final String PAGE_SYSTEM = "system";
     private static final String PAGE_BACKUP = "backup";
     private static final String PAGE_DIAGNOSTICS = "diagnostics";
     private static final String PAGE_PERFORMANCE = "performance";
 
     private void render() {
         String page = getIntent().getStringExtra(Config.EXTRA_SETTINGS_PAGE);
+        // A page of an older version (a Settings search result saved before 0.70.47: "home",
+        // "lock") opens the menu.
+        if (page != null && pageTitle(page) == null) {
+            page = null;
+        }
         if (page == null) {
             renderMenu(Ui.page(this, "Nothing2Something", false));
         } else {
@@ -93,14 +101,18 @@ public class SettingsActivity extends Activity {
 
     private static String pageTitle(String page) {
         switch (page) {
-            case PAGE_DRAWER: return "App drawer";
-            case PAGE_HOME: return "Home screen";
+            case PAGE_DRAWER: return "Drawer & folders";
+            case PAGE_DOTS: return "Dot matrix";
+            case PAGE_GLASS: return "Glass & transparency";
+            case PAGE_GAMING: return "Gaming";
             case PAGE_SYSTEM_UI: return "Status bar & quick settings";
-            case PAGE_LOCK: return "Lock screen";
+            case PAGE_ROTATION: return "Rotation & landscape";
             case PAGE_SOUND: return "Sound";
+            case PAGE_SYSTEM: return "System";
             case PAGE_PERFORMANCE: return "Performance";
             case PAGE_BACKUP: return "Backup";
-            default: return "Diagnostics";
+            case PAGE_DIAGNOSTICS: return "Diagnostics";
+            default: return null;
         }
     }
 
@@ -110,17 +122,26 @@ public class SettingsActivity extends Activity {
             case PAGE_DRAWER:
                 renderDrawer(ui, config);
                 break;
-            case PAGE_HOME:
-                renderHome(ui, config);
+            case PAGE_DOTS:
+                renderDots(ui, config);
+                break;
+            case PAGE_GLASS:
+                renderGlass(ui, config);
+                break;
+            case PAGE_GAMING:
+                renderGaming(ui, config);
                 break;
             case PAGE_SYSTEM_UI:
                 renderSystemUi(ui, config);
                 break;
-            case PAGE_LOCK:
-                renderLock(ui, config);
+            case PAGE_ROTATION:
+                renderRotation(ui, config);
                 break;
             case PAGE_SOUND:
-                addSoundSection(ui, config);
+                renderSound(ui, config);
+                break;
+            case PAGE_SYSTEM:
+                renderSystem(ui, config);
                 break;
             case PAGE_PERFORMANCE:
                 new PerformancePage(this, store, this::render).render(ui, config);
@@ -154,10 +175,10 @@ public class SettingsActivity extends Activity {
                     new java.util.ArrayList<>();
             renderMenu(Ui.collector(this, null, "Nothing2Something", found));
             java.util.List<String> pages = new java.util.ArrayList<>(java.util.Arrays.asList(
-                    PAGE_DRAWER, PAGE_HOME, PAGE_SOUND));
+                    PAGE_DRAWER, PAGE_DOTS, PAGE_GLASS, PAGE_GAMING, PAGE_ROTATION, PAGE_SOUND,
+                    PAGE_SYSTEM));
             if (!store.config.launcherOnly) {
                 pages.add(PAGE_SYSTEM_UI);
-                pages.add(PAGE_LOCK);
                 if (com.dressence.nothinglauncherplus.perf.Device.isCmfPhone1()) {
                     pages.add(PAGE_PERFORMANCE);
                 }
@@ -271,7 +292,43 @@ public class SettingsActivity extends Activity {
             ui.note(ModuleService.getMoveProblem());
         }
 
-        ui.section("Mode");
+        ui.section("Nothing Launcher");
+        ui.row("Drawer & folders", "Your folders, how the drawer sorts, restart the launcher",
+                null, ui.chevron(), v -> openPage(PAGE_DRAWER));
+        ui.row("Dot matrix", "Dot icons and the folders' emoji covers, and how their dots light",
+                null, ui.chevron(), v -> openPage(PAGE_DOTS));
+        ui.row("Glass & transparency", "The drawer's background, glass folders, widgets and"
+                + " search bar", null, ui.chevron(), v -> openPage(PAGE_GLASS));
+        ui.row("Gaming", "Gaming launcher, Nothing Gaming Space, game controller", null,
+                ui.chevron(), v -> openPage(PAGE_GAMING));
+
+        ui.section("Phone");
+        if (!store.config.launcherOnly) { // System UI is left as Nothing made it there
+            ui.row("Status bar & quick settings", "Ndot clock and date, dual status bar, OLED"
+                    + " saver, full-screen apps, green tiles", null, ui.chevron(),
+                    v -> openPage(PAGE_SYSTEM_UI));
+        }
+        ui.row("Rotation & landscape", store.config.launcherOnly ? "Home screen rotation"
+                : "Home, lock screen, always-on display, system screens, live wallpapers", null,
+                ui.chevron(), v -> openPage(PAGE_ROTATION));
+        ui.row("Sound", "Interface sounds, background music, live wallpapers' sounds", null,
+                ui.chevron(), v -> openPage(PAGE_SOUND));
+        ui.row("System", store.config.launcherOnly ? "Recents"
+                : "Font, battery saver, keyboard, recents, task manager", null, ui.chevron(),
+                v -> openPage(PAGE_SYSTEM));
+
+        if (!store.config.launcherOnly
+                && com.dressence.nothinglauncherplus.perf.Device.isCmfPhone1()) {
+            ui.section("CMF Phone 1");
+            ui.row("Performance", "Ndot overlay, PerfMTK profile, 120 fps unlock for games",
+                    null, ui.chevron(), v -> openPage(PAGE_PERFORMANCE));
+        }
+
+        sectionModule(ui);
+    }
+
+    private void sectionModule(Ui ui) {
+        ui.section("Module");
         ui.switchRow("Launcher only", "Change only Nothing Launcher and Nothing's widget apps,"
                 + " with home screen rotation; System UI, the lock screen, fonts and other apps are"
                 + " left as Nothing made them. If other features are buggy on your phone, or to"
@@ -283,44 +340,6 @@ public class SettingsActivity extends Activity {
                     render();
                 });
 
-        ui.section("Nothing Launcher");
-        ui.row("App drawer", "Custom folders, covers and emoji, background", null, ui.chevron(),
-                v -> openPage(PAGE_DRAWER));
-        ui.row("Home screen", "Icons, rotation, game controller, restart", null, ui.chevron(),
-                v -> openPage(PAGE_HOME));
-        ui.row("Sound", "Interface sounds and background music", null, ui.chevron(),
-                v -> openPage(PAGE_SOUND));
-
-        if (store.config.launcherOnly) {
-            sectionModule(ui);
-            return; // System and phone settings do nothing in "Launcher only".
-        }
-
-        ui.section("System");
-        ui.row("Status bar & quick settings", "Ndot clock and date, glow, system screens", null,
-                ui.chevron(), v -> openPage(PAGE_SYSTEM_UI));
-        ui.row("Lock screen", "Landscape lock screen (test)", null, ui.chevron(),
-                v -> openPage(PAGE_LOCK));
-        ui.row("System font", "Use one of Nothing's fonts on this phone · no reboot", null,
-                ui.chevron(), v -> new FontSettings(this, store).choose());
-        ui.switchRow("Full refresh rate in battery saver", "Battery saver keeps the screen's"
-                + " refresh rate (120 Hz) instead of capping it at 60 Hz; the rest of battery"
-                + " saver stays · uses more battery", store.config.saverFullRefresh, checked -> {
-                    store.config.saverFullRefresh = checked;
-                    store.save(this);
-                });
-
-        if (com.dressence.nothinglauncherplus.perf.Device.isCmfPhone1()) {
-            ui.section("CMF Phone 1");
-            ui.row("Performance", "Ndot overlay, PerfMTK profile, 120 fps unlock for games",
-                    null, ui.chevron(), v -> openPage(PAGE_PERFORMANCE));
-        }
-
-        sectionModule(ui);
-    }
-
-    private void sectionModule(Ui ui) {
-        ui.section("Module");
         ui.switchRow("Show app icon", "Off: the icon leaves the app drawer and home screen; open"
                 + " the module from the Nothing2Something row in Settings, Settings search or"
                 + " LSPosed · needs the module active in the system (after a reboot), or Android"
@@ -332,6 +351,7 @@ public class SettingsActivity extends Activity {
                 v -> openPage(PAGE_DIAGNOSTICS));
     }
 
+    /** Drawer & folders: how the Smart drawer sorts, your folders, and the launcher's tools. */
     private void renderDrawer(Ui ui, Config config) {
         ui.section("Drawer");
         ui.switchRow("Custom folders first", "Show your folders before Nothing's categories",
@@ -349,17 +369,98 @@ public class SettingsActivity extends Activity {
                     config.looseApps = checked;
                     store.save(this);
                 });
-        addOpacityRow(ui, config);
-        addGlassRows(ui, "Glass drawer background", "The wallpaper behind the drawer blurred live,"
-                + " as the quick settings panel, under its tint · off while Android has blurs off"
-                + " (battery saver)",
-                config.drawerGlass,
-                config.drawerGlassTint, checked -> config.drawerGlass = checked,
-                value -> config.drawerGlassTint = value);
-        addGlassRows(ui, "Glass open drawer folders", "A drawer folder, when opened, shows the"
-                + " wallpaper behind it, blurred and tinted", config.drawerFolderGlass,
-                config.drawerFolderGlassTint, checked -> config.drawerFolderGlass = checked,
-                value -> config.drawerFolderGlassTint = value);
+
+        ui.section("Folders · " + config.folders.size());
+        if (config.folders.isEmpty()) {
+            ui.note("Create a folder, pick its apps, and it appears in the Smart (Beta) drawer.");
+        }
+        if (config.folders.size() > 1) {
+            ui.note("Drag ≡ to change the order in the drawer: folders fill its rows two at a"
+                    + " time, in this order.");
+        }
+        List<String> ids = new ArrayList<>();
+        for (Config.Folder folder : config.folders) {
+            ids.add(folder.id);
+        }
+        ui.content.addView(new ReorderList(ui, ids, 72, id -> {
+            Config.Folder folder = config.folderForId(id);
+            int n = folder.apps.size();
+            return ui.detachedRow(folder.name, n == 1 ? "1 app" : n + " apps",
+                    ui.coverPreview(folder, 40, config.animateCovers, config.dotMatrix,
+                            config.greenDots, config.dotStyle),
+                    null, v -> FolderActivity.open(this, folder.id, false));
+        }, order -> {
+            List<Config.Folder> sorted = new ArrayList<>();
+            for (String id : order) {
+                sorted.add(config.folderForId(id));
+            }
+            config.folders.clear();
+            config.folders.addAll(sorted);
+            store.save(this);
+        }));
+        ui.pill("New folder", true, v -> Dialogs.promptText(this, "New folder", "", "Name",
+                name -> {
+                    Config.Folder folder = new Config.Folder(
+                            Long.toString(System.currentTimeMillis(), 36), name);
+                    config.folders.add(folder);
+                    store.save(this);
+                    FolderActivity.open(this, folder.id, true);
+                }));
+
+        ui.section("Nothing Launcher");
+        ui.row("Restart Nothing Launcher", "Applies everything immediately · needs root", null,
+                null, v -> restartLauncher());
+        ui.row("Restore missing home items", "Icons, folders and shortcuts the launcher still"
+                + " has from another grid size, put back where they were · nothing is removed",
+                null, null, v -> new android.app.AlertDialog.Builder(this)
+                        .setTitle("Restore missing home items?")
+                        .setMessage("Nothing Launcher keeps a separate home screen for each grid"
+                                + " size. Icons, folders and shortcuts that the other grid of"
+                                + " the same width still has, and yours does not, are added back"
+                                + " at their places where those are free. Nothing is removed"
+                                + " or moved. Widgets cannot come back this way: the launcher"
+                                + " shows which ones to add again.")
+                        .setNegativeButton("Cancel", null)
+                        .setPositiveButton("Restore", (d, w) -> sendBroadcast(
+                                new android.content.Intent(Config.ACTION_RESTORE_ITEMS)
+                                        .setPackage(Config.LAUNCHER_PKG)))
+                        .show());
+    }
+
+    /**
+     * Nothing Launcher's Icon Pack picker (its exported activity), where "Dot matrix" is one of
+     * the packs; if this launcher build has no such screen, the reason is shown.
+     */
+    private void openIconPackPicker() {
+        try {
+            startActivity(new Intent("com.nothing.launcher.icon_pack_picker")
+                    .setPackage("com.nothing.launcher")
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (Exception e) {
+            Toast.makeText(this, "Nothing Launcher's Icon Pack picker was not found: open "
+                    + "Customisation > Icon Pack", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * Dot matrix: everything drawn as Nothing's dot screens, the app icons and the folders'
+     * emoji covers, with the style of each.
+     */
+    private void renderDots(Ui ui, Config config) {
+        ui.section("Icons");
+        // An icon pack in Nothing's own picker now (launcher/DotIconPack.kt), not a switch here.
+        ui.row("Dot-matrix app icons",
+                "Pick \"Dot matrix\" in Nothing's Icon Pack picker: every icon a little dot "
+                        + "screen in its own shape, long names scroll", null, ui.chevron(),
+                v -> openIconPackPicker());
+        choiceRow(ui, "Dot icon style", "How the icons' dots light, to compare on the phone",
+                new String[] {"Classic (until now)", "LED dots, soft glow",
+                        "LED dots, strong glow", "LED dots, strong glow, smaller dots",
+                        "VFD, like an 80s car dashboard"},
+                new int[] {Config.DOT_STYLE_CLASSIC, Config.DOT_STYLE_LED_SOFT,
+                        Config.DOT_STYLE_LED_STRONG, Config.DOT_STYLE_LED_SMALL,
+                        Config.DOT_STYLE_VFD},
+                config.iconDotStyle, value -> config.iconDotStyle = value);
 
         ui.section("Covers");
         ui.switchRow("Emoji covers (beta)", "Off: folders show their apps as Nothing does; your emoji"
@@ -404,87 +505,56 @@ public class SettingsActivity extends Activity {
         }
         ui.row("Animation test", "Play any emoji's animation on a big dot screen", null,
                 ui.chevron(), v -> startActivity(EmojiPickerActivity.testIntent(this)));
-
-        ui.section("Folders · " + config.folders.size());
-        if (config.folders.isEmpty()) {
-            ui.note("Create a folder, pick its apps, and it appears in the Smart (Beta) drawer.");
-        }
-        if (config.folders.size() > 1) {
-            ui.note("Drag ≡ to change the order in the drawer: folders fill its rows two at a"
-                    + " time, in this order.");
-        }
-        List<String> ids = new ArrayList<>();
-        for (Config.Folder folder : config.folders) {
-            ids.add(folder.id);
-        }
-        ui.content.addView(new ReorderList(ui, ids, 72, id -> {
-            Config.Folder folder = config.folderForId(id);
-            int n = folder.apps.size();
-            return ui.detachedRow(folder.name, n == 1 ? "1 app" : n + " apps",
-                    ui.coverPreview(folder, 40, config.animateCovers, config.dotMatrix,
-                            config.greenDots, config.dotStyle),
-                    null, v -> FolderActivity.open(this, folder.id, false));
-        }, order -> {
-            List<Config.Folder> sorted = new ArrayList<>();
-            for (String id : order) {
-                sorted.add(config.folderForId(id));
-            }
-            config.folders.clear();
-            config.folders.addAll(sorted);
-            store.save(this);
-        }));
-        ui.pill("New folder", true, v -> Dialogs.promptText(this, "New folder", "", "Name",
-                name -> {
-                    Config.Folder folder = new Config.Folder(
-                            Long.toString(System.currentTimeMillis(), 36), name);
-                    config.folders.add(folder);
-                    store.save(this);
-                    FolderActivity.open(this, folder.id, true);
-                }));
     }
 
     /**
-     * Nothing Launcher's Icon Pack picker (its exported activity), where "Dot matrix" is one of
-     * the packs; if this launcher build has no such screen, the reason is shown.
+     * Glass & transparency: the drawer's opacity and every glass surface, the drawer's and the
+     * home screen's, in one place (they were split between the drawer and home pages).
      */
-    private void openIconPackPicker() {
-        try {
-            startActivity(new Intent("com.nothing.launcher.icon_pack_picker")
-                    .setPackage("com.nothing.launcher")
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        } catch (Exception e) {
-            Toast.makeText(this, "Nothing Launcher's Icon Pack picker was not found: open "
-                    + "Customisation > Icon Pack", Toast.LENGTH_LONG).show();
-        }
+    private void renderGlass(Ui ui, Config config) {
+        ui.section("Drawer");
+        addOpacityRow(ui, config);
+        addGlassRows(ui, "Glass drawer background", "The wallpaper behind the drawer blurred live,"
+                + " as the quick settings panel, under its tint · off while Android has blurs off"
+                + " (battery saver)",
+                config.drawerGlass,
+                config.drawerGlassTint, checked -> config.drawerGlass = checked,
+                value -> config.drawerGlassTint = value);
+        addGlassRows(ui, "Glass open drawer folders", "A drawer folder, when opened, shows the"
+                + " wallpaper behind it, blurred and tinted", config.drawerFolderGlass,
+                config.drawerFolderGlassTint, checked -> config.drawerFolderGlass = checked,
+                value -> config.drawerFolderGlassTint = value);
+
+        ui.section("Home screen");
+        // Nothing OS 5's frosted glass (launcher/Frosted.kt): each surface Nothing OS 5 frosts,
+        // with its tint; 40 % is Nothing OS 5's own (Lucent's container_frosted_backdrop).
+        ui.note("Glass: Nothing OS 5's frosted surfaces. The tint is how much white (light"
+                + " mode) or black (dark mode) covers the blurred wallpaper; 40 % is Nothing OS"
+                + " 5's.");
+        addGlassRows(ui, "Glass open folders", "An open folder shows the wallpaper behind it,"
+                + " blurred and tinted", config.folderGlass, config.folderGlassTint,
+                checked -> config.folderGlass = checked, value -> config.folderGlassTint = value);
+        addGlassRows(ui, "Glass closed folders", "Folder icons on the home screen and the dock",
+                config.folderIconGlass, config.folderIconGlassTint,
+                checked -> config.folderIconGlass = checked,
+                value -> config.folderIconGlassTint = value);
+        addGlassRows(ui, "Glass search bar", "The search bar in the dock",
+                config.searchBarGlass, config.searchBarGlassTint,
+                checked -> config.searchBarGlass = checked,
+                value -> config.searchBarGlassTint = value);
+        addGlassRows(ui, "Glass widgets", "Nothing's own widgets (clock, weather, battery,"
+                + " pedometer and the others); other apps' widgets stay as they are",
+                config.widgetGlass, config.widgetGlassTint,
+                checked -> config.widgetGlass = checked, value -> config.widgetGlassTint = value);
     }
 
     /**
-     * The home screen page. In "Launcher only" the rows whose hooks are left out there
-     * (ModuleEntry: system_server's controller home, HeliBoard, Settings' task manager, the
-     * wallpapers) are not shown: they were, and did nothing (0.70.16 audit).
+     * Gaming: the gaming launcher, Nothing Gaming Space and its artwork, and the controller.
+     * In "Launcher only" the rows whose hooks are left out there (system_server's controller
+     * home) are not shown: they were, and did nothing (0.70.16 audit).
      */
-    private void renderHome(Ui ui, Config config) {
-        ui.section("Icons");
-        // An icon pack in Nothing's own picker now (launcher/DotIconPack.kt), not a switch here.
-        ui.row("Dot-matrix app icons",
-                "Pick \"Dot matrix\" in Nothing's Icon Pack picker: every icon a little dot "
-                        + "screen in its own shape, long names scroll", null, ui.chevron(),
-                v -> openIconPackPicker());
-        choiceRow(ui, "Dot icon style", "How the icons' dots light, to compare on the phone",
-                new String[] {"Classic (until now)", "LED dots, soft glow",
-                        "LED dots, strong glow", "LED dots, strong glow, smaller dots",
-                        "VFD, like an 80s car dashboard"},
-                new int[] {Config.DOT_STYLE_CLASSIC, Config.DOT_STYLE_LED_SOFT,
-                        Config.DOT_STYLE_LED_STRONG, Config.DOT_STYLE_LED_SMALL,
-                        Config.DOT_STYLE_VFD},
-                config.iconDotStyle, value -> config.iconDotStyle = value);
-
-        ui.section("Landscape & controllers");
-        ui.switchRow("Home screen rotation", "Home and app drawer follow auto-rotate (beta)",
-                config.allowRotation, checked -> {
-                    config.allowRotation = checked;
-                    store.save(this);
-                });
+    private void renderGaming(Ui ui, Config config) {
+        ui.section("Gaming");
         ui.switchRow("Game controller navigation",
                 "Start app drawer · Y/X menu · L1/R1 pages · L2/R2 first/last · L3/R3 options",
                 config.controllerNav, checked -> {
@@ -559,7 +629,98 @@ public class SettingsActivity extends Activity {
                 render();
             });
         }
-        if (!config.launcherOnly) { // HeliBoard is not hooked there
+    }
+
+    /**
+     * Rotation & landscape: every screen that turns, the home screen's, the system's and the
+     * lock screen's, and how the live wallpapers sit in landscape. In "Launcher only" only the
+     * home screen's (the rest is the system's or other apps', not hooked there).
+     */
+    private void renderRotation(Ui ui, Config config) {
+        ui.section("Home screen");
+        ui.switchRow("Home screen rotation", "Home and app drawer follow auto-rotate (beta)",
+                config.allowRotation, checked -> {
+                    config.allowRotation = checked;
+                    store.save(this);
+                });
+        if (config.launcherOnly) {
+            return;
+        }
+        ui.section("System screens");
+        ui.switchRow("System screens in landscape", "Nothing's portrait-only screens that work"
+                + " in landscape follow auto-rotate (quick settings widget picker, Home settings, app"
+                + " drawer settings, Customisation)",
+                config.systemScreens, checked -> {
+                    config.systemScreens = checked;
+                    store.save(this);
+                });
+        ui.section("Lock screen");
+        ui.switchRow("Lock screen rotation (test)",
+                "Lock screen, PIN screen and fingerprint follow auto-rotate · the PIN screen's"
+                        + " layout after a restart of System UI",
+                config.lockRotation, checked -> {
+                    config.lockRotation = checked;
+                    store.save(this);
+                });
+        ui.switchRow("Always-on display rotation",
+                "The always-on display turns with the phone too; keeps the rotation sensor on"
+                        + " while it shows (a little more battery)",
+                config.aodRotation, checked -> {
+                    config.aodRotation = checked;
+                    store.save(this);
+                });
+        ui.switchRow("Check orientation on wake and unlock",
+                "As the screen comes on, and again on unlock, the screen turns at once to how"
+                        + " the phone is held, without waiting for it to be moved (auto-rotate"
+                        + " still decides)",
+                config.wakeOrientation, checked -> {
+                    config.wakeOrientation = checked;
+                    store.save(this);
+                });
+        restartSystemUiRow(ui);
+
+        ui.section("Live wallpapers");
+        addSliderRow(ui, "Living Worlds in landscape", config.livingWorldsLandscapeY,
+                value -> value <= 15 ? "Top of the scene (sky)"
+                        : value >= 85 ? "Bottom of the scene (water, ground)"
+                        : "Middle of the scene (" + value + "%)",
+                value -> {
+                    config.livingWorldsLandscapeY = value;
+                    store.save(this);
+                });
+        addSliderRow(ui, "Palette Cycle in landscape", config.paletteCycleLandscapeY,
+                value -> value <= 15 ? "Top of the picture (sky)"
+                        : value >= 85 ? "Bottom of the picture (water, ground)"
+                        : "Middle of the picture (" + value + "%)",
+                value -> {
+                    config.paletteCycleLandscapeY = value;
+                    store.save(this);
+                });
+        ui.switchRow("Living Worlds smooth turning", "The module frames the live wallpaper:"
+                + " turning only zooms it to the new screen, never black or starting over ·"
+                + " the landscape slider needs it", config.livingWorldsTurn, checked -> {
+                    config.livingWorldsTurn = checked;
+                    store.save(this);
+                });
+    }
+
+    /**
+     * System: the font, battery saver's refresh rate, the keyboard and recents. In "Launcher
+     * only" only what lives in the launcher (recents' memory, the shortcut).
+     */
+    private void renderSystem(Ui ui, Config config) {
+        if (!config.launcherOnly) {
+            ui.section("System");
+            ui.row("System font", "Use one of Nothing's fonts on this phone · no reboot", null,
+                    ui.chevron(), v -> new FontSettings(this, store).choose());
+            ui.switchRow("Full refresh rate in battery saver", "Battery saver keeps the screen's"
+                    + " refresh rate (120 Hz) instead of capping it at 60 Hz; the rest of battery"
+                    + " saver stays · uses more battery", store.config.saverFullRefresh, checked -> {
+                        store.config.saverFullRefresh = checked;
+                        store.save(this);
+                    });
+
+            ui.section("Keyboard");
             ui.switchRow("Controller typing in HeliBoard", "Move over HeliBoard's keys, suggestions"
                     + " and panels with the controller · HeliBoard in the module's LSPosed scope",
                     config.heliboardController, checked -> {
@@ -574,7 +735,6 @@ public class SettingsActivity extends Activity {
                         store.save(this);
                     });
         }
-
         ui.section("Recents");
         ui.switchRow("Memory in recents", "Free and total memory beside Screenshot; tap it for"
                 + " Running services",
@@ -596,87 +756,7 @@ public class SettingsActivity extends Activity {
                 + " long-press · the quick settings tile is in the tile editor",
                 RunningServices.shortcutsOn(this),
                 checked -> RunningServices.setShortcuts(this, checked));
-
-        if (!config.launcherOnly) { // the wallpapers are not hooked there
-            ui.section("Wallpaper");
-            ui.switchRow("Living Worlds sounds", "Its ambient sounds play while its live wallpaper"
-                    + " is on the home screen or app drawer, as in the app; never with other"
-                    + " wallpapers · Living Worlds in the module's LSPosed scope",
-                    config.livingWorldsSounds, checked -> {
-                        config.livingWorldsSounds = checked;
-                        store.save(this);
-                    });
-            ui.switchRow("Palette Cycle sounds", "Each world's ambient sound from the Living"
-                    + " Worlds web demo while it is on the home screen or app drawer; downloaded"
-                    + " once · Palette Cycle in the module's LSPosed scope",
-                    config.paletteCycleSounds, checked -> {
-                        config.paletteCycleSounds = checked;
-                        store.save(this);
-                    });
-            addSliderRow(ui, "Living Worlds in landscape", config.livingWorldsLandscapeY,
-                    value -> value <= 15 ? "Top of the scene (sky)"
-                            : value >= 85 ? "Bottom of the scene (water, ground)"
-                            : "Middle of the scene (" + value + "%)",
-                    value -> {
-                        config.livingWorldsLandscapeY = value;
-                        store.save(this);
-                    });
-            addSliderRow(ui, "Palette Cycle in landscape", config.paletteCycleLandscapeY,
-                    value -> value <= 15 ? "Top of the picture (sky)"
-                            : value >= 85 ? "Bottom of the picture (water, ground)"
-                            : "Middle of the picture (" + value + "%)",
-                    value -> {
-                        config.paletteCycleLandscapeY = value;
-                        store.save(this);
-                    });
-            ui.switchRow("Living Worlds smooth turning", "The module frames the live wallpaper:"
-                    + " turning only zooms it to the new screen, never black or starting over ·"
-                    + " the landscape slider needs it", config.livingWorldsTurn, checked -> {
-                        config.livingWorldsTurn = checked;
-                        store.save(this);
-                    });
-        }
-
-        ui.section("Launcher");
-        // Nothing OS 5's frosted glass (launcher/Frosted.kt): each surface Nothing OS 5 frosts,
-        // with its tint; 40 % is Nothing OS 5's own (Lucent's container_frosted_backdrop).
-        ui.note("Glass: Nothing OS 5's frosted surfaces. The tint is how much white (light"
-                + " mode) or black (dark mode) covers the blurred wallpaper; 40 % is Nothing OS"
-                + " 5's.");
-        addGlassRows(ui, "Glass open folders", "An open folder shows the wallpaper behind it,"
-                + " blurred and tinted", config.folderGlass, config.folderGlassTint,
-                checked -> config.folderGlass = checked, value -> config.folderGlassTint = value);
-        addGlassRows(ui, "Glass closed folders", "Folder icons on the home screen and the dock",
-                config.folderIconGlass, config.folderIconGlassTint,
-                checked -> config.folderIconGlass = checked,
-                value -> config.folderIconGlassTint = value);
-        addGlassRows(ui, "Glass search bar", "The search bar in the dock",
-                config.searchBarGlass, config.searchBarGlassTint,
-                checked -> config.searchBarGlass = checked,
-                value -> config.searchBarGlassTint = value);
-        addGlassRows(ui, "Glass widgets", "Nothing's own widgets (clock, weather, battery,"
-                + " pedometer and the others); other apps' widgets stay as they are",
-                config.widgetGlass, config.widgetGlassTint,
-                checked -> config.widgetGlass = checked, value -> config.widgetGlassTint = value);
-        ui.row("Restart Nothing Launcher", "Applies everything immediately · needs root", null,
-                null, v -> restartLauncher());
-        ui.row("Restore missing home items", "Icons, folders and shortcuts the launcher still"
-                + " has from another grid size, put back where they were · nothing is removed",
-                null, null, v -> new android.app.AlertDialog.Builder(this)
-                        .setTitle("Restore missing home items?")
-                        .setMessage("Nothing Launcher keeps a separate home screen for each grid"
-                                + " size. Icons, folders and shortcuts that the other grid of"
-                                + " the same width still has, and yours does not, are added back"
-                                + " at their places where those are free. Nothing is removed"
-                                + " or moved. Widgets cannot come back this way: the launcher"
-                                + " shows which ones to add again.")
-                        .setNegativeButton("Cancel", null)
-                        .setPositiveButton("Restore", (d, w) -> sendBroadcast(
-                                new android.content.Intent(Config.ACTION_RESTORE_ITEMS)
-                                        .setPackage(Config.LAUNCHER_PKG)))
-                        .show());
     }
-
     /** The installed home apps, other than Nothing Launcher: package to name. */
     private java.util.Map<String, String> homeApps() {
         java.util.Map<String, String> apps = new java.util.LinkedHashMap<>();
@@ -906,41 +986,6 @@ public class SettingsActivity extends Activity {
                     store.save(this);
                 });
 
-        ui.section("System screens");
-        ui.switchRow("System screens in landscape", "Nothing's portrait-only screens that work"
-                + " in landscape follow auto-rotate (quick settings widget picker, Home settings, app"
-                + " drawer settings, Customisation)",
-                config.systemScreens, checked -> {
-                    config.systemScreens = checked;
-                    store.save(this);
-                });
-    }
-
-    private void renderLock(Ui ui, Config config) {
-        restartSystemUiRow(ui);
-        ui.section("Landscape");
-        ui.switchRow("Lock screen rotation (test)",
-                "Lock screen, PIN screen and fingerprint follow auto-rotate · the PIN screen's"
-                        + " layout after a restart of System UI",
-                config.lockRotation, checked -> {
-                    config.lockRotation = checked;
-                    store.save(this);
-                });
-        ui.switchRow("Always-on display rotation",
-                "The always-on display turns with the phone too; keeps the rotation sensor on"
-                        + " while it shows (a little more battery)",
-                config.aodRotation, checked -> {
-                    config.aodRotation = checked;
-                    store.save(this);
-                });
-        ui.switchRow("Check orientation on wake and unlock",
-                "As the screen comes on, and again on unlock, the screen turns at once to how"
-                        + " the phone is held, without waiting for it to be moved (auto-rotate"
-                        + " still decides)",
-                config.wakeOrientation, checked -> {
-                    config.wakeOrientation = checked;
-                    store.save(this);
-                });
     }
 
     private void renderBackup(Ui ui) {
@@ -1084,6 +1129,27 @@ public class SettingsActivity extends Activity {
         } else {
             Toast.makeText(this, "Allow notifications for Nothing2Something to post test ones",
                     Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void renderSound(Ui ui, Config config) {
+        addSoundSection(ui, config);
+        if (!config.launcherOnly) { // the wallpapers are not hooked there
+            ui.section("Live wallpapers");
+            ui.switchRow("Living Worlds sounds", "Its ambient sounds play while its live wallpaper"
+                    + " is on the home screen or app drawer, as in the app; never with other"
+                    + " wallpapers · Living Worlds in the module's LSPosed scope",
+                    config.livingWorldsSounds, checked -> {
+                        config.livingWorldsSounds = checked;
+                        store.save(this);
+                    });
+            ui.switchRow("Palette Cycle sounds", "Each world's ambient sound from the Living"
+                    + " Worlds web demo while it is on the home screen or app drawer; downloaded"
+                    + " once · Palette Cycle in the module's LSPosed scope",
+                    config.paletteCycleSounds, checked -> {
+                        config.paletteCycleSounds = checked;
+                        store.save(this);
+                    });
         }
     }
 
