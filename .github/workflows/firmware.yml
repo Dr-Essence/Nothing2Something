@@ -23,6 +23,7 @@ on:
   push:
     paths:
       - .github/workflows/firmware.yml
+      - tools/firmware-collect.sh
   workflow_dispatch:
     inputs:
       tags:
@@ -85,6 +86,7 @@ jobs:
       matrix:
         tag: ${{ fromJson(needs.builds.outputs.tags) }}
     steps:
+      - uses: actions/checkout@v5
       # A build's partition archive is ~4.5 GB and its images ~8 GB: the runner's preinstalled
       # toolchains that this job does not use are removed first to make room.
       - name: Make disk space
@@ -101,57 +103,13 @@ jobs:
           AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
           echo "AAPT2=$AAPT2" >> "$GITHUB_ENV"
 
-      - name: Download
+      - name: Unpack and collect
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir dl && cd dl
-          gh release download "${{ matrix.tag }}" -R "$ARCHIVE" -p '*image-logical*' -p '*hash*'
-          ls -la
-
-      - name: Unpack and collect
-        run: |
           T="${{ matrix.tag }}"
-          OUT="$PWD/out/$T"; mkdir -p "$OUT" mnt
-          echo "# $T" > "$OUT/index.txt"
-          first=$(ls dl/*image-logical.7z* | sort | head -1)
-          7z l -ba "$first" | awk '{print $NF}' > images.txt
-          for part in system system_ext product; do
-            img=$(grep -E "(^|/)$part\.img$" images.txt | head -1)
-            [ -n "$img" ] || { echo "no $part.img in $T"; continue; }
-            7z x -y -o"img" "$first" "$img" > /dev/null
-            # Android images are EROFS (newer builds) or ext4: mounted read-only either way;
-            # EROFS falls back to erofsfuse if the runner's kernel lacks it.
-            sudo mount -o loop,ro "img/$img" mnt 2>/dev/null || sudo erofsfuse "img/$img" mnt
-            # system.img holds the root with system/ inside it; the others are their own root.
-            root=mnt; [ -d mnt/system ] && root=mnt/system
-            mkdir -p "$OUT/$part"
-            # (Plain "if"s: the step runs with -e and pipefail, so a missing file must not end it.)
-            for f in build.prop etc/fonts.xml etc/font_fallback.xml framework/framework.jar \
-                framework/services.jar framework/framework-res.apk; do
-              if [ -f "$root/$f" ]; then sudo cp "$root/$f" "$OUT/$part/"; fi
-            done
-            if [ -d "$root/fonts" ]; then
-              sudo find "$root/fonts" -name 'NotoColorEmoji*' -exec cp {} "$OUT/$part/" \;
-            fi
-            # Every APK: its package and version go into the index; the hooked ones are kept
-            # with their whole folder (splits and oat files with them).
-            sudo find "$root" -name '*.apk' \( -path '*/app/*' -o -path '*/priv-app/*' \) | while read -r apk; do
-              info=$(sudo "$AAPT2" dump badging "$apk" 2>/dev/null | head -1 || true)
-              pkg=$(echo "$info" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
-              ver=$(echo "$info" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")
-              echo "$part ${apk#$root/} $pkg $ver" >> "$OUT/index.txt"
-              for want in $PACKAGES; do
-                if [ "$pkg" = "$want" ]; then
-                  sudo cp -r "$(dirname "$apk")" "$OUT/$part/$pkg"
-                fi
-              done
-            done
-            sudo umount mnt || sudo fusermount -u mnt
-            rm -rf img
-          done
-          sudo chown -R "$USER" out
-          rm -rf dl
+          bash tools/firmware-collect.sh "$T" out
+          OUT="$PWD/out/$T"
           echo "## $T" >> "$GITHUB_STEP_SUMMARY"
           for want in $PACKAGES; do
             grep " $want " "$OUT/index.txt" | sed 's/^/    /' >> "$GITHUB_STEP_SUMMARY" || echo "    $want: not in this build" >> "$GITHUB_STEP_SUMMARY"

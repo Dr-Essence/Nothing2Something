@@ -4,6 +4,9 @@
   hookcheck.py index OUT.json APK_OR_JAR...      every class, method, field and resource name
   hookcheck.py refs OUT.json SRC_DIR             every name the module's source uses
   hookcheck.py check REFS.json OLD.json NEW.json what NEW lacks that OLD has (and what both lack)
+  hookcheck.py report REFS.json OLD_DIR NEW_DIR TAG OUT.json   one build's report, each hook
+                                                 checked in its own app (one index per app)
+  hookcheck.py summary OUT.md REPORT.json...     every build's report in one table
 
 How it works, for the Kotlin course: an Xposed hook names the app's code by strings (a class
 name, a method name, a field name). Nothing's apps are shrunk by R8, which renames whatever it
@@ -95,6 +98,7 @@ def resources(apk):
 def cmd_index(out, paths):
     classes = {}
     res = []
+    apps = {}
     with tempfile.TemporaryDirectory() as tmp:
         for path in paths:
             with zipfile.ZipFile(path) as z:
@@ -106,7 +110,12 @@ def cmd_index(out, paths):
                         index_dex(target, classes)
             if path.endswith(".apk"):
                 res += resources(path)
-    json.dump({"classes": classes, "resources": sorted(set(res))}, open(out, "w"))
+                info = subprocess.run([sdk_tool("aapt2"), "dump", "badging", path],
+                                      capture_output=True, text=True, errors="replace").stdout
+                m = re.search(r"package: name='([^']*)'.*?versionName='([^']*)'", info)
+                if m:
+                    apps[m.group(1)] = m.group(2)
+    json.dump({"classes": classes, "resources": sorted(set(res)), "apps": apps}, open(out, "w"))
     print(f"{out}: {len(classes)} classes, {len(set(res))} resources")
 
 
@@ -374,6 +383,138 @@ def cmd_check(refs_path, old_path, new_path):
         print("  " + show(r))
 
 
+def show_ref(r):
+    what = r.get("cls") or ""
+    if r.get("name"):
+        what = (what + "." if what else "*.") + r["name"]
+    return what
+
+
+# Which app each source file hooks, by its folder (and a few files of their own): its hooks
+# are looked up in that app and in Android's framework ("android": framework.jar,
+# services.jar, framework-res.apk), never in whatever other app a build happens to have (a
+# member named without its class would otherwise be "found" in any app). None: an app that is
+# not part of Nothing OS (HeliBoard, the live wallpapers), not checked here.
+APP_OF = [
+    ("settings/SearchHook.kt", ["com.android.settings.intelligence"]),
+    ("perf/GameBar.java", ["com.nothing.ntgamedashboard"]),
+    ("widgets/", ["com.nothing.cardservice", "com.nothing.hearthstone", "com.android.settings"]),
+    ("launcher/", ["com.nothing.launcher"]),
+    ("systemui/", ["com.android.systemui"]),
+    ("settings/", ["com.android.settings"]),
+    ("system/", []),
+    ("perf/", []),
+    ("xposed/", []),
+    ("keyboard/", None),
+    ("wallpaper/", None),
+]
+
+
+def app_of(path):
+    rel = path.split("nothinglauncherplus/", 1)[-1]
+    for prefix, pkgs in APP_OF:
+        if rel.startswith(prefix):
+            return pkgs
+    return []
+
+
+def load_build(folder):
+    """A build's indexes, one per app (<package>.json, android.json), as hookcheck-all.yml
+    writes them: {package: index}."""
+    out = {}
+    for path in glob.glob(os.path.join(folder, "*.json")):
+        out[os.path.basename(path)[:-5]] = json.load(open(path))
+    return out
+
+
+def merged(build, pkgs, cache):
+    """The index of these apps and the framework together; None if an app is not in the build."""
+    key = tuple(pkgs)
+    if key not in cache:
+        parts = [build.get(p) for p in list(pkgs) + ["android"]]
+        if any(part is None for part in parts[:-1]) or parts[-1] is None:
+            cache[key] = None
+        else:
+            classes, res, apps = {}, set(), {}
+            for part in parts:
+                classes.update(part["classes"])
+                res |= set(part["resources"])
+                apps.update(part.get("apps", {}))
+            cache[key] = {"classes": classes, "resources": sorted(res), "apps": apps}
+    return cache[key]
+
+
+def cmd_report(refs_path, old_dir, new_dir, tag, out):
+    """One build's breaks against the baseline, for hookcheck-all.yml's summary.
+
+    A reference counts only when it resolves in the baseline (OLD, a build the module is known
+    to work on) and is missing here; a reference this build cannot judge (its app is not in the
+    build) is counted as "not judged", never as a break."""
+    refs = json.load(open(refs_path))
+    old, new = load_build(old_dir), load_build(new_dir)
+    old_cache, new_cache = {}, {}
+    breaks, absent, checked = [], 0, 0
+    for r in refs:
+        pkgs = app_of(r["file"])
+        if pkgs is None:
+            continue
+        base = merged(old, pkgs, old_cache)
+        if base is None or resolve(r, base) != "ok":
+            continue
+        checked += 1
+        here = merged(new, pkgs, new_cache)
+        state = resolve(r, here) if here is not None else "unknown"
+        if state == "missing":
+            breaks.append({"file": r["file"], "line": r["line"], "kind": r["kind"],
+                           "what": show_ref(r), "call": r["call"]})
+        elif state == "unknown":
+            absent += 1
+    apps = {}
+    for idx in new.values():
+        apps.update(idx.get("apps", {}))
+    json.dump({"tag": tag, "apps": apps, "breaks": breaks, "absent": absent,
+               "checked": checked}, open(out, "w"))
+    print(f"{tag}: {checked} checked, {len(breaks)} breaks, {absent} not judged here")
+
+
+def cmd_summary(out, paths):
+    """Every build's report in one Markdown page: per build its count, per source file the
+    builds it breaks on (each break listed once, with the builds sharing it)."""
+    loaded = [json.load(open(p)) for p in paths]
+    failed = sorted((r for r in loaded if "error" in r), key=lambda r: r["tag"])
+    reports = sorted((r for r in loaded if "error" not in r), key=lambda r: r["tag"])
+    lines = ["# Hook check on every Nothing OS build", "",
+             f"{len(reports)} builds, each against the baseline (a build the module works on).",
+             "A break: a class, method, field or resource the module names that this build",
+             "does not have. Not judged: the hooked app is not in that build.", "",
+             "| Build | Launcher | System UI | Checked | Breaks | Not judged |",
+             "|---|---|---|---|---|---|"]
+    for r in reports:
+        apps = r.get("apps", {})
+        lines.append(f'| {r["tag"]} | {apps.get("com.nothing.launcher", "-")} | '
+                     f'{apps.get("com.android.systemui", "-")} | {r["checked"]} | '
+                     f'{len(r["breaks"])} | {r["absent"]} |')
+    if failed:
+        lines += ["", "## Builds that could not be checked", ""]
+        lines += [f'- {r["tag"]}: {r["error"]}' for r in failed]
+    by_break = {}
+    for r in reports:
+        for b in r["breaks"]:
+            key = (b["file"], b["line"], b["kind"], b["what"], b["call"])
+            by_break.setdefault(key, []).append(r["tag"])
+    lines += ["", "## Breaks by source file", ""]
+    files = sorted({k[0] for k in by_break})
+    for f in files:
+        lines.append(f"### {f}")
+        for key in sorted(k for k in by_break if k[0] == f):
+            tags = by_break[key]
+            lines.append(f"- line {key[1]}: {key[2]} `{key[3]}` ({key[4]}): "
+                         f"{len(tags)} builds: {', '.join(tags)}")
+        lines.append("")
+    open(out, "w").write("\n".join(lines) + "\n")
+    print(f"{out}: {len(reports)} builds, {len(by_break)} distinct breaks in {len(files)} files")
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         sys.exit(__doc__)
@@ -384,5 +525,9 @@ if __name__ == "__main__":
         cmd_refs(rest[0], rest[1])
     elif cmd == "check":
         cmd_check(*rest[:3])
+    elif cmd == "report":
+        cmd_report(*rest[:5])
+    elif cmd == "summary":
+        cmd_summary(rest[0], rest[1:])
     else:
         sys.exit(__doc__)

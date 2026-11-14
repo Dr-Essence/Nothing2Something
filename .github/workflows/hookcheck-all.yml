@@ -1,0 +1,170 @@
+name: Hook check on every Nothing OS build
+
+# Checks the module's hooks on every build of every Nothing and CMF phone in
+# github.com/spike0en/nothing_archive (Nothing's official updates rebuilt into partition
+# images), without a phone: each build is unpacked, the apps the module hooks are indexed, and
+# every class, method, field and resource the module names is looked up in its own app
+# (tools/hookcheck.py). Each is compared with the baseline, the CMF Phone 1's Nothing OS 4.1
+# build the module is developed on, so only what the baseline has and a build lacks counts as
+# a break. The summary (this run's page and the "hookcheck-summary" artifact) lists, per build,
+# how many hooks were checked and broke, and per source file which builds break it.
+#
+# What it cannot see: a name built at run time, a method found by its shape (Symbols.kt,
+# DexKit), and behaviour that changed under the same names. Those still need a phone.
+#
+# Runs when this file, the scripts it uses or the checker change (a push), and from the
+# Actions tab. "pick": "all" (every build), "newest" (the newest of each Nothing OS version of
+# each phone) or a comma-separated list of tags.
+
+on:
+  push:
+    paths:
+      - .github/workflows/hookcheck-all.yml
+      - tools/hookcheck-build.sh
+  workflow_dispatch:
+    inputs:
+      pick:
+        description: "all | newest | comma-separated nothing_archive tags"
+        required: false
+        default: "all"
+
+permissions:
+  contents: read
+
+env:
+  ARCHIVE: spike0en/nothing_archive
+  BASELINE: Tetris_B4.1-260928-1140
+  # The Nothing OS apps the module hooks (HeliBoard and the live wallpapers are not part of it).
+  PACKAGES: com.nothing.launcher com.android.systemui com.android.settings com.android.settings.intelligence com.nothing.ntgamedashboard com.nothing.cardservice com.nothing.hearthstone
+  # Builds per runner, one after another (each ~4.5 GB to download, ~10 minutes).
+  PER_RUNNER: 8
+
+jobs:
+  builds:
+    runs-on: ubuntu-latest
+    outputs:
+      chunks: ${{ steps.pick.outputs.chunks }}
+    steps:
+      - id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PICK: ${{ github.event.inputs.pick || 'all' }}
+        run: |
+          gh api --paginate "repos/$ARCHIVE/releases?per_page=100" --jq '.[].tag_name' > all.txt
+          echo "nothing_archive: $(wc -l < all.txt) releases"
+          python3 - <<'PY'
+          import json, os, re
+          pick = os.environ["PICK"].strip()
+          tags = [t for t in open("all.txt").read().split()
+                  if re.match(r"[A-Za-z]+_[A-Z]\d+\.[\d.]+-\d{6}-\d{4}$", t)]
+          if pick == "newest":
+              best = {}
+              for t in tags:
+                  phone, major, stamp = re.match(r"([A-Za-z]+)_[A-Z](\d+)\.[\d.]+-(\d{6}-\d{4})$", t).groups()
+                  if (phone, major) not in best or stamp > best[(phone, major)][0]:
+                      best[(phone, major)] = (stamp, t)
+              tags = [v[1] for v in best.values()]
+          elif pick != "all":
+              tags = [t.strip() for t in pick.split(",") if t.strip()]
+          tags = sorted(set(tags) - {os.environ["BASELINE"]})
+          n = int(os.environ["PER_RUNNER"])
+          chunks = [" ".join(tags[i:i + n]) for i in range(0, len(tags), n)]
+          print(f"{len(tags)} builds in {len(chunks)} runners")
+          for c in chunks:
+              print("  " + c)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write("chunks=" + json.dumps(chunks) + "\n")
+          PY
+
+  baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Make disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost \
+            /usr/local/lib/node_modules /opt/hostedtoolcache/CodeQL /usr/share/swift
+      - name: Tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full erofs-utils erofsfuse > /dev/null
+          echo "AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)" >> "$GITHUB_ENV"
+      - name: Baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 tools/hookcheck.py refs refs.json app/src/main/java
+          bash tools/hookcheck-build.sh "$BASELINE" refs.json "" reports base
+          cat "reports/$BASELINE.json" | head -c 400; echo
+          ls -la base
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hookcheck-baseline
+          path: |
+            refs.json
+            base
+            reports
+          retention-days: 7
+
+  check:
+    needs: [builds, baseline]
+    if: needs.builds.outputs.chunks != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        chunk: ${{ fromJson(needs.builds.outputs.chunks) }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Make disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost \
+            /usr/local/lib/node_modules /opt/hostedtoolcache/CodeQL /usr/share/swift
+      - name: Tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full erofs-utils erofsfuse > /dev/null
+          echo "AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          name: hookcheck-baseline
+          path: baseline
+      - name: Check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHUNK: ${{ matrix.chunk }}
+        run: |
+          for t in $CHUNK; do
+            bash tools/hookcheck-build.sh "$t" baseline/refs.json baseline/base reports
+          done
+          echo "CHUNK_ID=$(echo "$CHUNK" | md5sum | cut -c1-10)" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hookcheck-report-${{ env.CHUNK_ID }}
+          path: reports
+          retention-days: 30
+
+  summary:
+    needs: [check, baseline]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: hookcheck-report-*
+          path: reports
+          merge-multiple: true
+      - name: Summary
+        run: |
+          ls reports | wc -l
+          python3 tools/hookcheck.py summary summary.md reports/*.json
+          # The run page holds at most 1 MB: the whole list is in the artifact.
+          head -c 900000 summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hookcheck-summary
+          path: summary.md
+          retention-days: 90
