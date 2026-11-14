@@ -30,21 +30,26 @@ final class DrawerBackground {
         Class<?> allAppsState = XposedHelpers.findClass(CLS_ALL_APPS_STATE, cl);
         Class<?> launcherClass = XposedHelpers.findClass(Config.CLS_LAUNCHER, cl);
         boolean atSource = hookScrimColour(cl, store);
-        if (!atSource) {
-            XposedHelpers.findAndHookMethod(allAppsState, "getWorkspaceScrimColor",
-                    launcherClass, new XC_MethodHook() {
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) {
-                            int opacity = store.get().drawerOpacity;
-                            // An int up to Nothing OS 4; Nothing OS 5 returns ScrimColors (two
-                            // colours), whose colour comes from ThemeColors, faded at the source
-                            // above (tools/hookcheck.py, 0.70.32).
-                            if (opacity < 100 && param.getResult() instanceof Integer) {
-                                param.setResult(faded((Integer) param.getResult(), opacity));
-                            }
+        XposedHelpers.findAndHookMethod(allAppsState, "getWorkspaceScrimColor",
+                launcherClass, new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) {
+                        // An int up to Nothing OS 4; Nothing OS 5 returns ScrimColors (two
+                        // colours), whose colour comes from ThemeColors, faded at the source
+                        // below (tools/hookcheck.py, 0.70.32).
+                        if (!(param.getResult() instanceof Integer)) {
+                            return;
                         }
-                    });
-        }
+                        Config config = store.get();
+                        if (DrawerGlass.drawerIsGlass(config)) {
+                            // The one tint over the drawer's live blur (DrawerGlass).
+                            param.setResult(DrawerGlass.tint((Context) param.args[0], config));
+                        } else if (!atSource && config.drawerOpacity < 100) {
+                            param.setResult(faded((Integer) param.getResult(),
+                                    config.drawerOpacity));
+                        }
+                    }
+                });
 
         // The drawer's search (Nothing's NTLauncherAllAppsContainerView) paints its own colours
         // over that scrim: its sheet (foregroundPaint), its scrim and header protection, and the
@@ -57,7 +62,7 @@ final class DrawerBackground {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) {
                     Hooks.guard("drawer search colours", () -> searchColours(param.thisObject,
-                            store.get().drawerOpacity, atSource)).run();
+                            opacity(store.get()), atSource)).run();
                 }
             };
             XposedBridge.hookAllConstructors(search, colours);
@@ -153,7 +158,7 @@ final class DrawerBackground {
         XposedBridge.hookMethod(method, new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
-                int opacity = store.get().drawerOpacity;
+                int opacity = opacity(store.get());
                 Context context = (Context) param.args[0];
                 if (opacity >= 100 || context == null) {
                     return;
@@ -169,6 +174,15 @@ final class DrawerBackground {
             }
         });
         return true;
+    }
+
+    /**
+     * How opaque the drawer's own colours are, in percent: the Drawer background slider, or
+     * none at all while the drawer is glass (its tint is the scrim's alone, DrawerGlass), so
+     * the search's band under its bar and its page never lie over the blur as a dark strip.
+     */
+    private static int opacity(Config config) {
+        return DrawerGlass.drawerIsGlass(config) ? 0 : config.drawerOpacity;
     }
 
     /** True if {@code colour} is the one this class last set in {@code name}. */

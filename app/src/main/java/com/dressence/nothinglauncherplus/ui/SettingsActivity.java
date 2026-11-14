@@ -350,8 +350,9 @@ public class SettingsActivity extends Activity {
                     store.save(this);
                 });
         addOpacityRow(ui, config);
-        addGlassRows(ui, "Glass drawer background", "The wallpaper behind the drawer, blurred and"
-                + " tinted, in place of its colour · as strong as Drawer background above",
+        addGlassRows(ui, "Glass drawer background", "The wallpaper behind the drawer blurred live,"
+                + " as the quick settings panel, under its tint · off while Android has blurs off"
+                + " (battery saver)",
                 config.drawerGlass,
                 config.drawerGlassTint, checked -> config.drawerGlass = checked,
                 value -> config.drawerGlassTint = value);

@@ -152,6 +152,16 @@ final class DotMatrix {
     private static final int NOTHING_RED = 0xFFD71921;
     /** A VFD's blue-green: zinc oxide phosphor, peak near 505 nm. */
     private static final int VFD_PHOSPHOR = 0xFF5AFFC8;
+    /**
+     * The VFD's contrast (0.70.46): its darkest dots at 8 % (not 18 %), the mid-tones on a
+     * 1.6 curve. Dr.Essence's screenshot of 0.70.45: on the VFD, the parts of an emoji ran
+     * together (the toolbox's latches, the gamepad's buttons, the crystal ball's swirl), because
+     * its glow is the strongest of the styles and spreads each dot's light over its neighbours:
+     * the mid-tones, lit almost as much as the highlights, filled in the gaps. Chosen from a
+     * preview of six covers against stronger edges and less glow (which lost the glow).
+     */
+    private static final float VFD_FLOOR = 0.08f;
+    private static final float VFD_CURVE = 1.6f;
     private final Paint glassPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint rimPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint ledPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -330,8 +340,11 @@ final class DotMatrix {
      * toolbox and its latches, a grey pad and its buttons). Stretched from the emoji's darkest
      * to its brightest dot, the parts stay apart. Measured on the emoji at rest, not per frame,
      * so a moving emoji does not pulse as its range changes.
+     *
+     * {@code floor} is how lit the emoji's darkest dot stays, {@code curve} how the rest climb
+     * to full (1: evenly; above 1: the mid-tones held lower, so they part from the highlights).
      */
-    private void toGreen(int tint) {
+    private void toGreen(int tint, float floor, float curve) {
         if (greenLo != greenLo) {
             measureGreen();
         }
@@ -345,7 +358,7 @@ final class DotMatrix {
                 continue;
             }
             float t = Math.min(1f, Math.max(0f, (luma(c) - greenLo) / span));
-            float k = 0.18f + 0.82f * t;
+            float k = floor + (1f - floor) * (curve == 1f ? t : (float) Math.pow(t, curve));
             dots[i] = (c & 0xFF000000) | Math.round(r0 * k) << 16 | Math.round(g0 * k) << 8
                     | Math.round(b0 * k);
         }
@@ -436,9 +449,10 @@ final class DotMatrix {
             artifacts(time, seed ^ glyphKey.hashCode());
         }
         if (style == Config.DOT_STYLE_VFD) {
-            toGreen(VFD_PHOSPHOR); // One phosphor: a VFD is never in full colour.
+            // One phosphor: a VFD is never in full colour.
+            toGreen(VFD_PHOSPHOR, VFD_FLOOR, VFD_CURVE);
         } else if (green) {
-            toGreen(Palette.LED_GREEN);
+            toGreen(Palette.LED_GREEN, 0.18f, 1f);
         }
         if (Arrays.equals(dots, shown)) {
             return false;

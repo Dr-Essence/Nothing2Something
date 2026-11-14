@@ -101,7 +101,8 @@ public final class IconScreen {
 
     /**
      * VFD: every lit dot in the one phosphor, by its brightness within this icon's own range
-     * (3rd to 97th percentile, as the folders' green), so the icon's parts stay apart.
+     * (3rd to 97th percentile, as the folders' green), so the icon's parts stay apart, on the
+     * VFD's contrast curve.
      */
     private static void toPhosphor(int[] cells) {
         float[] luma = new float[cells.length];
@@ -123,7 +124,9 @@ public final class IconScreen {
                 continue;
             }
             float t = Math.min(1f, Math.max(0f, (luma(c) - lo) / span));
-            float k = 0.18f + 0.82f * t;
+            // Deeper darks and held-back mid-tones, as the folders' VFD (DotMatrix VFD_FLOOR,
+            // 0.70.46): the parts of an icon stay apart under the VFD's wide glow.
+            float k = 0.08f + 0.92f * (float) Math.pow(t, 1.6f);
             cells[i] = (c & 0xFF000000)
                     | Math.round(((VFD_PHOSPHOR >> 16) & 0xFF) * k) << 16
                     | Math.round(((VFD_PHOSPHOR >> 8) & 0xFF) * k) << 8
