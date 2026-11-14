@@ -32,4 +32,13 @@ same. Stop and tell the user instead of pushing if a step fails.
 5. **Push.** `git push -u origin <session branch>`, retrying network errors 4 times
    (2, 4, 8, 16 s). Never force, no PR unless asked.
 6. **Tell the user** in plain words: the version, what it brings, **Verified** / **Not
-   verified**, numbered **To test** steps.
+   verified**, numbered **To test** steps. The build to install is **the CI build** (Actions,
+   "Build module", the run of this commit, once it is green): it is built with the real
+   Xposed API and signed with the release key. Never hand out the local build: it is
+   debug-signed (it cannot update an installed release, so installing it means uninstalling,
+   which deletes the settings), and a local stub of the Xposed API can differ from the real
+   one. Mistake recorded, 0.70.46 to 0.70.48: local builds were sent; their stub declared
+   findAndHookMethod and hookMethod as returning Object, not XC_MethodHook.Unhook, so on the
+   phone every hook failed with NoSuchMethodError and the launcher ran without the module.
+   A local build is only for checking the change compiles; if one is checked on its own,
+   dexdump it and confirm the Xposed calls end in `XC_MethodHook$Unhook;`.
