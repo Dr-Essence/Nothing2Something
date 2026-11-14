@@ -36,6 +36,10 @@ language, with the feel of a retro-futuristic 80s-90s car dashboard.
 > **The look is a demo for now.** We are not satisfied with it yet: almost every part of the
 > design will be reworked before the first stable public release. Think of what you see today as
 > a preview of roughly where the final look is going, not the final look itself.
+>
+> **Nothing Gaming Space above all:** its look will change drastically. What it looks like now is
+> not even close to the look we want: it is a demo, there to test its features (the cross menu,
+> the artwork, the trailers, the controller), not its design.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/Dr-Essence/Nothing2Something/claude/nothing-os-xposed-module-65lsca/docs/images/home-landscape.png" alt="Landscape home screen" width="100%">
@@ -76,7 +80,54 @@ Each section below opens when tapped.
 <details>
 <summary><b>Current state</b> · version 0.70.61, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.61** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), a live-blurred glass app drawer, as the quick settings panel, and glass open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.61** (CMF Phone 1, Nothing OS 4.1, Android 16). *New* marks what came
+in the last builds.
+
+*App drawer*
+- Custom folders beside Nothing's Smart categories, with image and animated emoji covers.
+- Dot screen style: five ways for the folders' dots to light, to compare. *New*
+- Green dot screen: the covers in shades of green only. *New*
+- Glass app drawer: Nothing OS 5's frosted glass or a live blur like the quick settings panel. *New*
+- Glass open drawer folders. *New*
+
+*Home screen and icons*
+- Dot matrix icon pack in Nothing's picker: 34 dots across, on dark glass, clean in every shape. *New*
+- Dot icon style: the same five looks for the app icons. *New*
+- Nothing OS 5's frosted glass on still and live wallpapers: open and closed folders, the dock's
+  search bar and Nothing's widgets, each with a switch and a tint slider. *New*
+- CMF Stereo's live icon with white waves, left alone by Nothing's icon style.
+- Landscape: the dock turns with the screen; the widget picker turned works on Nothing OS 4.0 too. *New*
+
+*Gaming*
+
+> Nothing Gaming Space is a demo for testing its features: its look will change drastically, and
+> what you see now is not even close to the look we want.
+
+- Nothing Gaming Space (alpha, demo): the module's own gaming launcher in dot-matrix style, one
+  dot screen on top, a cross menu below, turning 3D dot boxes and an animation per category.
+- Game artwork from Google Play (no key) or SteamGridDB, and Steam trailers as game clips. *New*
+- Games' cut-out icons as solid dot shapes; the lower half laid out like the XMB. *New*
+
+*Status bar, lock screen and system*
+- Dual status bar with its options and tighter rows; its date hides with the clock.
+- OLED saver, also when a swipe brings the bar back over a full-screen app.
+- Full-screen apps: picked apps hide the status bar and use its space. *New*
+- Lock screen in landscape, laid out in the frame it turns in; Check orientation on wake and
+  unlock. *New*
+- HeliBoard across the whole width in landscape, beside the camera too (verified). *New*
+- Restart System UI from the module.
+
+*The module app*
+- Settings sorted by what they change; glass tint sliders folded under their switch. *New*
+- Glass settings screens: the app's own screens in frosted glass over the wallpaper. *New*
+- A search field for its settings, and every setting in Android's Settings search. *New*
+- A Nothing2Something row in Settings, a Show app icon switch, a dot-matrix app icon. *New*
+- Launcher only mode. *New*
+- Diagnostics: Your data (nothing is collected), Hook health, debug report. *New*
+
+*Under the hood*
+- Both Xposed APIs in one module; LSPosed 2 and Vector keep the settings themselves. *New*
+- The crash-loop guard counts only crashes, not System UI restarts by other modules or LSPosed.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
