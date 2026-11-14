@@ -43,7 +43,8 @@ final class DrawerBackground {
                         Config config = store.get();
                         if (DrawerGlass.drawerIsGlass(config)) {
                             // The one tint over the drawer's live blur (DrawerGlass).
-                            param.setResult(DrawerGlass.tint((Context) param.args[0], config));
+                            param.setResult(DrawerGlass.scrimColour((Context) param.args[0],
+                                    config));
                         } else if (!atSource && config.drawerOpacity < 100) {
                             param.setResult(faded((Integer) param.getResult(),
                                     config.drawerOpacity));

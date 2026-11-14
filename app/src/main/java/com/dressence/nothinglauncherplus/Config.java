@@ -78,6 +78,10 @@ public final class Config {
     public static final String KEY_WIDGET_GLASS = "widget_glass";
     public static final String KEY_WIDGET_GLASS_TINT = "widget_glass_tint";
     public static final String KEY_DRAWER_GLASS = "drawer_glass";
+    public static final String KEY_DRAWER_GLASS_LOOK = "drawer_glass_look";
+    /** The drawer's glass: Nothing OS 5's frosted picture, or Android's live blur. */
+    public static final int DRAWER_GLASS_FROSTED = 0;
+    public static final int DRAWER_GLASS_LIVE = 1;
     public static final String KEY_DRAWER_GLASS_TINT = "drawer_glass_tint";
     public static final String KEY_SETTINGS_GLASS = "settings_glass";
     public static final String KEY_SETTINGS_GLASS_TINT = "settings_glass_tint";
@@ -279,6 +283,7 @@ public final class Config {
     /** Frosted glass for the app drawer's background and an open drawer folder (DrawerGlass). */
     public boolean drawerGlass = false;
     public int drawerGlassTint = 40;
+    public int drawerGlassLook = DRAWER_GLASS_FROSTED;
     /** The module's own screens over the wallpaper, blurred live (ui/Ui.applyBackground). */
     public boolean settingsGlass = false;
     public int settingsGlassTint = 40;
@@ -527,6 +532,7 @@ public final class Config {
         widgetGlass = in.bool(KEY_WIDGET_GLASS, false);
         widgetGlassTint = Math.max(0, Math.min(100, in.number(KEY_WIDGET_GLASS_TINT, 40)));
         drawerGlass = in.bool(KEY_DRAWER_GLASS, false);
+        drawerGlassLook = in.number(KEY_DRAWER_GLASS_LOOK, DRAWER_GLASS_FROSTED);
         drawerGlassTint = Math.max(0, Math.min(100, in.number(KEY_DRAWER_GLASS_TINT, 40)));
         settingsGlass = in.bool(KEY_SETTINGS_GLASS, false);
         settingsGlassTint = Math.max(0, Math.min(100, in.number(KEY_SETTINGS_GLASS_TINT, 40)));
@@ -640,6 +646,7 @@ public final class Config {
         out.bool(KEY_WIDGET_GLASS, widgetGlass);
         out.number(KEY_WIDGET_GLASS_TINT, widgetGlassTint);
         out.bool(KEY_DRAWER_GLASS, drawerGlass);
+        out.number(KEY_DRAWER_GLASS_LOOK, drawerGlassLook);
         out.number(KEY_DRAWER_GLASS_TINT, drawerGlassTint);
         out.bool(KEY_SETTINGS_GLASS, settingsGlass);
         out.number(KEY_SETTINGS_GLASS_TINT, settingsGlassTint);

@@ -3,6 +3,9 @@ package com.dressence.nothinglauncherplus.launcher
 import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.view.SurfaceControl
 import android.view.View
 import android.view.WindowManager
@@ -29,11 +32,13 @@ import de.robv.android.xposed.XposedHelpers
  *   color_all_apps_content_background_color) and fades in and out with the sheet. Its
  *   background becomes the frosted glass (Frosted.kt): it must hide the drawer's apps under
  *   the folder, which a see-through blur would not. The fade stays Nothing's.
- * - **The drawer's background** is the wallpaper itself, blurred live by Android behind the
- *   launcher's window ([installDrawer]), the way the quick settings panel blurs. Over it lies
- *   only the launcher's ScrimView, in the tint (DrawerBackground: AllAppsState's scrim colour);
- *   every other colour the drawer paints from its scrim colour (the search's sheet, its band
- *   under the search bar, its page) is cleared, so nothing doubles the tint.
+ * - **The drawer's background**, in one of two looks (Glass drawer look):
+ *   Nothing OS 5's frosted glass ([installFrosted], the default), the frosted picture drawn
+ *   as the launcher's ScrimView; or a live blur of the wallpaper behind the launcher's window,
+ *   made by Android itself ([installDrawer]), the way the quick settings panel blurs, under
+ *   the scrim in the tint. Either way every other colour the drawer paints from its scrim
+ *   colour (the search's sheet, its band under the search bar, its page) is cleared, so
+ *   nothing lies over the glass as a dark strip (DrawerBackground).
  *
  * Mistakes recorded:
  * - 0.70.38 to 0.70.43 (Dr.Essence's recording): the drawer's glass was drawn for where the
@@ -44,13 +49,17 @@ import de.robv.android.xposed.XposedHelpers
  * - 0.70.45 (Dr.Essence, 0.70.46): the glass was the frosted picture (a still, small blur of
  *   the wallpaper) drawn as the scrim, at the Drawer background opacity: at a strong opacity
  *   the search's band under its bar came back as a black strip, and the drawer looked like the
- *   module's widget glass, not the panel's live see-through. Both came from painting glass
- *   over Nothing's colours; the live blur is Android's own, with Nothing's colours cleared.
+ *   module's widget glass, not the panel's live see-through. The black strip came from
+ *   Nothing's colours left over the glass; they are cleared now. 0.70.53 (Dr.Essence: the
+ *   drawer should be Nothing OS 5's frosted glass, as first asked) brings the frosted look
+ *   back as the default, at Nothing's tint over the whole screen, with the live blur kept as
+ *   the other look to compare.
  */
 internal object DrawerGlass {
 
     private const val SHEET = SmartDrawer.SMART_PKG + "SmartFullSheet"
     private const val SLIDE_IN = "com.android.launcher3.views.AbstractSlideInView"
+    private const val SCRIM_VIEW = "com.android.launcher3.views.ScrimView"
     private const val DEPTH_CONTROLLER = "com.android.quickstep.util.BaseDepthController"
     private const val SYSTEM_UI = "com.android.systemui"
     private const val LAUNCHER_STATE = "com.android.launcher3.LauncherState"
@@ -65,6 +74,7 @@ internal object DrawerGlass {
         }
         Hooks.install("drawer folder glass") { installFolderSheet(cl, store) }
         Hooks.install("drawer glass") { installDrawer(cl, store) }
+        Hooks.install("drawer frosted glass") { installFrosted(cl, store) }
     }
 
     /** The open drawer folder: its colour scrim's background becomes the glass. */
@@ -128,6 +138,85 @@ internal object DrawerGlass {
     private var installed = false
 
     /**
+     * The drawer is open, opening or closing: the launcher's state is ALL_APPS, or it is still
+     * the last settled one (while the drawer closes, the state is already the next).
+     */
+    private fun drawerShown(launcher: Context, allApps: Any): Boolean = try {
+        val states = XposedHelpers.callMethod(launcher, "getStateManager")
+        XposedHelpers.callMethod(states, "getState") === allApps ||
+            XposedHelpers.callMethod(states, "getCurrentStableState") === allApps
+    } catch (t: Throwable) {
+        false
+    }
+
+    /**
+     * The drawer's look Nothing OS 5's frosted glass (Glass drawer background, look "Nothing
+     * OS 5 frosted", the default since 0.70.53): Nothing's frosted picture of the wallpaper
+     * (Frosted.kt; a live wallpaper captured as Nothing OS 5 does, again each minute) drawn as
+     * the launcher's ScrimView, the full-screen view behind the drawer whose colour the
+     * launcher animates with its state. The scrim takes a [FrostedScrim] the first time its
+     * colour is set (ScrimView.setBackgroundColor, declared there in the 4.1 launcher); Android's
+     * View.setBackgroundColor then changes that ColorDrawable's colour in place, so the
+     * launcher's own fade reaches the glass. While the drawer is frosted its scrim colour is
+     * opaque ([scrimColour]), so the fade runs the glass from clear to full; the tint is
+     * Nothing's own (Lucent: white in light mode, black in dark, at the slider).
+     */
+    private fun installFrosted(cl: ClassLoader, store: ConfigStore) {
+        val scrim = XposedHelpers.findClass(SCRIM_VIEW, cl)
+        val allApps = XposedHelpers.getStaticObjectField(
+            XposedHelpers.findClass(LAUNCHER_STATE, cl), "ALL_APPS")
+        XposedHelpers.findAndHookMethod(scrim, "setBackgroundColor", Int::class.javaPrimitiveType,
+            object : XC_MethodHook() {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    val view = param.thisObject as View
+                    if (view.background is FrostedScrim) {
+                        return
+                    }
+                    Hooks.guard("drawer frosted glass") {
+                        view.background = FrostedScrim(view, param.args[0] as Int, store, allApps)
+                    }.run()
+                }
+            })
+        installed = true
+    }
+
+    /**
+     * The scrim's colour, drawn as Nothing's frosted glass at the colour's opacity while the
+     * drawer shows with the frosted look, as the colour itself otherwise (other screens use
+     * the scrim too).
+     */
+    private class FrostedScrim(
+        private val view: View,
+        colour: Int,
+        private val store: ConfigStore,
+        private val allApps: Any,
+    ) : ColorDrawable(colour) {
+
+        override fun draw(canvas: Canvas) {
+            val config = store.get()
+            val alpha = Color.alpha(color)
+            if (!drawerIsGlass(config) || config.drawerGlassLook != Config.DRAWER_GLASS_FROSTED ||
+                    alpha == 0 || !drawerShown(view.context, allApps)) {
+                super.draw(canvas)
+                return
+            }
+            val glass = Frosted.paint(view, config.drawerGlassTint)
+            glass.alpha = alpha
+            canvas.drawRect(bounds, glass)
+        }
+    }
+
+    /**
+     * The drawer's scrim colour while it is glass (AllAppsState.getWorkspaceScrimColor,
+     * DrawerBackground): opaque for the frosted look, whose glass takes the colour's opacity
+     * as its own; the tint itself for the live blur, which shows through it.
+     */
+    @JvmStatic
+    fun scrimColour(context: Context, config: Config): Int =
+        if (config.drawerGlassLook == Config.DRAWER_GLASS_FROSTED) 0xFF000000.toInt()
+        else tint(context, config)
+
+    /**
      * Whether the drawer is glass now: its own colours (DrawerBackground) are then all clear,
      * the search's band and page included, and only the tint ([tint]) lies over the blur.
      */
@@ -180,7 +269,9 @@ internal object DrawerGlass {
          * tint alone stays, as Nothing OS 5's tint-only glass).
          */
         private fun radiusFor(launcher: Activity, depth: Float): Int {
-            if (!store.get().drawerGlass || !drawerShown(launcher)) {
+            val config = store.get()
+            if (!config.drawerGlass || config.drawerGlassLook != Config.DRAWER_GLASS_LIVE ||
+                    !drawerShown(launcher, allApps)) {
                 return 0
             }
             val windows = launcher.getSystemService(WindowManager::class.java)
@@ -221,18 +312,6 @@ internal object DrawerGlass {
                 ?: return null
             val control = XposedHelpers.callMethod(root, "getSurfaceControl") as SurfaceControl?
             return control?.takeIf { it.isValid }
-        }
-
-        /**
-         * The drawer is open, opening or closing: the launcher's state is ALL_APPS, or it is
-         * still the last settled one (while the drawer closes, the state is already the next).
-         */
-        private fun drawerShown(launcher: Activity): Boolean = try {
-            val states = XposedHelpers.callMethod(launcher, "getStateManager")
-            XposedHelpers.callMethod(states, "getState") === allApps ||
-                XposedHelpers.callMethod(states, "getCurrentStableState") === allApps
-        } catch (t: Throwable) {
-            false
         }
     }
 }

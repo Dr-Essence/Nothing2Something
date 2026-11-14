@@ -399,12 +399,18 @@ public class SettingsActivity extends Activity {
                     store.save(this);
                 });
         addOpacityRow(ui, config);
-        addGlassRows(ui, "Glass drawer background", "The wallpaper behind the drawer blurred live,"
-                + " as the quick settings panel, under its tint · off while Android has blurs off"
-                + " (battery saver)",
+        addGlassRows(ui, "Glass drawer background", "The drawer over the wallpaper in Nothing OS"
+                + " 5's frosted glass, or blurred live as the quick settings panel (Look below)",
                 config.drawerGlass,
                 config.drawerGlassTint, checked -> config.drawerGlass = checked,
                 value -> config.drawerGlassTint = value);
+        choiceRow(ui, "Glass drawer look", "How the drawer's glass is made, to compare on the"
+                        + " phone",
+                new String[] {"Nothing OS 5 frosted (a still picture, live wallpapers again"
+                        + " each minute)", "Live blur, as the quick settings panel (moves with a"
+                        + " live wallpaper; off in battery saver)"},
+                new int[] {Config.DRAWER_GLASS_FROSTED, Config.DRAWER_GLASS_LIVE},
+                config.drawerGlassLook, value -> config.drawerGlassLook = value);
         addGlassRows(ui, "Glass open drawer folders", "A drawer folder, when opened, shows the"
                 + " wallpaper behind it, blurred and tinted", config.drawerFolderGlass,
                 config.drawerFolderGlassTint, checked -> config.drawerFolderGlass = checked,
