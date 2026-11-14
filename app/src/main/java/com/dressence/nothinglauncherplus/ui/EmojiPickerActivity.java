@@ -95,7 +95,6 @@ public class EmojiPickerActivity extends Activity {
         TypedArray a = obtainStyledAttributes(new int[]{android.R.attr.colorAccent});
         accent = a.getColor(0, 0xFFD71921);
         a.recycle();
-        getWindow().getDecorView().setBackgroundColor(Ui.BACKGROUND);
         setContentView(buildLayout());
 
         EmojiCatalog.Entry current = catalog.find(getIntent().getStringExtra(EXTRA_EMOJI));
@@ -110,7 +109,7 @@ public class EmojiPickerActivity extends Activity {
         int pad = Ui.dp(this, 20);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Ui.BACKGROUND);
+        root.setBackgroundColor(Ui.applyBackground(this));
         root.setFitsSystemWindows(true);
 
         LinearLayout bar = new LinearLayout(this);

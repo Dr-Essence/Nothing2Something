@@ -358,6 +358,17 @@ public class SettingsActivity extends Activity {
 
     private void sectionModule(Ui ui) {
         ui.section("Module");
+        Config config = store.config;
+        addGlassRows(ui, "Glass settings screens", "This app's screens over your wallpaper, a"
+                + " live one moving too, blurred and tinted", config.settingsGlass,
+                config.settingsGlassTint, checked -> {
+                    config.settingsGlass = checked;
+                    getWindow().getDecorView().post(this::render);
+                }, value -> {
+                    config.settingsGlassTint = value;
+                    // Only the window's tint changes: the page stays as it is, slider open.
+                    getWindow().getDecorView().post(() -> Ui.applyBackground(this));
+                });
         ui.switchRow("Show app icon", "Off: the icon leaves the app drawer and home screen; open"
                 + " the module from the Nothing2Something row in Settings, Settings search or"
                 + " LSPosed · needs the module active in the system (after a reboot), or Android"

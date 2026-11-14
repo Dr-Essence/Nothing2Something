@@ -79,6 +79,8 @@ public final class Config {
     public static final String KEY_WIDGET_GLASS_TINT = "widget_glass_tint";
     public static final String KEY_DRAWER_GLASS = "drawer_glass";
     public static final String KEY_DRAWER_GLASS_TINT = "drawer_glass_tint";
+    public static final String KEY_SETTINGS_GLASS = "settings_glass";
+    public static final String KEY_SETTINGS_GLASS_TINT = "settings_glass_tint";
     public static final String KEY_DRAWER_FOLDER_GLASS = "drawer_folder_glass";
     public static final String KEY_DRAWER_FOLDER_GLASS_TINT = "drawer_folder_glass_tint";
     public static final String KEY_TASK_MANAGER = "task_manager";
@@ -277,6 +279,9 @@ public final class Config {
     /** Frosted glass for the app drawer's background and an open drawer folder (DrawerGlass). */
     public boolean drawerGlass = false;
     public int drawerGlassTint = 40;
+    /** The module's own screens over the wallpaper, blurred live (ui/Ui.applyBackground). */
+    public boolean settingsGlass = false;
+    public int settingsGlassTint = 60;
     public boolean drawerFolderGlass = false;
     public int drawerFolderGlassTint = 40;
     /** Running services (Settings) as a task manager. */
@@ -523,6 +528,8 @@ public final class Config {
         widgetGlassTint = Math.max(0, Math.min(100, in.number(KEY_WIDGET_GLASS_TINT, 40)));
         drawerGlass = in.bool(KEY_DRAWER_GLASS, false);
         drawerGlassTint = Math.max(0, Math.min(100, in.number(KEY_DRAWER_GLASS_TINT, 40)));
+        settingsGlass = in.bool(KEY_SETTINGS_GLASS, false);
+        settingsGlassTint = Math.max(0, Math.min(100, in.number(KEY_SETTINGS_GLASS_TINT, 60)));
         drawerFolderGlass = in.bool(KEY_DRAWER_FOLDER_GLASS, false);
         drawerFolderGlassTint = Math.max(0, Math.min(100,
                 in.number(KEY_DRAWER_FOLDER_GLASS_TINT, 40)));
@@ -634,6 +641,8 @@ public final class Config {
         out.number(KEY_WIDGET_GLASS_TINT, widgetGlassTint);
         out.bool(KEY_DRAWER_GLASS, drawerGlass);
         out.number(KEY_DRAWER_GLASS_TINT, drawerGlassTint);
+        out.bool(KEY_SETTINGS_GLASS, settingsGlass);
+        out.number(KEY_SETTINGS_GLASS_TINT, settingsGlassTint);
         out.bool(KEY_DRAWER_FOLDER_GLASS, drawerFolderGlass);
         out.number(KEY_DRAWER_FOLDER_GLASS_TINT, drawerFolderGlassTint);
         out.bool(KEY_TASK_MANAGER, taskManager);

@@ -109,7 +109,6 @@ public class AppPickerActivity extends Activity {
                 }
             }
         }
-        getWindow().getDecorView().setBackgroundColor(Ui.BACKGROUND);
         setContentView(build(fullScreenList ? "Full-screen apps" : folder.name));
         filter();
     }
@@ -132,7 +131,7 @@ public class AppPickerActivity extends Activity {
         int pad = Ui.dp(this, 20);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Ui.BACKGROUND);
+        root.setBackgroundColor(Ui.applyBackground(this));
         root.setFitsSystemWindows(true);
 
         LinearLayout bar = new LinearLayout(this);

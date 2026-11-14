@@ -72,10 +72,10 @@ final class Ui {
 
     /** Sets a scrolling page with a back arrow and a large title as the activity content. */
     static Ui page(Activity activity, String title, boolean showBack) {
-        // Edge-to-edge (target SDK 36): the black window shows behind the system bars.
-        activity.getWindow().getDecorView().setBackgroundColor(BACKGROUND);
+        // Edge-to-edge (target SDK 36): the window shows behind the system bars.
+        int background = applyBackground(activity);
         ScrollView scroll = new ScrollView(activity);
-        scroll.setBackgroundColor(BACKGROUND);
+        scroll.setBackgroundColor(background);
         scroll.setFillViewport(true);
         scroll.setFitsSystemWindows(true);
         LinearLayout content = new LinearLayout(activity);
@@ -108,6 +108,42 @@ final class Ui {
                 dp(activity, 24), dp(activity, 24));
         content.addView(heading);
         return ui;
+    }
+
+    /** The live blur behind a glass screen, in dp (the drawer's glass uses System UI's). */
+    private static final int GLASS_BLUR_DP = 40;
+
+    /**
+     * The module's own screen, black, or glass (Glass settings screens, 0.70.50): the
+     * wallpaper, a still or a live one as it moves, shown behind the window (Android's
+     * FLAG_SHOW_WALLPAPER, what launchers use) and blurred live by Android
+     * (Window.setBackgroundBlurRadius), under a black tint. While Android has blurs
+     * off (battery saver, heat) the tint lies over the plain wallpaper. The tint is black in
+     * both modes, as the pages' texts are light. Applied again on every
+     * page made, so switching it takes effect on the next page or at once on the menu.
+     * Returns the colour the page's own views take: transparent over glass, else black.
+     */
+    static int applyBackground(Activity activity) {
+        Config config = new SettingsStore(activity).config;
+        android.view.Window window = activity.getWindow();
+        if (!config.settingsGlass) {
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER);
+            window.setBackgroundBlurRadius(0);
+            window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(BACKGROUND));
+            window.getDecorView().setBackgroundColor(BACKGROUND);
+            return BACKGROUND;
+        }
+        // Black in light mode too: the module's pages are dark, with light texts.
+        int tint = Color.argb((config.settingsGlassTint * 255 + 50) / 100, 0, 0, 0);
+        window.setFormat(android.graphics.PixelFormat.TRANSLUCENT);
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER);
+        window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(tint));
+        window.getDecorView().setBackgroundColor(tint);
+        android.view.WindowManager windows =
+                activity.getSystemService(android.view.WindowManager.class);
+        boolean blurs = windows != null && windows.isCrossWindowBlurEnabled();
+        window.setBackgroundBlurRadius(blurs ? dp(activity, GLASS_BLUR_DP) : 0);
+        return Color.TRANSPARENT;
     }
 
     /**
