@@ -23,11 +23,11 @@ LauncherSymbols.kt: DexKit), and behaviour that changed under the same names.
 | CMF Phone 1 (Tetris) | 100 | 44 | 1 | **0** (baseline) | - |
 | CMF Phone 2 Pro (Galaga) | - | 44 | 1 | **0** | - |
 | Phone (3) (Metroid) | - | 38 | 1 | **0** | 41 |
-| Phone (3a) Lite (Galaxian) | - | 38 | 1 | **0** | - |
+| Galaxian | - | 38 | 1 | **0** | - |
 | Frogger, FroggerPro, SuperContra | - | - | - | **0** (older builds 1) | 42 |
 
-(Codename to model as nothing_archive lists them; a phone without a column has no such
-build there.)
+(Models by codename as widely known; Galaxian, Frogger, FroggerPro and SuperContra are
+newer phones whose model names are not confirmed here. A dash: no such build in the archive.)
 
 ## The breaks
 
