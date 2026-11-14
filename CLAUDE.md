@@ -59,3 +59,25 @@
   its comments so it can be taught from: clear names, the reason for each step, and what was
   checked. Focus: unlocking features and bypassing limits in Nothing OS and Android, not
   ordinary apps.
+
+# Working plan (agreed 2026-11-14)
+
+These six rules come from an honest review of the project. They hold until Dr.Essence lifts them.
+
+1. **Feature freeze.** No new features. Three pillars get finished to a quality worth showing;
+   everything else is either marked experimental or removed. Until the pillars are chosen,
+   work is limited to fixes and finishing what exists. When a request is a new feature, say so
+   and ask whether it is worth breaking the freeze.
+2. **Design in pictures first.** Any visible change (Gaming Space, the final look, settings
+   layout, banners) is shown as a mock-up and agreed before code is written for it. Code is
+   built once, from the agreed picture.
+3. **One tester release a week.** Builds in between are for Dr.Essence's own phone only.
+   The README's Builds table and the testers get the weekly build, not every commit.
+4. **Dr.Essence owns the code.** Every change is explained so it can be read and understood:
+   what each part does and why, in plain words, with the file and line. Changes stay small
+   enough to read in one sitting. This is the Kotlin course.
+5. **Split big files and add tests.** Large files (SettingsActivity, the landscape grid) are
+   split when they are worked on anyway. Pure logic (dot rendering, colour maths, settings
+   parsing, the hook check) gets unit tests that run in CI.
+6. **The README stays short.** It says what the module is, how to install it, what is safe,
+   and the Testing table. The history of builds lives in CHANGELOG.md.
