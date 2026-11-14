@@ -409,7 +409,8 @@ public class SettingsActivity extends Activity {
                 checked -> AppIcon.setShown(this, checked));
         ui.row("Backup", "Export or import folders, options and covers", null, ui.chevron(),
                 v -> openPage(PAGE_BACKUP));
-        ui.row("Diagnostics", "Debug report for fixing problems", null, ui.chevron(),
+        ui.row("Diagnostics", "Your data, Hook health, debug report for fixing problems", null,
+                ui.chevron(),
                 v -> openPage(PAGE_DIAGNOSTICS));
     }
 
@@ -1049,11 +1050,26 @@ public class SettingsActivity extends Activity {
     }
 
     private void renderDiagnostics(Ui ui, Config config) {
+        // What the module collects (nothing) and how a user sends a report if they choose to:
+        // every network use was checked (2026-11): only the lookups the user turns on.
+        ui.section("Your data");
+        ui.note("Nothing2Something collects nothing and sends nothing to its developer: no"
+                + " analytics, no crash reports, no account. Everything on this page stays on"
+                + " your phone until you send it yourself. The only internet use is what you turn"
+                + " on: game artwork and trailers (Gaming Space looks a game up by name on Google"
+                + " Play, Steam or SteamGridDB) and Palette Cycle's sounds.");
+        ui.note("To report a problem: take a screenshot of Hook health below, say your phone and"
+                + " Nothing OS version, and add a screen recording or a debug report if something"
+                + " looks wrong. An LSPosed log or a debug report can hold account details and"
+                + " personal info: send them privately to the developer, never in a public issue"
+                + " or chat.");
         hookHealth(ui);
         ui.section("Logging");
-        ui.switchRow("Diagnostic logging", "Writes what is needed to fix problems to the LSPosed"
-                + " log: orientation changes, lock screen layout, fingerprint events, portrait-only"
-                + " screens", config.diagnosticLogging, checked -> {
+        ui.switchRow("Diagnostic logging", "Off unless something does not work: writes what is"
+                + " needed to fix problems to the LSPosed log (orientation changes, lock screen"
+                + " layout, fingerprint events, portrait-only screens), which makes the log long ·"
+                + " turn it on only when asked for a log, then off again", config.diagnosticLogging,
+                checked -> {
                     config.diagnosticLogging = checked;
                     store.save(this);
                 });
