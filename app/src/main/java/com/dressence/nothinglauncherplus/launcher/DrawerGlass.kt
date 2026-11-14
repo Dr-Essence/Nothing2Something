@@ -192,17 +192,36 @@ internal object DrawerGlass {
         private val allApps: Any,
     ) : ColorDrawable(colour) {
 
+        /** What was last drawn, logged once each (what the drawer shows, for a log). */
+        private var told = ""
+
         override fun draw(canvas: Canvas) {
             val config = store.get()
             val alpha = Color.alpha(color)
+            val shown = drawerShown(view.context, allApps)
             if (!drawerIsGlass(config) || config.drawerGlassLook != Config.DRAWER_GLASS_FROSTED ||
-                    alpha == 0 || !drawerShown(view.context, allApps)) {
+                    alpha == 0 || !shown) {
+                if (alpha == 255 && !shown) {
+                    tell("drawer frosted glass: scrim opaque but the drawer state is not ALL_APPS")
+                }
                 super.draw(canvas)
                 return
             }
             val glass = Frosted.paint(view, config.drawerGlassTint)
-            glass.alpha = alpha
+            // The launcher's fade scales the glass's own opacity, never replaces it: without a
+            // picture yet, the glass is Nothing's tint alone (40 % black), and setting its
+            // opacity to the fade's 255 made it solid black (0.70.53, Dr.Essence).
+            glass.alpha = glass.alpha * alpha / 255
             canvas.drawRect(bounds, glass)
+            tell(if (glass.shader != null) "drawer frosted glass: the wallpaper's frosted picture"
+                else "drawer frosted glass: no wallpaper picture yet, the tint alone")
+        }
+
+        private fun tell(what: String) {
+            if (what != told) {
+                told = what
+                Hooks.log(what)
+            }
         }
     }
 
