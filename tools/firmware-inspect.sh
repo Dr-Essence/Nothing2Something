@@ -16,7 +16,7 @@ done
 for f in dex/classes*.dex; do "$DEX" -d "$f"; done > launcher.txt
 python3 - <<'PY'
 import re
-text = open("launcher.txt").read()
+text = open("launcher.txt", errors="replace").read()
 blocks = re.split(r"(?=Class #\d+\s*-\s*\n)", text)
 want = {"Landroid/content/res/Resources;", "Landroid/view/WindowMetrics;", "Landroid/graphics/Insets;"}
 found = []
