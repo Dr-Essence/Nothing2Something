@@ -1270,18 +1270,39 @@ public class SettingsActivity extends Activity {
         void changed(boolean value);
     }
 
-    /** One glass surface: its switch and its tint slider. */
+    /**
+     * One glass surface: its switch, and its tint slider folded under it until the row is
+     * tapped (Dr.Essence: with every slider shown, the glass settings looked cluttered). The
+     * switch turns the glass on and off; a tap anywhere else on the row shows or hides the
+     * tint. The tint's row is still recorded for search, folded or not.
+     */
     private void addGlassRows(Ui ui, String title, String summary, boolean on, int tint,
             BoolChange onSwitch, IntChange onTint) {
-        ui.switchRow(title, summary, on, checked -> {
+        android.widget.Switch toggle = new android.widget.Switch(this);
+        toggle.setChecked(on);
+        toggle.setOnCheckedChangeListener((v, checked) -> {
             onSwitch.changed(checked);
             store.save(this);
         });
+        LinearLayout tintPanel = new LinearLayout(this);
+        tintPanel.setOrientation(LinearLayout.VERTICAL);
+        tintPanel.setVisibility(View.GONE);
+        ui.row(title, summary + " · tap for the tint", null, toggle,
+                v -> tintPanel.setVisibility(tintPanel.getVisibility() == View.GONE
+                        ? View.VISIBLE : View.GONE));
+        // The tint's rows, made where every slider row is made, then moved under the switch.
+        int before = ui.content.getChildCount();
         addSliderRow(ui, title + " · tint", tint,
                 value -> value + " %" + (value == 40 ? " (Nothing OS 5)" : ""), value -> {
                     onTint.changed(value);
                     store.save(this);
                 });
+        while (ui.content.getChildCount() > before) {
+            View made = ui.content.getChildAt(before);
+            ui.content.removeViewAt(before);
+            tintPanel.addView(made);
+        }
+        ui.content.addView(tintPanel);
     }
 
     private void addOpacityRow(Ui ui, Config config) {
