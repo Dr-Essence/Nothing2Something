@@ -39,6 +39,13 @@ internal object OldSettings {
         if (state.getBoolean(MOVED, false)) {
             return null
         }
+        // Settings already made with this version are newer than any old file: the move is
+        // over (2026-11 audit: with root refused it was tried again at every start, and once
+        // root was allowed the old file replaced every setting saved since).
+        if (local.contains(Config.KEY_SAVED)) {
+            state.edit().putBoolean(MOVED, true).commit()
+            return null
+        }
         // Read from init's mount namespace, as the debug report does: root's own shell may not
         // see every folder. The newest file, if a reinstall of the framework left two.
         val xml = Root.read("nsenter -t 1 -m -- sh -c 'f=$(ls -t $FOLDERS/${Config.PREFS_NAME}.xml" +

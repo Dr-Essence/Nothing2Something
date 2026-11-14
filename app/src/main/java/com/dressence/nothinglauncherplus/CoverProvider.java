@@ -19,6 +19,11 @@ public final class CoverProvider extends ContentProvider {
 
     private static final Pattern FOLDER_ID = Pattern.compile("[a-z0-9]{1,32}");
 
+    /** Whether [id] is a folder id this app makes (and the only kind it serves). */
+    public static boolean isFolderId(String id) {
+        return id != null && FOLDER_ID.matcher(id).matches();
+    }
+
     public static File coverFile(Context context, String folderId) {
         return new File(new File(context.getFilesDir(), "covers"), folderId + ".png");
     }

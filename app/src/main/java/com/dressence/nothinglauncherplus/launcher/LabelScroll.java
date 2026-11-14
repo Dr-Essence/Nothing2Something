@@ -82,6 +82,7 @@ final class LabelScroll {
         private int travel;
         private int at;
         private boolean posted;
+        private final android.graphics.Rect onScreen = new android.graphics.Rect();
 
         Scroller(TextView label) {
             this.label = label;
@@ -120,7 +121,12 @@ final class LabelScroll {
             if (!posted) {
                 return; // Stopped meanwhile.
             }
-            if (!label.isAttachedToWindow() || !label.isShown()) {
+            // Also when no part of it is on screen: the home screen keeps every page visible,
+            // so a label on a page swiped past stayed "shown" and stepped on, redrawing the
+            // launcher about 11 times a second (2026-11 audit). Drawn on screen again, it
+            // starts over.
+            if (!label.isAttachedToWindow() || !label.isShown()
+                    || !label.getGlobalVisibleRect(onScreen)) {
                 posted = false; // Drawn again later, it starts over.
                 at = 0;
                 label.setScrollX(start());

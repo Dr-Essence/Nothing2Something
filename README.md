@@ -72,9 +72,9 @@ Each section below opens when tapped.
 > everything back from your file.
 
 <details open>
-<summary><b>Current state</b> · version 0.70.54, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.55, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.54** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), a live-blurred glass app drawer, as the quick settings panel, and glass open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.55** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), a live-blurred glass app drawer, as the quick settings panel, and glass open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -123,6 +123,44 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.55, audit passes 1 and 2 (first part): settings never lost, less drawing.** A new
+  four-pass audit (correctness, then threads and resource use, scenarios, and the fixes
+  themselves), each finding checked in the code before fixing. Fixed:
+  - *Old settings over new ones*: the move of the settings kept by versions before 0.70.35
+    was tried again at every start while root was refused, and once root was allowed the old
+    file replaced every setting saved since. It now moves only into an app with no settings
+    of its own, and otherwise counts as done.
+  - *App picker*: Save dropped a folder's apps that were not installed or launchable at that
+    moment (a reinstall, disabled), though folders keep such apps; only the apps the page
+    listed can be unticked now. Full-screen apps likewise keep packages not listed.
+  - *A save from elsewhere*: an import (or a cover, a font) finishing on the screen a turn
+    replaced was written back over by the new screen's older settings; the settings screens
+    now read a save made elsewhere while they show.
+  - *Light mode, frosted drawer*: the drawer's opaque scrim colour was black, and the
+    launcher's ScrimView picks the bars' icons by it (updateSysUiColors, isScrimDark), so they
+    turned white over the white-tinted glass; it is the tint's own colour now.
+  - *Drawer glass*: each look counts as installed only with its own hooks (one flag for both
+    could leave the frosted look's opaque scrim with no glass: black); no throw on every
+    depth step when no blur resource exists; the setting is checked before the per-frame
+    reflection. Dead constant CLS_THEME_COLOURS removed.
+  - *Search*: a result inside a folded glass tint unfolds it; a folder named like a section
+    no longer matches the section label.
+  - *Battery*: a long app name on a home page swiped past kept scrolling (the home screen
+    keeps every page visible), redrawing the launcher about 11 times a second; it stops while
+    no part is on screen. The dot icons' scan line asked for every frame (with 20 dot icons
+    one is nearly always scanning: the home screen drew at up to 120 Hz); it is 30 frames a
+    second now.
+  - *Backup*: folder ids from a backup are checked as the cover provider accepts them, so a
+    foreign or edited backup cannot write outside the covers folder.
+  Checked and rejected: "the live wallpaper capture always fails" (the phone's logs show it
+  captured 25 times). Found, not changed yet: System UI's green text and icon hooks stay
+  installed with both options off (to discuss: changing it needs a System UI restart),
+  closed-folder glass offset while an icon is dragged over a folder, rare races in the
+  landscape grid's write check, Home restore duplicating an app since put in a folder.
+  **Checked:** builds with the real Xposed API. **Not checked:** on the phone. **To test:**
+  light mode with the frosted drawer (dark status bar icons); a search for a glass tint;
+  Add or remove apps on a folder with an uninstalled app; the home screen idles (no constant
+  redraws) with dot icons and long names.
 - **0.70.54, the frosted drawer no longer solid black.** Dr.Essence: the Nothing OS 5 look
   stayed black, with no transparency. Mistake recorded, 0.70.53: the drawer's frosted glass
   set its paint's opacity to the launcher's fade (255 when open) instead of scaling it; while

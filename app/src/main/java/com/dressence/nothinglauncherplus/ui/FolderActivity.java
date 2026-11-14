@@ -47,9 +47,26 @@ public class FolderActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        store.prefs.registerOnSharedPreferenceChangeListener(savedElsewhere);
         store.reload();
         render();
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        store.prefs.unregisterOnSharedPreferenceChangeListener(savedElsewhere);
+    }
+
+    /** Settings saved elsewhere while this page shows: read again (SettingsActivity's). */
+    private final android.content.SharedPreferences.OnSharedPreferenceChangeListener
+            savedElsewhere = (prefs, key) -> getWindow().getDecorView().post(() -> {
+                Config before = store.config;
+                store.reload();
+                if (store.config != before && !isFinishing()) {
+                    render();
+                }
+            });
 
     private void render() {
         Config.Folder folder = store.config.folderForId(folderId);

@@ -22,8 +22,7 @@ final class DrawerBackground {
     private static final String CLS_ALL_APPS_STATE =
             "com.android.launcher3.uioverrides.states.AllAppsState";
     private static final String CLS_LAUNCHER_STATE = "com.android.launcher3.LauncherState";
-    /** Nothing's launcher colours (ThemeColors), and the drawer scrim colour it gives. */
-    private static final String CLS_THEME_COLOURS = "p7.e";
+    /** The drawer scrim colour Nothing's ThemeColors give (found by shape: LauncherSymbols). */
     private static final String SCRIM_COLOUR = "nt_all_apps_scrim_color_nt_mono";
 
     static void install(ClassLoader cl, ConfigStore store) {

@@ -82,6 +82,11 @@ final class Backup {
         // reported it failed (0.70.14 audit).
         java.util.Map<Config.Folder, byte[]> images = new java.util.LinkedHashMap<>();
         for (Config.Folder folder : config.folders) {
+            // An id is a file name under covers/ (CoverProvider): one from a hand-edited or
+            // foreign backup must not reach outside it (2026-11 audit).
+            if (!CoverProvider.isFolderId(folder.id)) {
+                throw new IOException("not a backup of this app (folder id " + folder.id + ")");
+            }
             String data = covers != null ? covers.optString(folder.id, "") : "";
             if (data.isEmpty()) {
                 folder.coverImageVersion = 0;

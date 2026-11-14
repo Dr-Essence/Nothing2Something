@@ -430,11 +430,21 @@ final class DotIcons {
             SCAN.setAlpha(Math.round(150 * (float) Math.sin(scan * Math.PI)));
             canvas.drawRect(bounds.left, y - band / 2, bounds.right, y + band / 2, SCAN);
             canvas.restoreToCount(layer);
-            d.invalidateSelf();
+            // The next frame of the line at 30 per second, not at every frame the screen can
+            // show (2026-11 audit: with 20 dot icons one of them is nearly always scanning, and
+            // asking for every frame kept the home screen drawing at up to 120 Hz).
+            book(d, seen, now, now + SCAN_FRAME_MS);
             return;
         }
         // Asleep until the next pass: one redraw is booked for it.
-        long at = now + Math.max(16, Math.round((period - local) * 1000));
+        book(d, seen, now, now + Math.max(16, Math.round((period - local) * 1000)));
+    }
+
+    /** The next frame of a scanning line, in milliseconds. */
+    private static final long SCAN_FRAME_MS = 33;
+
+    /** Books one redraw of [d] at [at] (uptime), unless one is booked already by then. */
+    private static void book(Drawable d, long[] seen, long now, long at) {
         if (seen[2] > now && seen[2] <= at) {
             return;
         }

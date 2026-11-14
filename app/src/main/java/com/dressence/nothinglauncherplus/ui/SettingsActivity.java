@@ -61,6 +61,7 @@ public class SettingsActivity extends Activity {
     protected void onResume() {
         super.onResume();
         ModuleService.addChangeListener(onModuleService);
+        store.prefs.registerOnSharedPreferenceChangeListener(savedElsewhere);
         store.reload();
         assignMissingMotions();
         render();
@@ -70,6 +71,22 @@ public class SettingsActivity extends Activity {
             return false;
         });
     }
+
+    /**
+     * Settings saved by something else while this screen shows (an import finishing on the
+     * screen this one replaced after a turn, a background job of another screen): read again
+     * and shown, so this screen's next save does not write its older settings back over them
+     * (2026-11 audit). Posted: a save of this screen calls it too, before the store notes the
+     * save, and reload() then finds nothing new.
+     */
+    private final android.content.SharedPreferences.OnSharedPreferenceChangeListener
+            savedElsewhere = (prefs, key) -> getWindow().getDecorView().post(() -> {
+                Config before = store.config;
+                store.reload();
+                if (store.config != before && !isFinishing()) {
+                    render();
+                }
+            });
 
     /** Pages this screen shows (its {@link Config#EXTRA_SETTINGS_PAGE}); none: the menu. */
     private static final String PAGE_DRAWER = Config.PAGE_DRAWER;
@@ -228,6 +245,14 @@ public class SettingsActivity extends Activity {
         if (row == null) {
             return;
         }
+        // A row folded away (a glass setting's tint) is unfolded first: a hidden row cannot
+        // be scrolled to or shown (2026-11 audit).
+        for (android.view.ViewParent p = row.getParent(); p instanceof View;
+                p = p.getParent()) {
+            if (((View) p).getVisibility() == View.GONE) {
+                ((View) p).setVisibility(View.VISIBLE);
+            }
+        }
         row.post(() -> {
             android.graphics.Rect r = new android.graphics.Rect(0, 0, row.getWidth(),
                     row.getHeight());
@@ -239,9 +264,11 @@ public class SettingsActivity extends Activity {
 
     /** The row whose title is {@code title}: the title's TextView, two levels up. */
     private static View findRow(View view, String title) {
+        // Not a section label or note named the same (their grandparent is the page itself).
         if (view instanceof TextView && title.contentEquals(((TextView) view).getText())
                 && view.getParent() instanceof View
-                && ((View) view.getParent()).getParent() instanceof View) {
+                && ((View) view.getParent()).getParent() instanceof View
+                && !(((View) view.getParent()).getParent() instanceof android.widget.ScrollView)) {
             return (View) ((View) view.getParent()).getParent();
         }
         if (view instanceof android.view.ViewGroup) {
@@ -1238,6 +1265,7 @@ public class SettingsActivity extends Activity {
     protected void onPause() {
         super.onPause();
         ModuleService.removeChangeListener(onModuleService);
+        store.prefs.unregisterOnSharedPreferenceChangeListener(savedElsewhere);
         preview().stopMusic(); // Previews never outlive the settings screen.
     }
 

@@ -270,7 +270,12 @@ public class AppPickerActivity extends Activity {
         Config config = store.config;
         if (fullScreenList) {
             // The list is of apps (packages): an app with several launcher entries is one app.
-            config.fullScreenApps.clear();
+            // Packages this page did not list (not installed now) stay picked.
+            java.util.Set<String> listedPackages = new java.util.HashSet<>();
+            for (Apps.App app : all) {
+                listedPackages.add(packageOf(app.component));
+            }
+            config.fullScreenApps.removeIf(listedPackages::contains);
             for (String component : chosen) {
                 config.fullScreenApps.add(packageOf(component));
             }
@@ -280,7 +285,15 @@ public class AppPickerActivity extends Activity {
         }
         Config.Folder folder = config.folderForId(folderId);
         if (folder != null) {
-            folder.apps.retainAll(chosen);
+            // Only the apps this page listed can have been unticked: a folder's app that is not
+            // installed or launchable now (a reinstall, disabled) stays in it (2026-11 audit:
+            // Save dropped it, though folders show such apps as "not installed").
+            java.util.Set<String> listed = new java.util.HashSet<>();
+            for (Apps.App app : all) {
+                listed.add(app.component);
+            }
+            folder.apps.removeIf(component -> listed.contains(component)
+                    && !chosen.contains(component));
             for (String component : chosen) {
                 config.assign(component, folder);
             }

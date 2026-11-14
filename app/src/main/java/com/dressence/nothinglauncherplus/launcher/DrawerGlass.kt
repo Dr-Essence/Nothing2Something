@@ -130,12 +130,19 @@ internal object DrawerGlass {
         })
         // Switched on or off with the drawer open: applied at once, not at the next move.
         store.addChangeListener { Hooks.guard("drawer glass") { blur.applyAgain() }.run() }
-        installed = true
+        liveInstalled = true
     }
 
-    /** True once the drawer's live blur is in (not on Nothing OS 5, nor if a hook failed). */
+    /**
+     * Which look's hooks are in (neither on Nothing OS 5, nor one whose hook failed): each look
+     * counts only with its own, so a look whose part did not install leaves the drawer as
+     * Nothing made it (2026-11 audit: one flag for both, so a missing frosted part left the
+     * frosted look's opaque scrim colour with nothing to draw the glass over it: black).
+     */
     @Volatile
-    private var installed = false
+    private var liveInstalled = false
+    @Volatile
+    private var frostedInstalled = false
 
     /**
      * The drawer is open, opening or closing: the launcher's state is ALL_APPS, or it is still
@@ -177,7 +184,7 @@ internal object DrawerGlass {
                     }.run()
                 }
             })
-        installed = true
+        frostedInstalled = true
     }
 
     /**
@@ -198,10 +205,13 @@ internal object DrawerGlass {
         override fun draw(canvas: Canvas) {
             val config = store.get()
             val alpha = Color.alpha(color)
-            val shown = drawerShown(view.context, allApps)
-            if (!drawerIsGlass(config) || config.drawerGlassLook != Config.DRAWER_GLASS_FROSTED ||
-                    alpha == 0 || !shown) {
-                if (alpha == 255 && !shown) {
+            // The setting first: the scrim draws on every frame of the launcher's transitions,
+            // and the drawer's state is three reflective calls (2026-11 audit).
+            val frosted = drawerIsGlass(config) &&
+                config.drawerGlassLook == Config.DRAWER_GLASS_FROSTED && alpha != 0
+            val shown = frosted && drawerShown(view.context, allApps)
+            if (!frosted || !shown) {
+                if (frosted && alpha == 255) {
                     tell("drawer frosted glass: scrim opaque but the drawer state is not ALL_APPS")
                 }
                 super.draw(canvas)
@@ -228,19 +238,29 @@ internal object DrawerGlass {
     /**
      * The drawer's scrim colour while it is glass (AllAppsState.getWorkspaceScrimColor,
      * DrawerBackground): opaque for the frosted look, whose glass takes the colour's opacity
-     * as its own; the tint itself for the live blur, which shows through it.
+     * as its own (in the tint's colour, for the bars' icons); the tint itself for the live
+     * blur, which shows through it.
      */
     @JvmStatic
     fun scrimColour(context: Context, config: Config): Int =
-        if (config.drawerGlassLook == Config.DRAWER_GLASS_FROSTED) 0xFF000000.toInt()
-        else tint(context, config)
+        if (config.drawerGlassLook == Config.DRAWER_GLASS_FROSTED) {
+            // Opaque, in the tint's own colour: the launcher's ScrimView picks the status and
+            // navigation bars' icons by how dark an opaque scrim is (updateSysUiColors,
+            // isScrimDark in the 4.1 launcher), so a light-mode glass gets dark icons
+            // (2026-11 audit: opaque black made them white over the white-tinted glass).
+            tint(context, config) or 0xFF000000.toInt()
+        } else {
+            tint(context, config)
+        }
 
     /**
      * Whether the drawer is glass now: its own colours (DrawerBackground) are then all clear,
      * the search's band and page included, and only the tint ([tint]) lies over the blur.
      */
     @JvmStatic
-    fun drawerIsGlass(config: Config): Boolean = installed && config.drawerGlass
+    fun drawerIsGlass(config: Config): Boolean = config.drawerGlass &&
+        if (config.drawerGlassLook == Config.DRAWER_GLASS_FROSTED) frostedInstalled
+        else liveInstalled
 
     /**
      * The drawer's tint over the blur: black in dark mode, white in light, at the Glass drawer
@@ -267,6 +287,11 @@ internal object DrawerGlass {
 
         fun apply(controller: Any) {
             this.controller = WeakReference(controller)
+            val config = store.get()
+            if (radius == 0 && (!config.drawerGlass ||
+                    config.drawerGlassLook != Config.DRAWER_GLASS_LIVE)) {
+                return // Off and nothing applied: no reflection on every step of a transition.
+            }
             val launcher = XposedHelpers.getObjectField(controller, "mLauncher") as Activity
             val depth = XposedHelpers.getFloatField(controller, "mDepth")
             val wanted = radiusFor(launcher, depth)
@@ -317,8 +342,12 @@ internal object DrawerGlass {
                     0
                 }
                 if (maxRadius <= 0) {
-                    maxRadius = launcher.resources.getInteger(launcher.resources.getIdentifier(
-                        "max_depth_blur_radius", "integer", launcher.packageName)).coerceAtLeast(1)
+                    val id = launcher.resources.getIdentifier(
+                        "max_depth_blur_radius", "integer", launcher.packageName)
+                    // Launcher3's own value (23) if a build has neither resource: never a
+                    // throw at every step of the drawer (2026-11 audit).
+                    maxRadius = if (id != 0) launcher.resources.getInteger(id).coerceAtLeast(1)
+                        else 23
                 }
                 Hooks.log("drawer glass: live blur up to $maxRadius px")
             }
