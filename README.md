@@ -2067,6 +2067,9 @@ phone itself), and behaviour that changed under the same names. That is what tes
 <details>
 <summary><b>How to help test</b> · what to send, and keeping your account private</summary>
 
+- **What to test:** the full list is in [docs/TEST_PLAN.md](docs/TEST_PLAN.md), each test with
+  what should happen. **On Nothing OS 5**, only the short list in
+  [For Nothing OS 5 users](docs/TEST_PLAN.md#for-nothing-os-5-users) is needed.
 - Open the module's **Diagnostics → Hook health** first: a screenshot of it shows what installed
   on your phone, without any personal data.
 - Say your phone, Nothing OS version (Settings → About phone) and the module's version.

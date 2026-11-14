@@ -4,6 +4,44 @@ The module is in a **stability phase**: no new features until everything below h
 the phone and every failure found has been fixed. This file is the list. Work through it in order,
 one part at a time, and report each result by its id (for example `A3 pass`, `D2 fail`).
 
+## For Nothing OS 5 users
+
+Only a few things to check. You do not need the rest of this file.
+
+**1. Before you start**
+- Make a backup in the module first: *Backup → Export*.
+- Turn **Launcher only** on. It is the safest mode on Nothing OS 5.
+
+**2. Send these three things**
+- A screenshot of *Diagnostics → Hook health*.
+- Your phone and Nothing OS version (*Settings → About phone*).
+- The module version.
+
+**3. Check these, one at a time**
+
+| Id | What to do | Should happen |
+|---|---|---|
+| N1 | Restart the phone | It starts normally; the launcher opens |
+| N2 | Make a drawer folder, add apps, open it | The folder shows in the app drawer and opens |
+| N3 | Drawer background slider | The wallpaper shows through as you set it |
+| N4 | Long-press an app icon | The menu opens fully on screen |
+| N5 | Pick the *Dot matrix* icon pack (Customisation → Icon Pack) | Icons turn into dots (new since 0.70.61, not yet confirmed on Nothing OS 5) |
+| N6 | Turn the module off in LSPosed and restart | Everything looks and works as before the module |
+
+Write `N1 pass` or `N3 fail`. For a fail, add a screen recording.
+
+**4. Do not report these: they are off on Nothing OS 5 on purpose**
+
+Nothing OS 5 changed these parts of the launcher and System UI, so the module turns them off
+until they are rebuilt for it:
+- the module's glass (Nothing OS 5 has its own frosted glass);
+- landscape home screen, landscape widget picker;
+- Ndot status bar clock, dual status bar, OLED saver;
+- green and amber quick settings;
+- lock screen rotation, landscape fingerprint, landscape shade.
+
+---
+
 ## Order
 
 Easier parts first; the drawer folders and covers last.
