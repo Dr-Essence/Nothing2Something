@@ -77,6 +77,12 @@ Each section below opens when tapped.
 > is refused or the move fails, the settings page says so, and **Backup** → **Import** puts
 > everything back from your file.
 
+> [!NOTE]
+> **Stability phase: no new features for now.** Every feature the module already has is being
+> tested on the phone, and every problem found is fixed, before anything new is added. Builds in
+> this phase contain fixes only. The test list is in [docs/TEST_PLAN.md](docs/TEST_PLAN.md), and
+> anyone can help (see *How to help test* under Testing).
+
 <details>
 <summary><b>Current state</b> · version 0.70.61, what is pending, what still needs testing</summary>
 
