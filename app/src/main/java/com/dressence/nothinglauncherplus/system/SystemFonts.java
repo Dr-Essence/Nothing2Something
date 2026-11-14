@@ -56,6 +56,12 @@ public final class SystemFonts {
     private static final File FAILED = new File("/data/system/nlplus_font_failed");
     /** How long system_server must run with a new font before it counts as safe. */
     private static final long SETTLE_MS = 90_000;
+    /**
+     * The font that has run a whole settle time once: no longer "newly in use", so the guard is
+     * not armed for it again (2026-11 audit: it was armed at every boot, and any reboot or
+     * unrelated system_server crash within 90 s of a boot turned the user's font off).
+     */
+    private static final File SETTLED = new File("/data/system/nlplus_font_settled");
 
     private static Object service;
     private static Context context;
@@ -175,8 +181,14 @@ public final class SystemFonts {
         if (fonts == null) {
             return;
         }
-        new Thread(() -> {
+        // The whole thread guarded: an error here is uncaught in system_server, which restarts
+        // the phone (2026-11 audit: a renamed or missing lock field threw outside the try).
+        new Thread(Hooks.guard("system font map", () -> {
             Object lock = XposedHelpers.getObjectField(fonts, "mUpdatableFontDirLock");
+            if (lock == null) {
+                Hooks.skipped("system font map", "its lock is not there on this release");
+                return;
+            }
             synchronized (lock) {
                 for (String method : new String[] {"updateSerializedFontMap", "updateFontMap",
                         "updateSerializedFontMapLocked"}) {
@@ -192,16 +204,19 @@ public final class SystemFonts {
                 }
             }
             Hooks.skipped("system font map", "cannot be rewritten on this release");
-        }, "nlplus-font-map").start();
+        }), "nlplus-font-map").start();
     }
 
     /** Marks {@code spec} as newly in use, until system_server has run with it a while. */
     private static void arm(String spec) {
-        if (GUARD.exists()) {
+        if (GUARD.exists() || spec.equals(readText(SETTLED))) {
             return;
         }
         writeText(GUARD, spec);
-        new Handler(Looper.getMainLooper()).postDelayed(GUARD::delete, SETTLE_MS);
+        new Handler(Looper.getMainLooper()).postDelayed(Hooks.guard("system font guard", () -> {
+            writeText(SETTLED, spec);
+            GUARD.delete();
+        }), SETTLE_MS);
     }
 
     /**

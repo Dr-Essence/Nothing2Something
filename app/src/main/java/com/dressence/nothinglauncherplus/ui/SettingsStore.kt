@@ -63,7 +63,10 @@ class SettingsStore(context: Context) {
     }
 
     fun save(context: Context) {
-        val savedAt = System.currentTimeMillis()
+        // Never lower than the last save's: the hooked apps keep only settings at least as new
+        // as theirs (ConfigStore), so a save made after the clock went back (a date change, a
+        // network time correction) was dropped everywhere until a restart (2026-11 audit).
+        val savedAt = maxOf(System.currentTimeMillis(), prefs.getLong(Config.KEY_SAVED, 0) + 1)
         val editor = prefs.edit()
         config.write(editor)
         editor.putLong(Config.KEY_SAVED, savedAt)
