@@ -250,6 +250,9 @@ every build* below; *Verified* means checked on the phone).
 | 0.52.0 | One focus ring in each item's own shape | Fixed |
 
 **Pending**
+- **Stability phase:** no new features until every test in
+  [docs/TEST_PLAN.md](docs/TEST_PLAN.md) has been run on the phone and every failure found is
+  fixed. Testers can follow the same plan.
 - **Signing key move (0.52.5):** the release key is private now; CI builds only once its three
   secrets are added to the repository. Updating from 0.52.4 needs one switch: Backup → Export,
   uninstall, install, re-enable in LSPosed if asked, Backup → Import.

@@ -81,3 +81,8 @@ These six rules come from an honest review of the project. They hold until Dr.Es
    parsing, the hook check) gets unit tests that run in CI.
 6. **The README stays short.** It says what the module is, how to install it, what is safe,
    and the Testing table. The history of builds lives in CHANGELOG.md.
+
+**Current phase: stability (from 2026-11-14).** The only work is testing every existing feature
+with docs/TEST_PLAN.md and fixing what fails. Guide Dr.Essence through the plan part by part, and
+when a new feature is asked for, say that it breaks the freeze, suggest noting it in the
+Roadmap for later, and go back to the plan. Fixes, tests and finishing existing work are allowed.
