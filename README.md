@@ -72,9 +72,9 @@ Each section below opens when tapped.
 > everything back from your file.
 
 <details open>
-<summary><b>Current state</b> · version 0.70.56, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.57, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.56** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), a live-blurred glass app drawer, as the quick settings panel, and glass open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.57** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), a live-blurred glass app drawer, as the quick settings panel, and glass open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -123,6 +123,31 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.57, audit pass 4: the audit's own fixes reviewed.** The fourth pass reviewed every
+  change of 0.70.46 to 0.70.56 adversarially. Mistakes recorded and fixed:
+  - *0.70.55's old-settings move* skipped the old file at the first save of any kind, so a
+    user who changed one switch while root was refused lost the old folders for good once
+    root was allowed. Now only a setup made again with its own folders is kept; otherwise the
+    old file (the user's real setup) still replaces the defaults once root is allowed.
+  - *0.70.56's font guard*: a font settled once was never guarded again, even after a system
+    update that could make it crash the system at boot; and a font chosen while another was
+    still being watched was never watched, the old one recorded as settled. Settled now means
+    this font on this system build (Build.FINGERPRINT), and the watch follows the newest font.
+  - *Live blur look (0.70.46)*: with the drawer open, screen off and on or an app opened and
+    closed, the launcher's window gets a new layer in the same SurfaceControl object, and the
+    blur was not applied to it again (only the tint showed until the drawer moved). The
+    blurred surface is forgotten when the launcher has none.
+  - An unknown Glass drawer look (a backup from another version) reads as the default.
+  Checked sound by the same pass: the frosted scrim's opacity, look switches with the drawer
+  open, the bar icons' colour, the search colours coming back with the glass off, the
+  settings reorganisation (no row lost, every row saves), the picker screens' background,
+  the dot icons' 30 fps booking, the label scroll stop, the save time only going up.
+  Found, left as they are: under glass the header behind the drawer's search bar is clear
+  too (apps scroll under the bar with no backing), the same clearing that removed the black
+  strip; the frosted look's opaque colour shows flat (not glass) during Nothing's hidden-page
+  app launch, as Nothing's own drawer colour did. **Checked:** builds with the real Xposed
+  API. **Not checked:** on the phone. **To test:** live blur look, drawer open, screen off and
+  on (blur still there); a system font, then another within 90 s.
 - **0.70.56, audit pass 1 (System UI and system): the system font and saves.** Each checked
   in the code first:
   - *System font, a reboot risk*: the thread that has the font manager write its map again

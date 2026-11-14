@@ -209,13 +209,19 @@ public final class SystemFonts {
 
     /** Marks {@code spec} as newly in use, until system_server has run with it a while. */
     private static void arm(String spec) {
-        if (GUARD.exists() || spec.equals(readText(SETTLED))) {
+        // Settled for this font on this system build only: after an update it is new again
+        // (2026-11 audit, pass 4: a font settled once was never guarded again).
+        String settled = spec + "|" + android.os.Build.FINGERPRINT;
+        if (spec.equals(readText(GUARD)) || settled.equals(readText(SETTLED))) {
             return;
         }
+        // Another font chosen while one is still being watched: the new one is watched now.
         writeText(GUARD, spec);
         new Handler(Looper.getMainLooper()).postDelayed(Hooks.guard("system font guard", () -> {
-            writeText(SETTLED, spec);
-            GUARD.delete();
+            if (spec.equals(readText(GUARD))) {
+                writeText(SETTLED, settled);
+                GUARD.delete();
+            }
         }), SETTLE_MS);
     }
 

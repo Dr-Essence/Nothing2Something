@@ -295,7 +295,10 @@ internal object DrawerGlass {
             val launcher = XposedHelpers.getObjectField(controller, "mLauncher") as Activity
             val depth = XposedHelpers.getFloatField(controller, "mDepth")
             val wanted = radiusFor(launcher, depth)
-            val target = surfaceOf(launcher) ?: return
+            // No surface (the launcher stopped): forget the one blurred, so the layer the window
+            // gets back on its return is blurred again (2026-11 audit: the same SurfaceControl
+            // object holds the new layer, and the cache said it was already done).
+            val target = surfaceOf(launcher) ?: run { surface = null; return }
             if (target === surface?.get() && wanted == radius) {
                 return // Most depth steps outside the drawer: nothing to change.
             }

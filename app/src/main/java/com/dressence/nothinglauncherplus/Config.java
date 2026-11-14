@@ -532,7 +532,8 @@ public final class Config {
         widgetGlass = in.bool(KEY_WIDGET_GLASS, false);
         widgetGlassTint = Math.max(0, Math.min(100, in.number(KEY_WIDGET_GLASS_TINT, 40)));
         drawerGlass = in.bool(KEY_DRAWER_GLASS, false);
-        drawerGlassLook = in.number(KEY_DRAWER_GLASS_LOOK, DRAWER_GLASS_FROSTED);
+        drawerGlassLook = in.number(KEY_DRAWER_GLASS_LOOK, DRAWER_GLASS_FROSTED) == DRAWER_GLASS_LIVE
+                ? DRAWER_GLASS_LIVE : DRAWER_GLASS_FROSTED; // An unknown look: the default.
         drawerGlassTint = Math.max(0, Math.min(100, in.number(KEY_DRAWER_GLASS_TINT, 40)));
         settingsGlass = in.bool(KEY_SETTINGS_GLASS, false);
         settingsGlassTint = Math.max(0, Math.min(100, in.number(KEY_SETTINGS_GLASS_TINT, 40)));

@@ -39,10 +39,14 @@ internal object OldSettings {
         if (state.getBoolean(MOVED, false)) {
             return null
         }
-        // Settings already made with this version are newer than any old file: the move is
-        // over (2026-11 audit: with root refused it was tried again at every start, and once
-        // root was allowed the old file replaced every setting saved since).
-        if (local.contains(Config.KEY_SAVED)) {
+        // A setup already made again with this version (its own folders) is kept: the move is
+        // over. Settings saved meanwhile without folders (the defaults and a switch or two,
+        // while root was refused) do not count: the old file, the user's real setup, still
+        // replaces them once root is allowed (2026-11 audit: 0.70.54 let the old file replace
+        // folders made since; 0.70.55 skipped the old file at the first save of any kind).
+        val ownFolders = local.getString(Config.KEY_FOLDERS, "[]")
+        if (local.contains(Config.KEY_SAVED) && !ownFolders.isNullOrBlank() &&
+                ownFolders.trim() != "[]") {
             state.edit().putBoolean(MOVED, true).commit()
             return null
         }
