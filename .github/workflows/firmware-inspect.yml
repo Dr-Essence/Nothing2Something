@@ -1,41 +1,36 @@
 name: Inspect firmware files
 
-# Runs tools/firmware-inspect.sh on bundles the "Nothing OS firmware files" workflow made, and
-# prints what it finds to this job's log, so firmware can be compared without downloading it.
-# Edit RUN_ID / BUNDLES and the script, then push: it runs on every change to either file.
+# Runs tools/firmware-inspect.sh on one nothing_archive build (unpacked here with
+# tools/firmware-collect.sh) and prints what it finds to this job's log, so firmware can be
+# read without downloading it. Edit BUILD and the script, then push: it runs on every change.
 
 on:
   push:
     paths:
       - .github/workflows/firmware-inspect.yml
       - tools/firmware-inspect.sh
-      - tools/hookcheck.py
 
 permissions:
   contents: read
   actions: read
 
 env:
-  # The firmware run whose artifacts are read, and which bundles.
-  RUN_ID: "43256504499"
-  BUNDLES: "Asteroids_C5.0-261106-1007 Tetris_B4.1-260928-1140"
+  ARCHIVE: spike0en/nothing_archive
+  PACKAGES: com.nothing.launcher
+  # The build to inspect: the CMF Phone 1's newest Nothing OS 4.0.
+  BUILD: Tetris_B4.0-260225-1904
 
 jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Download bundles
+      - name: Tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full erofs-utils erofsfuse > /dev/null
+          echo "AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)" >> "$GITHUB_ENV"
+      - name: Inspect
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p fw
-          for b in $BUNDLES; do
-            gh run download "$RUN_ID" -R "${{ github.repository }}" -n "nos-$b" -D "fw/$b"
-          done
-          du -sh fw/*
-      - name: Inspect
-        run: |
-          AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
-          export AAPT2
-          bash tools/firmware-inspect.sh fw
+        run: bash tools/firmware-inspect.sh "$BUILD"

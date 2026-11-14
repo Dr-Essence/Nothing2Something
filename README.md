@@ -1827,7 +1827,7 @@ What to expect on each phone and Nothing OS version, for now. **Updated with eve
 affects a phone or version** (a fix for another version, a feature that newly works or stops
 working somewhere); the last update says which version it describes.
 
-<details>
+<details open>
 <summary><b>Which phones and versions</b> · checked against every Nothing OS build, without a phone</summary>
 
 *As of 0.70.58.* Only one phone is tested for real: a **CMF Phone 1 on Nothing OS 4.1**. For the
