@@ -69,6 +69,11 @@ final class HomeRestore {
         appContext.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                // Only the module app asks (2026-11 audit: the receiver is exported, so any
+                // app could start a restore).
+                if (!com.dressence.nothinglauncherplus.Broadcasts.fromModule(this)) {
+                    return;
+                }
                 Hooks.guard("home restore", () -> {
                     Executor model = (Executor) XposedHelpers.getStaticObjectField(
                             XposedHelpers.findClass(CLS_EXECUTORS, cl), "MODEL_EXECUTOR");

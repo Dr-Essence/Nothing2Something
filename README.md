@@ -72,9 +72,9 @@ Each section below opens when tapped.
 > everything back from your file.
 
 <details open>
-<summary><b>Current state</b> · version 0.70.57, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.58, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.57** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), a live-blurred glass app drawer, as the quick settings panel, and glass open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.58** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), a live-blurred glass app drawer, as the quick settings panel, and glass open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -123,6 +123,34 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.58, audit pass 3: scenarios.** The third pass tried each feature through
+  scenarios (each setting on then off at runtime, first install, old settings, processes
+  killed mid-action, rotation, old search pages, an update while the launcher runs). Fixed,
+  each checked in the code first:
+  - *Import cut short*: the backup's cover images were written over the ones in use before
+    the imported settings were saved; an import ended by the app being killed (or a write
+    failing) left the current folders showing the backup's images. They are written beside
+    them now and put in place with the save.
+  - *Launcher only with the Ndot performance overlay on*: the overlay's root polling went on
+    with nothing shown, and its page (where it is turned off) hidden; turning Launcher only on
+    ends it.
+  - *Glass closed folders switched on*: only folder icons already drawn with glass were
+    redrawn at a change, none while it was off, so the icons kept their fill until something
+    else redrew them; the ones drawn while off are noted (only the object) and redrawn.
+  - *Restore missing home items*: its receiver in the launcher is exported and took the
+    request from any app; it takes it only from the module app now (nothing is ever removed
+    by a restore, but it should not be anyone's to start).
+  Already fixed by pass 4 (0.70.57): the live blur after the launcher's surface comes back,
+  an unknown drawer look. Found, left for later (behaviour or a phone needed): the glass's
+  per-frame follower stays after every glass switch is off (until the launcher restarts);
+  a still wallpaper changed during a picture build keeps the old picture; glass widgets and
+  the search bar lose the original background's outline (rounded clip, shadow) and pressed
+  state; the live blur and the settings screens' blur do not follow battery saver until the
+  next move; Full-screen apps keep a stale "bar faded" after the mode or list changes;
+  battery saver's refresh-rate setting changed while the saver is on applies half until the
+  saver is toggled; Home restore has no transaction. **Checked:** builds with the real Xposed
+  API. **Not checked:** on the phone. **To test:** Glass closed folders on (the icons frost at
+  once); import a backup; Launcher only with the overlay on (the overlay ends).
 - **0.70.57, audit pass 4: the audit's own fixes reviewed.** The fourth pass reviewed every
   change of 0.70.46 to 0.70.56 adversarially. Mistakes recorded and fixed:
   - *0.70.55's old-settings move* skipped the old file at the first save of any kind, so a

@@ -98,9 +98,14 @@ final class Backup {
                 throw new IOException("the cover of " + folder.name + " is damaged");
             }
         }
+        // Written beside the covers in use ("<id>.png.import") and put in their place only when
+        // the imported settings are saved (commitCovers): an import cut short (the app killed,
+        // a write failing) used to leave the current folders showing the backup's images
+        // (2026-11 audit, pass 3). Old leftovers go first.
+        discardCovers(context);
         for (java.util.Map.Entry<Config.Folder, byte[]> e : images.entrySet()) {
             Config.Folder folder = e.getKey();
-            File file = CoverProvider.coverFile(context, folder.id);
+            File file = pending(CoverProvider.coverFile(context, folder.id));
             File dir = file.getParentFile();
             if (dir != null && !dir.isDirectory() && !dir.mkdirs()) {
                 throw new IOException("cannot create " + dir);
@@ -112,5 +117,39 @@ final class Backup {
             folder.coverImageVersion = System.currentTimeMillis();
         }
         return config;
+    }
+
+    private static File pending(File cover) {
+        return new File(cover.getParentFile(), cover.getName() + ".import");
+    }
+
+    /** The imported covers in place of the ones in use: call with the imported settings' save. */
+    static void commitCovers(Context context) {
+        File[] files = CoverProvider.coverFile(context, "x").getParentFile().listFiles();
+        if (files == null) {
+            return;
+        }
+        for (File f : files) {
+            String name = f.getName();
+            if (name.endsWith(".png.import")) {
+                File cover = new File(f.getParentFile(), name.substring(0,
+                        name.length() - ".import".length()));
+                if (!f.renameTo(cover)) {
+                    f.delete();
+                }
+            }
+        }
+    }
+
+    /** Covers of an import that was never saved. */
+    static void discardCovers(Context context) {
+        File[] files = CoverProvider.coverFile(context, "x").getParentFile().listFiles();
+        if (files != null) {
+            for (File f : files) {
+                if (f.getName().endsWith(".png.import")) {
+                    f.delete();
+                }
+            }
+        }
     }
 }

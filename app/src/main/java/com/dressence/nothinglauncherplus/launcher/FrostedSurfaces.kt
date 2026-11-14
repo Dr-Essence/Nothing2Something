@@ -25,6 +25,8 @@ internal object FrostedSurfaces {
     private val shape = Path()
     /** Folder icons that drew glass: redrawn when a setting changes. */
     private val glassIcons: MutableSet<View> = Collections.newSetFromMap(WeakHashMap())
+    /** Folder icon backgrounds drawn while the glass was off (held weakly), to redraw at a switch. */
+    private val plainIcons: MutableSet<Any> = Collections.newSetFromMap(WeakHashMap())
 
     @JvmStatic
     fun install(cl: ClassLoader, store: ConfigStore) {
@@ -55,6 +57,10 @@ internal object FrostedSurfaces {
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     val config = store.get()
                     if (!config.folderIconGlass) {
+                        // Noted (only the object, no lookups), so switching the glass on draws
+                        // these icons at once (2026-11 audit: only icons drawn with glass were
+                        // known, none while it was off).
+                        plainIcons.add(param.thisObject)
                         return
                     }
                     Hooks.guard("folder icon glass draw") {
@@ -82,7 +88,14 @@ internal object FrostedSurfaces {
         // An icon that moves (a scroll, the home screen animating in) is drawn again from where
         // it is now by Frosted.follow, as Nothing OS 5's Workspace.syncFrostedBackdropOffsets
         // does. A new setting shows on the icons at once.
-        store.addChangeListener { glassIcons.forEach { it.invalidate() } }
+        store.addChangeListener {
+            glassIcons.forEach { it.invalidate() }
+            for (background in ArrayList(plainIcons)) {
+                (XposedHelpers.getObjectField(background, "mInvalidateDelegate") as View?)
+                    ?.invalidate()
+            }
+            plainIcons.clear()
+        }
     }
 
     /**

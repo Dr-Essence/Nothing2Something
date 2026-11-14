@@ -327,6 +327,11 @@ public class SettingsActivity extends Activity {
                 store.config.launcherOnly,
                 checked -> {
                     store.config.launcherOnly = checked;
+                    if (checked) {
+                        // Its page is hidden in this mode, and System UI no longer shows its
+                        // readings: the overlay's root polling ends too (2026-11 audit).
+                        com.dressence.nothinglauncherplus.perf.OverlayService.stop(this);
+                    }
                     store.save(this);
                     render();
                 });
@@ -1421,6 +1426,7 @@ public class SettingsActivity extends Activity {
                                     imported[0].thermalOff = store.config.thermalOff;
                                     imported[0].perfOverlay = store.config.perfOverlay;
                                     store.config = imported[0];
+                                    Backup.commitCovers(this);
                                     store.save(this);
                                     render();
                                 });

@@ -12,8 +12,8 @@ android {
         applicationId 'com.dressence.nothinglauncherplus'
         minSdk 31
         targetSdk 36
-        versionCode 340
-        versionName '0.70.57'
+        versionCode 341
+        versionName '0.70.58'
         // DexKit's native library for the one phone ABI the module runs on (CMF Phone 1 and the
         // other Nothing phones are arm64): the other three would add 1.1 MB for nothing.
         ndk {
