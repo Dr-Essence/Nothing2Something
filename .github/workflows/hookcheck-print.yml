@@ -1,0 +1,28 @@
+name: Print a hook check summary
+
+# Prints the summary of a "Hook check on every Nothing OS build" run into this job's log, so
+# it can be read where the run's artifact storage cannot be reached (the development
+# session's network). Edit RUN_ID and push.
+
+on:
+  push:
+    paths:
+      - .github/workflows/hookcheck-print.yml
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  RUN_ID: "43595792525"
+
+jobs:
+  print:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "$RUN_ID" -R "${{ github.repository }}" -n hookcheck-summary -D out
+          cat out/summary.md
