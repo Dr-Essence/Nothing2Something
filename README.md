@@ -72,9 +72,9 @@ Each section below opens when tapped.
 > everything back from your file.
 
 <details open>
-<summary><b>Current state</b> · version 0.70.44, what is pending, what still needs testing</summary>
+<summary><b>Current state</b> · version 0.70.45, what is pending, what still needs testing</summary>
 
-**Current build: 0.70.44** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), glass app drawer and open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
+**Current build: 0.70.45** (CMF Phone 1, Nothing OS 4.1, Android 16): Dot screen style and Dot icon style, five ways for the dots of the folders and icons to light, to compare (new), glass app drawer and open drawer folders (new), a Green dot screen (new), both Xposed APIs in one module, the settings kept by LSPosed 2 and Vector themselves instead of a shared file (new), Nothing OS 5's frosted glass made as Nothing makes it, on still and live wallpapers: open folders, closed folders, the dock's search bar and Nothing's widgets, each with a switch and a tint slider (new), games' cut-out icons turning as solid dot shapes in Gaming Space (new), Google Play banners as Gaming Space artwork, no key needed (new), Steam microtrailers as Gaming Space's game clips (new), Gaming Space's lower half as on the XMB, with big category cards and a big dot box for the selected app (new), a Show app icon switch (new), a search field for the module's own settings (new), Nothing Gaming Space (alpha, demo), the module's own gaming launcher in dot-matrix style, with one dot screen on top, a cross menu below, turning 3D dot boxes, an animation for each category and game artwork from SteamGridDB (new, third part; Dr.Essence has more fixes to discuss), HeliBoard across the whole width in landscape, beside the camera too (new, a switch, verified), Full-screen apps, picked apps that hide the status bar and use its space, always or while the OLED saver hides it (new), every setting of the module findable in Settings search (new), finer dot icons (34 dots across), dot icons whose grid runs under a wider bezel (clean edges in every shape), dot icons on dark glass in every shape (no green edge), the dot-matrix icons as a "Dot matrix" icon pack in Nothing's picker (new), CMF Stereo's live icon with white waves and left alone in Nothing's icon style, an app icon in Nothing's dot-matrix style (new), a Nothing2Something row in Settings (new), a Launcher only mode (new), the crash-loop guard counts only crashes (System UI restarts from other modules or LSPosed no longer switch the dual status bar off), the dual status bar's date hidden with the clock (no cut date on the lock screen), the dock turned with the profile (no squeezed dock under load), Check orientation on wake and unlock (new), the turned lock screen laid out in the frame it turns in, the dual status bar with its options and tighter rows, the OLED saver (also shown when a swipe brings the bar back over a full-screen app), and Restart System UI in the module.
 
 **Verified on the phone**
 - 0.63.1, SteamGridDB artwork on the big dot screen: shown, without the crash of 0.62.0 and
@@ -123,6 +123,31 @@ Each section below opens when tapped.
   made from); Dr.Essence: "even folders are searchable". Opening a result at its row not
   reported separately.
 **Not tested on a phone yet**
+- **0.70.45, the drawer's glass covers the whole screen; Restart System UI touches only
+  System UI.** Mistake recorded, 0.70.38 to 0.70.44 (Dr.Essence's two screenshots, one just
+  after opening the drawer, one a second later): the drawer's glass was drawn inside the
+  drawer's view (ActivityAllAppsContainerView), which only covers the folders' area, and
+  0.70.44 faded the launcher's scrim out behind it, so once the opening ended the bare
+  wallpaper showed around the folders, above them and at the sides. Now the glass is the
+  scrim's: the launcher's full-screen ScrimView takes a GlassScrim background (a ColorDrawable,
+  so the launcher's own setBackgroundColor keeps changing its colour, its animation included)
+  that draws the glass at the scrim colour's opacity while the drawer shows (the launcher
+  state ALL_APPS, or still the last settled one while it closes) and the plain colour
+  otherwise (other screens use the scrim too). So it covers the screen, fades as Nothing's
+  colour does, and Drawer background sets its strength. Checked in the 4.1 launcher:
+  ScrimView.setBackgroundColor, Launcher.getStateManager, StateManager.getState and
+  getCurrentStableState, LauncherState.ALL_APPS. Dead code removed: the drawer's dispatchDraw
+  hook and the scrim fade-out of 0.70.44. Restart System UI: `pkill -f com.android.systemui`
+  also killed System UI's separate screenshot process (com.android.systemui:screenshot, seen
+  dying with it in the log); now only the main process, by its exact name (pidof). Nothing
+  Glass after a restart: the shade's blur stays a moment and goes; after the restart System UI
+  warned "Multiple blur values emitted in the same frame" each time the shade opened, which it
+  did not before the restart. Not yet known whether any System UI restart does this, or only
+  ours: to test with Nothing Glass's own restart button now that it has root. **Checked:**
+  builds. **Not checked:** on the phone. **To test:** Glass drawer background on: open the
+  drawer, wait 5 s (glass over the whole screen, status bar strip included); Drawer
+  background slider as its strength; then Nothing Glass's own Restart System UI button once
+  and ours once, the shade's blur after each, and an LSPosed log.
 - **0.70.44, the drawer's glass follows the drawer and covers it; tiles keep other modules'
   transparency.** Mistake recorded, 0.70.38 to 0.70.43 (Dr.Essence's recording, frame by
   frame): the drawer's glass was drawn for where the drawer rests, not followed, so it was

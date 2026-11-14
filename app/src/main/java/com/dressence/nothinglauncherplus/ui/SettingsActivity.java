@@ -351,7 +351,8 @@ public class SettingsActivity extends Activity {
                 });
         addOpacityRow(ui, config);
         addGlassRows(ui, "Glass drawer background", "The wallpaper behind the drawer, blurred and"
-                + " tinted, in place of the background above", config.drawerGlass,
+                + " tinted, in place of its colour · as strong as Drawer background above",
+                config.drawerGlass,
                 config.drawerGlassTint, checked -> config.drawerGlass = checked,
                 value -> config.drawerGlassTint = value);
         addGlassRows(ui, "Glass open drawer folders", "A drawer folder, when opened, shows the"

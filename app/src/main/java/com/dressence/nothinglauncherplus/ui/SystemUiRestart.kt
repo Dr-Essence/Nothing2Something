@@ -12,6 +12,11 @@ import com.dressence.nothinglauncherplus.Root
  * that folder already exists: created by root, it would belong to root and System UI could
  * not use it.
  *
+ * Only the main process, found by its exact name (pidof). Mistake recorded (0.70.45, from
+ * Dr.Essence's log): `pkill -f com.android.systemui` matched every process whose command line
+ * holds that name, so it also killed System UI's separate screenshot process
+ * (com.android.systemui:screenshot), which a restart has no reason to touch.
+ *
  * Mistake recorded (0.54.1): pressed three times within 30 s, it put LSPosed into safe mode.
  * LSPosed sees System UI (a persistent process) dying three times in a row as a crash loop;
  * it cannot tell a restart from a crash (seen on the phone: three deaths, no crash report,
@@ -49,7 +54,7 @@ internal object SystemUiRestart {
     fun restart(context: android.content.Context): Boolean {
         if (waitSeconds(context) > 0) return false
         val done = Root.run(
-            "[ -d $DIR ] && echo \"\$(date +%s)000\" > $DIR/$NOTE; pkill -f com.android.systemui"
+            "[ -d $DIR ] && echo \"\$(date +%s)000\" > $DIR/$NOTE; kill \$(pidof com.android.systemui)"
         ) == null
         // Only a restart that happened starts the cooldown: with root refused it was set all
         // the same, kept across app restarts since 0.70.16 (found in the same audit).

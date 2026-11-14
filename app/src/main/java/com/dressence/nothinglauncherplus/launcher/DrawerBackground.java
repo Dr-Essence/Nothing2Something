@@ -26,16 +26,6 @@ final class DrawerBackground {
     private static final String CLS_THEME_COLOURS = "p7.e";
     private static final String SCRIM_COLOUR = "nt_all_apps_scrim_color_nt_mono";
 
-    /**
-     * The drawer's own colours' opacity, in percent: the user's setting, or none with Glass
-     * drawer background on (0.70.44), where the glass is the whole background (DrawerGlass).
-     * Left at the setting there, the drawer's own colour stayed over the glass in the strip
-     * under the status bar (Dr.Essence's recording, seen once the status bar hid itself).
-     */
-    private static int opacity(Config config) {
-        return config.drawerGlass ? 0 : config.drawerOpacity;
-    }
-
     static void install(ClassLoader cl, ConfigStore store) {
         Class<?> allAppsState = XposedHelpers.findClass(CLS_ALL_APPS_STATE, cl);
         Class<?> launcherClass = XposedHelpers.findClass(Config.CLS_LAUNCHER, cl);
@@ -45,7 +35,7 @@ final class DrawerBackground {
                     launcherClass, new XC_MethodHook() {
                         @Override
                         protected void afterHookedMethod(MethodHookParam param) {
-                            int opacity = opacity(store.get());
+                            int opacity = store.get().drawerOpacity;
                             // An int up to Nothing OS 4; Nothing OS 5 returns ScrimColors (two
                             // colours), whose colour comes from ThemeColors, faded at the source
                             // above (tools/hookcheck.py, 0.70.32).
@@ -67,7 +57,7 @@ final class DrawerBackground {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) {
                     Hooks.guard("drawer search colours", () -> searchColours(param.thisObject,
-                            opacity(store.get()), atSource)).run();
+                            store.get().drawerOpacity, atSource)).run();
                 }
             };
             XposedBridge.hookAllConstructors(search, colours);
@@ -163,7 +153,7 @@ final class DrawerBackground {
         XposedBridge.hookMethod(method, new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
-                int opacity = opacity(store.get());
+                int opacity = store.get().drawerOpacity;
                 Context context = (Context) param.args[0];
                 if (opacity >= 100 || context == null) {
                     return;
