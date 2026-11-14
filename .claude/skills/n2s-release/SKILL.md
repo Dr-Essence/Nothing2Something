@@ -25,8 +25,8 @@ same. Stop and tell the user instead of pushing if a step fails.
    A commit that changes no behaviour (a tool, a doc, this skill) skips this step and names
    the file in its subject instead of a version.
 3. **Build.** `export ANDROID_HOME=/opt/android-sdk; ./gradlew -q :app:assembleRelease`
-   (add `--offline` and the local Xposed stub `-I <scratchpad>/xposed-init.gradle` when Maven
-   is limited). Must end with exit 0.
+   with the real Xposed API from api.xposed.info (allowed in the environment since 0.70.48;
+   never a hand-made stub of it). Must end with exit 0.
 4. **Commit.** Staged diff holds no model names, keys or emails. Message
    `0.70.N: <summary>`, a few lines on what and why, then the session's trailers verbatim.
 5. **Push.** `git push -u origin <session branch>`, retrying network errors 4 times
