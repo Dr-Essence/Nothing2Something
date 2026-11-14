@@ -116,33 +116,46 @@ final class Ui {
     /**
      * The module's own screen, black, or glass (Glass settings screens, 0.70.50): the
      * wallpaper, a still or a live one as it moves, shown behind the window (Android's
-     * FLAG_SHOW_WALLPAPER, what launchers use) and blurred live by Android
-     * (Window.setBackgroundBlurRadius), under a black tint. While Android has blurs
-     * off (battery saver, heat) the tint lies over the plain wallpaper. The tint is black in
-     * both modes, as the pages' texts are light. Applied again on every
-     * page made, so switching it takes effect on the next page or at once on the menu.
-     * Returns the colour the page's own views take: transparent over glass, else black.
+     * FLAG_SHOW_WALLPAPER, what launchers use), blurred live by Android, under a black tint
+     * (black in both modes, as the pages' texts are light). While Android has blurs off
+     * (battery saver, heat) the tint lies over the plain wallpaper. Returns the colour the
+     * page's own views take: transparent over glass, else black.
+     *
+     * Which blur, read in the CMF Phone 1's Nothing OS 4.1 framework (dexdump):
+     * Window.setBackgroundBlurRadius, used first, is drawn by DecorView only when the window
+     * is translucent by its theme (updateBackgroundBlurRadius: PhoneWindow.isTranslucent),
+     * which these screens are not, so 0.70.50 showed the wallpaper unblurred (Dr.Essence).
+     * FLAG_BLUR_BEHIND with setBlurBehindRadius is drawn by the system under the window
+     * whenever blurs are on (services' WindowState.shouldDrawBlurBehind: the flag and
+     * BlurController.getBlurEnabled, nothing else), so it is the one used.
+     *
+     * Mistake recorded, 0.70.50: switching the setting changed the open window's flags in
+     * place; showing the wallpaper does not follow such a change, and Dr.Essence had to force
+     * stop the app. A screen whose window does not match the setting is now made again
+     * (Activity.recreate), with the setting in place before its window is shown.
      */
     static int applyBackground(Activity activity) {
         Config config = new SettingsStore(activity).config;
         android.view.Window window = activity.getWindow();
+        int wallpaper = android.view.WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER;
+        int blurBehind = android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND;
+        boolean showing = (window.getAttributes().flags & wallpaper) != 0;
+        if (showing != config.settingsGlass && window.getDecorView().isAttachedToWindow()) {
+            activity.recreate();
+            return config.settingsGlass ? Color.TRANSPARENT : BACKGROUND;
+        }
         if (!config.settingsGlass) {
-            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER);
-            window.setBackgroundBlurRadius(0);
+            window.clearFlags(wallpaper | blurBehind);
             window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(BACKGROUND));
-            window.getDecorView().setBackgroundColor(BACKGROUND);
             return BACKGROUND;
         }
-        // Black in light mode too: the module's pages are dark, with light texts.
         int tint = Color.argb((config.settingsGlassTint * 255 + 50) / 100, 0, 0, 0);
         window.setFormat(android.graphics.PixelFormat.TRANSLUCENT);
-        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER);
         window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(tint));
-        window.getDecorView().setBackgroundColor(tint);
-        android.view.WindowManager windows =
-                activity.getSystemService(android.view.WindowManager.class);
-        boolean blurs = windows != null && windows.isCrossWindowBlurEnabled();
-        window.setBackgroundBlurRadius(blurs ? dp(activity, GLASS_BLUR_DP) : 0);
+        android.view.WindowManager.LayoutParams attributes = window.getAttributes();
+        attributes.flags |= wallpaper | blurBehind;
+        attributes.setBlurBehindRadius(dp(activity, GLASS_BLUR_DP));
+        window.setAttributes(attributes);
         return Color.TRANSPARENT;
     }
 
