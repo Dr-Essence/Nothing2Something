@@ -3378,7 +3378,7 @@ this order; they have no dates.
 4. **Nothing Dot Matrix Display Engine:** a new engine for the emoji covers. Planned, built privately.
    Until it is ready, the emoji covers stay a beta.
 5. **Nothing Gaming Space:** the current look is a demo, a first glimpse of the idea. It will
-   change completely, designed in pictures first.
+   change completely.
 
 ## For developers
 
