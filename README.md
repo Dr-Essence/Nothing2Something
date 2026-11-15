@@ -2300,7 +2300,9 @@ adds your own folders next to them. Apps you put in a custom folder leave their 
   Nothing draws them, and the emoji chosen for each folder stays saved for when it is switched
   back on (image covers stay). **No emoji covers in battery saver** (off by default) does the
   same only while battery saver is on: the tiles change as it turns on and back off. Hidden
-  covers do not animate.
+  covers do not animate. *Most of the current emoji and their animations were made by AI, as a
+  concept, to see the idea working. They will be replaced by hand-drawn ones (drawn by
+  Dr.Essence) on the new engine (see Roadmap).*
 - **Dot matrix** (on by default, switch in the module): the whole folder tile becomes a Nothing
   dot screen. The dots fill the card the launcher actually draws (read from the tile's own
   outline, so they follow its shape and rounded corners and never spill past it), as many whole
@@ -3376,7 +3378,8 @@ this order; they have no dates.
    landscape home screen and widget picker, quick settings tiles and the new status bar.
    Without testers, step 4 comes first.
 4. **Nothing Dot Matrix Display Engine:** a new engine for the emoji covers. Planned, built privately.
-   Until it is ready, the emoji covers stay a beta.
+   Until it is ready, the emoji covers stay a beta: most of today's emoji are an AI-made
+   concept, and they will be replaced by hand-drawn ones (drawn by Dr.Essence) on the engine.
 5. **Nothing Gaming Space:** the current look is a demo, a first glimpse of the idea. It will
    change completely.
 
