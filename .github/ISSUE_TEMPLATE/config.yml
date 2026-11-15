@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Send a log or debug report privately
+    url: https://github.com/Dr-Essence/Nothing2Something/security/advisories/new
+    about: LSPosed logs and debug reports hold personal data. Send them here, never in a public issue.

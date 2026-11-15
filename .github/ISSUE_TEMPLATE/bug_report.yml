@@ -1,0 +1,95 @@
+name: Bug report
+description: Something in Nothing2Something does not work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing. One problem per report, please.
+
+        **Never attach an LSPosed log or a debug report here.** They contain your account
+        names, notifications and screenshots, and this page is public. If one is needed, you
+        will be asked to send it privately (see SECURITY.md).
+  - type: input
+    id: phone
+    attributes:
+      label: Phone
+      placeholder: e.g. CMF Phone 1, Phone (2a)
+    validations:
+      required: true
+  - type: input
+    id: nothing-os
+    attributes:
+      label: Nothing OS build
+      description: Settings → About phone
+      placeholder: e.g. Tetris_B4.1-260928-1140
+    validations:
+      required: true
+  - type: input
+    id: module-version
+    attributes:
+      label: Module version
+      description: The version shown in the module, and whether it is a CI build from GitHub Actions.
+      placeholder: e.g. 0.70.61 (CI build)
+    validations:
+      required: true
+  - type: input
+    id: test-id
+    attributes:
+      label: Test id
+      description: The test from docs/TEST_PLAN.md, if this came from one.
+      placeholder: e.g. E5, N3
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you did
+      description: Step by step, from the start.
+      placeholder: |
+        1. Turned on Glass drawer background
+        2. Opened the app drawer
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should have happened
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+    validations:
+      required: true
+  - type: dropdown
+    id: how-often
+    attributes:
+      label: How often
+      options:
+        - Always
+        - Sometimes
+        - Once
+    validations:
+      required: true
+  - type: textarea
+    id: other-modules
+    attributes:
+      label: Other LSPosed modules that are on
+      description: And which apps each one is ticked for, if you know.
+      placeholder: e.g. Nothing Glass (System UI)
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Hook health and recording
+      description: |
+        Drag in a screenshot of the module's Diagnostics → Hook health, and a screen recording
+        that starts before the problem. Check that neither shows anything private.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before sending
+      options:
+        - label: I tested with the latest build, and with Launcher only off unless the test says otherwise.
+          required: true
+        - label: This report contains no LSPosed log, debug report or other private data.
+          required: true
