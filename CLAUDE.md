@@ -43,7 +43,7 @@
 
 # Project direction
 
-- **Emoji covers are a beta.** They will be replaced by **Nothing Dot Matrix Display**, an
+- **Emoji covers are a beta.** They will be replaced by **Nothing Dot Matrix Display Engine**, an
   engine built privately in its own repository (Dr-Essence/Ndot-Matrix-Display-Engine, whose
   CLAUDE.md holds the plan). In public (README, Roadmap, beta notes) it is described only as
   "a new engine for the emoji covers. Planned, built privately"; no details.
@@ -87,7 +87,7 @@ Roadmap for later, and go back to the plan. Fixes, tests and finishing existing 
 
 **Order after the stability phase (the README Roadmap, agreed 2026-11-15):** finish the three
 pillars; then the Nothing OS 5 port, but only once Nothing OS 5 testers are found (without
-them, the engine comes first); then Nothing Dot Matrix Display; then the Gaming Space redesign.
+them, the engine comes first); then Nothing Dot Matrix Display Engine; then the Gaming Space redesign.
 No dates.
 
 **Ideas kept for later, not on the Roadmap:** status bar colours (icons and text in a colour the

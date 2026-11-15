@@ -53,7 +53,7 @@ Easier parts first; the drawer folders and covers last.
 5. **J** keyboard and controller, **K** performance, **L** Gaming Space
 6. **B** drawer folders, later
 7. **C** emoji covers: only checked for crashes and battery use (C2, C3, C8). Their look
-   and animations are not tested in detail, because the Nothing Dot Matrix Display engine will
+   and animations are not tested in detail, because the Nothing Dot Matrix Display Engine will
    replace them (see the Roadmap). That engine is built after this stability phase.
 
 ## How to test

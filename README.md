@@ -269,7 +269,8 @@ every build* below; *Verified* means checked on the phone).
 - **Landscape lock screen and the Customisation page layout:** in progress.
 - **PS2-style interface sounds:** waiting for recordings of the cursor, confirm, back, error and
   memory-card sounds.
-- **Nothing Dot Matrix Display:** the engine that replaces the emoji-cover beta (see Roadmap).
+- **Nothing Dot Matrix Display Engine:** a new engine for the emoji covers, planned and built
+  privately; it replaces the emoji-cover beta (see Roadmap).
 - **README pictures:** all views are in (home, app drawer with emoji covers and with normal
   folders, both orientations; landscape lock screen and AOD). They come from alpha builds and
   will be retaken for the public release.
@@ -3358,22 +3359,26 @@ removes them. It asks for the notification permission the first time.
 
 ## Roadmap
 
-- **Nothing Dot Matrix Display**: a new engine for the emoji covers, which are a beta until
-  it lands. It is planned as:
-  - **Built for Nothing Launcher:** it works directly with Nothing Launcher.
-  - **Very low power:** heavily optimized to render every emoji with as little power as
-    possible.
-  - **Understands each emoji:** its emotion, reflections, particles and 3D shape.
-  - **Every emoji reworked one by one:** each one rendered in 3D, with several animations made
-    for that emoji alone.
-- **Status bar colours:** paint the status bar's icons and text in any colour the user picks
-  (suggested by a user). Like the dual status bar, the idea comes from
-  [Iconify](https://github.com/Mahmud0808/Iconify). On Nothing OS 5 it needs the new status bar
-  design, as do the other status bar features.
-- **Credit everyone who helps:** every person and project that helps this module in any form
-  (code, ideas, tests, logs, firmware, tools) is named in [Credits](#credits), each with their
-  GitHub profile where they have given one. A help that is not listed there yet is a bug in
-  this README.
+The goal: every feature works, and stays stable, on every Nothing phone. The steps below come in
+this order; they have no dates.
+
+1. **Testing and stabilization phase 1** *(now)*
+    - Every existing feature is tested with [docs/TEST_PLAN.md](docs/TEST_PLAN.md), and every
+      problem found is fixed. No new features until it is done.
+    - The README gets shorter: the history of builds moves to CHANGELOG.md.
+    - Large source files are split, and automatic tests run on every build.
+    - One tester build a week.
+2. **Finish the three main features** to a quality worth showing:
+    - the app drawer folders with their dot screen;
+    - the dot-matrix app icons;
+    - glass.
+3. **Nothing OS 5 port**, once testers on Nothing OS 5 are found (see [Testing](#testing)): the
+   landscape home screen and widget picker, quick settings tiles and the new status bar.
+   Without testers, step 4 comes first.
+4. **Nothing Dot Matrix Display Engine:** a new engine for the emoji covers. Planned, built privately.
+   Until it is ready, the emoji covers stay a beta.
+5. **Nothing Gaming Space:** the current look is a demo, a first glimpse of the idea. It will
+   change completely, designed in pictures first.
 
 ## For developers
 
@@ -3490,6 +3495,10 @@ owners may unlock the bootloader, and Nothing publishes its phones' kernel and d
 design and its NDot font, is what every feature here sets out to extend rather than replace. Nothing2Something is an independent project, not made or endorsed by Nothing.
 
 ### Thank you, everyone who helped
+
+Every person and project that helps this module in any form (code, ideas, tests, logs, firmware,
+tools) is named here, each with their GitHub profile where they have given one. A help that is
+not listed here yet is a bug in this README.
 
 - **[NothingTweaks](https://github.com/RevealedSoulEven/NothingTweaks)** by RevealedSoulEven: the
   project that inspired the whole module.
