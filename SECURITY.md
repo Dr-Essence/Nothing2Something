@@ -2,8 +2,9 @@
 
 ## Supported versions
 
-Only the latest release of **Nothing2Something** gets fixes. Please update and check the
-problem still happens before reporting.
+Only the latest build of **Nothing2Something** gets fixes (a CI build from GitHub Actions
+until the first public pre-release). Please update and check the problem still happens before
+reporting.
 
 ## Reporting a vulnerability
 
@@ -17,7 +18,11 @@ Include what you can of:
 
 - the version, your phone model and Android / Nothing OS build;
 - what happens, and the steps or input that trigger it;
-- logs (`logcat`, the module's own log) or a proof of concept.
+- logs (`logcat`, the module's own log, a debug report) or a proof of concept.
+
+**Logs hold personal data.** An LSPosed log or debug report contains account names, app data,
+notifications and screenshots. Attach them only to a private report like this one, never to a
+public issue.
 
 ## What counts as a security problem here
 

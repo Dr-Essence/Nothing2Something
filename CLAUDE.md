@@ -19,11 +19,25 @@
   re-positioning what Nothing just laid out, no racing its own passes).
 - **Clean dead code.** Remove what a change makes unused (methods, fields, hooks, settings,
   diagnostics that served their purpose) in the same change.
-- **Keep the README's Status section current with every change.** Each commit that changes
-  behaviour also updates it: the current version and state, what is pending, which features
-  have not been tested on a phone yet, which tests are pending (and what evidence they need),
-  and the bugs fixed. A change is not finished while the Status section still describes the
-  build before it.
+- **Record every change, and keep the README's Status current.** Each commit that changes
+  behaviour adds its entry to the history of builds (CHANGELOG.md, once the history has moved
+  there; the README's Builds table and full notes until then), and updates the README's Status
+  to describe the current state only: the current version, what is pending, which features have
+  not been tested on a phone yet, and which tests are pending (and what evidence they need).
+  The Status never grows into a history. A change is not finished while the Status still
+  describes the build before it.
+- **Every fixed bug gets a test.** A fix adds a test for that bug to docs/TEST_PLAN.md (what to
+  do, what should happen), so every later test round checks it again and an old bug cannot
+  come back unnoticed.
+- **Fixed means confirmed.** A fix counts as done only once Dr.Essence (or a tester) has
+  confirmed it on a phone. Until then the README calls it "fix in build x, not yet confirmed",
+  never "fixed".
+- **Always a way back.** Every tester build names, in its notes, the previous build that is
+  known to be good, and how to return to it (Backup → Export first, then install that build).
+- **No pushes in frustration.** When something breaks and the conversation is angry, tired or
+  rushed, collect the evidence (recording, debug report, logs) and decide the fix later, calmly.
+  No fix is ever so urgent that it must be pushed within the hour; say so, and propose the
+  next calm step instead.
 - **The README is written professionally:** state results as facts ("confirmed on the
   phone", "reported: …", "not yet recorded after a reboot"), never as quotes of chat messages
   ("seems fixed", "I think it works") or in the first person.
@@ -57,14 +71,14 @@
   this module. New features are written in Kotlin (the Java code is converted only when a file
   is reworked anyway), and the project will become a course for learning Kotlin from it: how
   each feature was found in Nothing's code and implemented, and the mistakes made and how they
-  were fixed (the commit history and the README's Status are its record). Write new code and
+  were fixed (the commit history and the history of builds are its record). Write new code and
   its comments so it can be taught from: clear names, the reason for each step, and what was
   checked. Focus: unlocking features and bypassing limits in Nothing OS and Android, not
   ordinary apps.
 
 # Working plan (agreed 2026-11-14)
 
-These six rules come from an honest review of the project. They hold until Dr.Essence lifts them.
+These rules come from an honest review of the project. They hold until Dr.Essence lifts them.
 
 1. **Feature freeze.** No new features. Three pillars get finished to a quality worth showing:
    the app drawer folders with their dot screen, the dot-matrix app icons, and glass (chosen
@@ -75,8 +89,10 @@ These six rules come from an honest review of the project. They hold until Dr.Es
 2. **Design in pictures first.** Any visible change (Gaming Space, the final look, settings
    layout, banners) is shown as a mock-up and agreed before code is written for it. Code is
    built once, from the agreed picture.
-3. **One tester release a week.** Builds in between are for Dr.Essence's own phone only.
-   The README's Builds table and the testers get the weekly build, not every commit.
+3. **One tester build a week.** Builds in between are for Dr.Essence's own phone only. Until
+   testing and stabilization phase 1 is complete the weekly tester build is a CI build (see
+   Releases below); after it, it is published as a GitHub Pre-release. The testers get the
+   weekly build, not every commit.
 4. **Dr.Essence owns the code.** Every change is explained so it can be read and understood:
    what each part does and why, in plain words, with the file and line. Changes stay small
    enough to read in one sitting. This is the Kotlin course.
@@ -84,7 +100,12 @@ These six rules come from an honest review of the project. They hold until Dr.Es
    split when they are worked on anyway. Pure logic (dot rendering, colour maths, settings
    parsing, the hook check) gets unit tests that run in CI.
 6. **The README stays short.** It says what the module is, how to install it, what is safe,
-   and the Testing table. The history of builds lives in CHANGELOG.md.
+   the current Status and the Testing table. The history of builds lives in CHANGELOG.md
+   (moving it there is part of phase 1; see the rule on recording every change above).
+7. **Bug reports through GitHub Issues, with the form.** Testers report with the bug report
+   form (.github/ISSUE_TEMPLATE), which asks for the phone, Nothing OS, module version and Hook
+   health, and tells them never to post logs publicly. Logs and anything sensitive go through
+   SECURITY.md's private report.
 
 **Current phase: stability (from 2026-11-14).** The only work is testing every existing feature
 with docs/TEST_PLAN.md and fixing what fails. Guide Dr.Essence through the plan part by part, and
