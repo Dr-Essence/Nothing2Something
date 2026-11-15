@@ -43,14 +43,10 @@
 
 # Project direction
 
-- **Emoji covers are a beta.** They will be replaced by **Nothing Dot Matrix Display**:
-  - a super-optimized engine that works directly with Nothing Launcher;
-  - it understands each emoji's emotion, reflections, particles and 3D shape;
-  - it renders every emoji with as little power as possible;
-  - every individual emoji is reworked and rendered in 3D, with multiple animations made for
-    each one.
-
-  Keep the README's Roadmap and the beta notes in line with this.
+- **Emoji covers are a beta.** They will be replaced by **Nothing Dot Matrix Display**, an
+  engine built privately in its own repository (Dr-Essence/Ndot-Matrix-Display-Engine, whose
+  CLAUDE.md holds the plan). In public (README, Roadmap, beta notes) it is described only as
+  "a new engine for the emoji covers. Planned, built privately"; no details.
 - **A Kotlin course from this project.** Dr.Essence is learning to code and plans to maintain
   this module. New features are written in Kotlin (the Java code is converted only when a file
   is reworked anyway), and the project will become a course for learning Kotlin from it: how
@@ -64,9 +60,11 @@
 
 These six rules come from an honest review of the project. They hold until Dr.Essence lifts them.
 
-1. **Feature freeze.** No new features. Three pillars get finished to a quality worth showing;
-   everything else is either marked experimental or removed. Until the pillars are chosen,
-   work is limited to fixes and finishing what exists. When a request is a new feature, say so
+1. **Feature freeze.** No new features. Three pillars get finished to a quality worth showing:
+   the app drawer folders with their dot screen, the dot-matrix app icons, and glass (chosen
+   2026-11-15). No other feature is removed for now: the goal is every feature working and
+   stable on every Nothing phone. Gaming Space is a demo whose look will change completely
+   (a small chance it is removed). When a request is a new feature, say so
    and ask whether it is worth breaking the freeze.
 2. **Design in pictures first.** Any visible change (Gaming Space, the final look, settings
    layout, banners) is shown as a mock-up and agreed before code is written for it. Code is
@@ -86,3 +84,11 @@ These six rules come from an honest review of the project. They hold until Dr.Es
 with docs/TEST_PLAN.md and fixing what fails. Guide Dr.Essence through the plan part by part, and
 when a new feature is asked for, say that it breaks the freeze, suggest noting it in the
 Roadmap for later, and go back to the plan. Fixes, tests and finishing existing work are allowed.
+
+**Order after the stability phase (the README Roadmap, agreed 2026-11-15):** finish the three
+pillars; then the Nothing OS 5 port, but only once Nothing OS 5 testers are found (without
+them, the engine comes first); then Nothing Dot Matrix Display; then the Gaming Space redesign.
+No dates.
+
+**Ideas kept for later, not on the Roadmap:** status bar colours (icons and text in a colour the
+user picks; a user's suggestion, idea from Iconify).
