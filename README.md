@@ -78,10 +78,14 @@ Each section below opens when tapped.
 > everything back from your file.
 
 > [!NOTE]
-> **Stability phase: no new features for now.** Every feature the module already has is being
-> tested on the phone, and every problem found is fixed, before anything new is added. Builds in
-> this phase contain fixes only. The test list is in [docs/TEST_PLAN.md](docs/TEST_PLAN.md), and
-> anyone can help (see *How to help test* under Testing).
+> **Experimental phase 1: done. Testing and stabilization phase 1: begins.**
+>
+> - **Most features are experimental.** They were built and tested on one phone (a CMF Phone 1
+>   on Nothing OS 4.1) and may not work, or may behave differently, on yours.
+> - **No new features for now.** Every existing feature is being tested, and every problem found
+>   is fixed, before anything new is added. Builds in this phase contain fixes only.
+> - **How to help:** the test list is in [docs/TEST_PLAN.md](docs/TEST_PLAN.md) (see *How to
+>   help test* under Testing).
 
 <details>
 <summary><b>Current state</b> · version 0.70.61, what is pending, what still needs testing</summary>
