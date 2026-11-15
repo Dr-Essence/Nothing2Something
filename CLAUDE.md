@@ -58,8 +58,8 @@
 # Project direction
 
 - **Emoji covers are a beta.** They will be replaced by **Nothing Dot Matrix Display Engine**, an
-  engine built privately in its own repository (Dr-Essence/Ndot-Matrix-Display-Engine, whose
-  CLAUDE.md holds the plan). In public (README, Roadmap, beta notes) it is described only as
+  engine built privately in its own private repository, whose CLAUDE.md holds the plan (its
+  name is not written in this public repository). In public (README, Roadmap, beta notes) it is described only as
   "a new engine for the emoji covers. Planned, built privately"; no details.
   - **Who makes what:** every emoji is drawn and reworked by Dr.Essence personally, with no AI
     involved. AI is used to build the engine itself, exactly as intended, and the emoji are then
