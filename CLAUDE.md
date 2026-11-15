@@ -47,6 +47,9 @@
   engine built privately in its own repository (Dr-Essence/Ndot-Matrix-Display-Engine, whose
   CLAUDE.md holds the plan). In public (README, Roadmap, beta notes) it is described only as
   "a new engine for the emoji covers. Planned, built privately"; no details.
+  - **Who makes what:** every emoji is drawn and reworked by Dr.Essence personally, with no AI
+    involved. AI is used to build the engine itself, exactly as intended, and the emoji are then
+    recreated on that engine by Dr.Essence.
 - **A Kotlin course from this project.** Dr.Essence is learning to code and plans to maintain
   this module. New features are written in Kotlin (the Java code is converted only when a file
   is reworked anyway), and the project will become a course for learning Kotlin from it: how
