@@ -92,3 +92,10 @@ No dates.
 
 **Ideas kept for later, not on the Roadmap:** status bar colours (icons and text in a colour the
 user picks; a user's suggestion, idea from Iconify).
+
+**Releases (decided 2026-11-15):** no public GitHub Release, not even a pre-release, until the
+whole testing and stabilization phase 1 is complete. Until then builds stay CI builds (GitHub
+Actions); after it, the weekly tester build is published as a Pre-release with clear notes
+(alpha, what is experimental, what is known broken), and one announcement may follow in Nothing
+community spaces. Testers are not turned away meanwhile: the README's Testing section and the
+CI builds stay available to them.
