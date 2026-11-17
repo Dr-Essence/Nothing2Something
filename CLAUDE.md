@@ -133,8 +133,10 @@ No dates.
   - **Phone-aware:** Glyph or not, MediaTek or Snapdragon, the Nothing OS version.
   - **Super debloat (root):** replaces Google Play services with microG, systemlessly and
     reversibly, after a clear warning of what stops working: Google Wallet contactless
-    payments first, and Play Integrity-based apps (some banking apps), Android Auto, Find My
-    Device and other Google account features.
+    payments first, then Android Auto, Find My Device and other Google account features.
+    Banking apps: on a rooted phone they need the usual integrity modifications either way;
+    in Dr.Essence's experience on three devices, banks that work rooted with Play services
+    also work with microG. The warning says so, without promising it for every bank.
 
 **Releases (decided 2026-11-15):** no public GitHub Release, not even a pre-release, until the
 whole testing and stabilization phase 1 is complete. Until then builds stay CI builds (GitHub
