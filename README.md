@@ -171,7 +171,7 @@ every build* below; *Verified* means checked on the phone).
 | 0.70.37 | Green dot screen | Not tested yet |
 | 0.70.36 | Dot screens dark in light mode, the folder card stays white | Not tested yet |
 | 0.70.35 | Both Xposed APIs in one module, no shared settings file on LSPosed 2 | Not tested yet |
-| 0.70.34 | Nothing OS 5: "add to home screen" from a drawer folder no longer crashes the launcher | Not tested yet |
+| 0.70.34 | Nothing OS 5: fix for the launcher crash on "add to home screen" from a drawer folder | Not confirmed on a phone: the Nothing OS 5 tester no longer runs Nothing OS |
 | 0.70.33 | Nothing OS 5: dot-matrix icons and live icons | Not tested yet |
 | 0.70.32 | Nothing OS 5 (Android 17): every broken hook found and fixed or left out cleanly | Not tested yet |
 | 0.70.31 | The glass is visible on live wallpapers: the capture copied exactly from Nothing OS 5 | Not tested yet |
@@ -822,8 +822,8 @@ every build* below; *Verified* means checked on the phone).
   show "API 101"; change a few settings (drawer, rotation, dual status bar) and check each
   applies; Hook health as before. On Vector (the Nothing OS 5 tester): the same, plus Hook
   health. If anything is missing, a debug report (never a public LSPosed log).
-- **0.70.34, Nothing OS 5: "add to home screen" from a drawer folder no longer crashes the
-  launcher.** Mistake recorded, 0.70.32 (the Nothing OS 5 tester: long-press a folder in the
+- **0.70.34, Nothing OS 5: fix for the launcher crash on "add to home screen" from a drawer
+  folder (not confirmed on a phone).** Mistake recorded, 0.70.32 (the Nothing OS 5 tester: long-press a folder in the
   app drawer, "add to home screen", the launcher crashed): 0.70.32 replaced the
   addAndBindAddedWorkspaceItems that Nothing OS 5 removed with Nothing's own
   AddWorkspaceItemsTask, but passed it Android 16's items (android.util.Pair); Nothing OS 5's
@@ -2067,7 +2067,7 @@ names it.
 |---|---|---|---|
 | **4.1** (Android 16) | Phone (2), (2a), (2a) Plus, (3), (3a), (3a) Pro, CMF Phone 1, CMF Phone 2 Pro, and the newer Galaxian, Frogger, FroggerPro and SuperContra | **0** | Every feature should install. What can still differ is how a screen looks or behaves on another screen size or model: that needs your report. Early 4.1 builds of Frogger, FroggerPro and SuperContra missed the same one as 4.0, found the same way since 0.70.60. |
 | **4.0** (Android 16) | the same phones before their 4.1 update | 0 since 0.70.60 | Every feature should install: the one missing hook (the landscape widget picker's profile class, renamed in 4.0's launcher) is found under its 4.0 name since 0.70.60, read from the CMF Phone 1's own 4.0 build. Not yet tried on a 4.0 phone. |
-| **5.0** (Android 16) | Phone (2a), (2a) Plus, (3), (3a), (3a) Pro, Frogger, FroggerPro | 41-42 | Many features left out: landscape home screen and widget picker, dot-matrix and live icons, the folder menu's extras, the drawer's live blur, green quick settings tiles, the tile editor fix. Nothing OS 5 frosts its own glass, so the module's glass stays off there. Since 0.70.61 the Dot matrix icon pack's entry and the long-press menu's width in landscape find their 5.0 names. Try **Launcher only** mode and expect gaps; the rest is mapped (docs/reverse-engineering/nos5_port.md) and needs a rework: a Nothing OS 5 port is planned. |
+| **5.0** (Android 16) | Phone (2a), (2a) Plus, (3), (3a), (3a) Pro, Frogger, FroggerPro | 41-42 | Many features left out: landscape home screen and widget picker, dot-matrix and live icons, the folder menu's extras, the drawer's live blur, green quick settings tiles, the tile editor fix. Nothing OS 5 frosts its own glass, so the module's glass stays off there. Since 0.70.61 the Dot matrix icon pack's entry and the long-press menu's width in landscape find their 5.0 names. **No active Nothing OS 5 tester** (the first one has moved to a custom ROM), so no Nothing OS 5 fix is confirmed on a phone. Try **Launcher only** mode and expect gaps; the rest is mapped (docs/reverse-engineering/nos5_port.md) and needs a rework: a Nothing OS 5 port is planned. |
 | **3.x and older** (Android 15 and earlier) | Phone (1) and the others before Nothing OS 4 | 38-150 | Not supported: the module is made for Nothing OS 4 (Android 16). |
 
 What this check cannot see: hooks found by their shape rather than their name (searched on the
@@ -3522,7 +3522,8 @@ not listed here yet is a bug in this README.
 - **Testers:** the people who run test builds on their own phones and send logs.
   - **[LovecraftianGodsKiller](https://github.com/LovecraftianGodsKiller)**: the first tester on
     Nothing OS 5 (Phone (3a)). Their logs, firmware files and Hook health made the module's
-    Nothing OS 5 support possible, and found the crash fixed in 0.70.34.
+    Nothing OS 5 mapping possible, and showed the crash that 0.70.34 addresses (fix not
+    confirmed on a phone).
 
 The tools this is built on: [LSPosed](https://github.com/LSPosed/LSPosed) (hooking framework)
 and [Magisk](https://github.com/topjohnwu/Magisk) (root).
