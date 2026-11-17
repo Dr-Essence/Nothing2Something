@@ -120,12 +120,15 @@ pillars; then the Nothing OS 5 port, but only once Nothing OS 5 testers are foun
 them, the engine comes first); then Nothing Dot Matrix Display Engine; then the Gaming Space redesign.
 No dates.
 
-**Ideas kept for later, not on the Roadmap:**
+**Ideas kept for later, not on the Roadmap:** (the unrooted tools below support both Shizuku and
+Dhizuku; Dhizuku needs the user to make it device owner, which Android only allows on a phone
+with no accounts added, so its setup is explained step by step)
 - Status bar colours (icons and text in a colour the user picks; a user's suggestion, idea
   from Iconify).
 - **A Nothing debloater, as its own small app or module, not part of Nothing2Something**
-  (agreed 2026-11-17; only once the project has matured). Works with Shizuku or root, no LSPosed
-  needed. What makes it worth building:
+  (agreed 2026-11-17; only once the project has matured). Works with Shizuku, Dhizuku or root,
+  no LSPosed needed (Dhizuku: device-owner rights, which survive a reboot and can hide or
+  suspend apps without root). What makes it worth building:
   - **Nothing-specific and checked on real phones:** every Nothing, Google and MediaTek package
     explained in plain words (for example Ketchum = com.nothing.thirdparty, the Glyph service).
   - **Safe by default:** disable rather than uninstall, essential packages locked, one-tap
@@ -141,7 +144,7 @@ No dates.
     in Dr.Essence's experience on three devices, banks that work rooted with Play services
     also work with microG. The warning says so, without promising it for every bank.
 - **A patched Nothing Launcher for unrooted phones** (idea, 2026-11-17): ReVanced-style. A small
-  patcher app with Shizuku reads Nothing Launcher from the user's own phone, applies
+  patcher app with Shizuku or Dhizuku reads Nothing Launcher from the user's own phone, applies
   Nothing2Something's launcher patches on the phone and installs the result under its own
   package name. Nothing's code is never distributed, only our patches. On a phone that is not
   a Nothing or CMF phone, or without Nothing Launcher, it shows a clear message and does
