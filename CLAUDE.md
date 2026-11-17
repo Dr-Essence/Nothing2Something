@@ -133,7 +133,10 @@ No dates.
   - **Phone-aware:** Glyph or not, MediaTek or Snapdragon, the Nothing OS version.
   - **Super debloat (root):** replaces Google Play services with microG, systemlessly and
     reversibly, after a clear warning of what stops working: Google Wallet contactless
-    payments first, then Android Auto, Find My Device and other Google account features.
+    payments first. Checked 2026-11-17: microG supports Find My Device (Find My Device Hub,
+    since 0.3.14), but does not yet help find other people's devices on the Find My Device
+    network; Android Auto support with microG was not confirmed by any source (reported
+    working by Dr.Essence's expectation only), so the warning lists it as uncertain.
     Banking apps: on a rooted phone they need the usual integrity modifications either way;
     in Dr.Essence's experience on three devices, banks that work rooted with Play services
     also work with microG. The warning says so, without promising it for every bank.
