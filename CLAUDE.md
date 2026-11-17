@@ -120,8 +120,21 @@ pillars; then the Nothing OS 5 port, but only once Nothing OS 5 testers are foun
 them, the engine comes first); then Nothing Dot Matrix Display Engine; then the Gaming Space redesign.
 No dates.
 
-**Ideas kept for later, not on the Roadmap:** status bar colours (icons and text in a colour the
-user picks; a user's suggestion, idea from Iconify).
+**Ideas kept for later, not on the Roadmap:**
+- Status bar colours (icons and text in a colour the user picks; a user's suggestion, idea
+  from Iconify).
+- **A Nothing debloater, as its own small app or module, not part of Nothing2Something**
+  (agreed 2026-11-17; only once the project has matured). Works with Shizuku or root, no LSPosed
+  needed. What makes it worth building:
+  - **Nothing-specific and checked on real phones:** every Nothing, Google and MediaTek package
+    explained in plain words (for example Ketchum = com.nothing.thirdparty, the Glyph service).
+  - **Safe by default:** disable rather than uninstall, essential packages locked, one-tap
+    restore of everything.
+  - **Phone-aware:** Glyph or not, MediaTek or Snapdragon, the Nothing OS version.
+  - **Super debloat (root):** replaces Google Play services with microG, systemlessly and
+    reversibly, after a clear warning of what stops working: Google Wallet contactless
+    payments first, and Play Integrity-based apps (some banking apps), Android Auto, Find My
+    Device and other Google account features.
 
 **Releases (decided 2026-11-15):** no public GitHub Release, not even a pre-release, until the
 whole testing and stabilization phase 1 is complete. Until then builds stay CI builds (GitHub
