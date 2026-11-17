@@ -143,7 +143,7 @@ with no accounts added, so its setup is explained step by step)
     Banking apps: on a rooted phone they need the usual integrity modifications either way;
     in Dr.Essence's experience on three devices, banks that work rooted with Play services
     also work with microG. The warning says so, without promising it for every bank.
-- **Nothing2Something Lite for unrooted phones** (idea, 2026-11-17): the part of the module that
+- **Nothing2Something Lite (Shizuku and Dhizuku) for unrooted phones** (idea, 2026-11-17): the part of the module that
   works with Shizuku or Dhizuku instead of LSPosed (shell or device-owner rights, no code
   hooks). Possible: Android's and Nothing's hidden settings and feature flags (device_config),
   colours, sizes and on/off values in other apps and System UI through fabricated overlays
