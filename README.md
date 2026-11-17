@@ -260,6 +260,10 @@ every build* below; *Verified* means checked on the phone).
 | 0.52.0 | One focus ring in each item's own shape | Fixed |
 
 **Pending**
+- **Reported (0.70.61): another folder showed a new folder's emoji.** After a new folder was
+  created and given an emoji, the existing folder "Files" showed the same emoji until its own
+  emoji was picked again. Not reproduced yet; the settings store each emoji under the
+  folder's own id, so the cause is not known. Test B10 in docs/TEST_PLAN.md checks it.
 - **Stability phase:** no new features until every test in
   [docs/TEST_PLAN.md](docs/TEST_PLAN.md) has been run on the phone and every failure found is
   fixed. Testers can follow the same plan.

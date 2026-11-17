@@ -116,6 +116,7 @@ These come before everything else, because they protect the phone and the user's
 | B7 | Drawer background opacity slider at 0, 50, 100 | DK | The wallpaper shows through as set; search area matches, no black bar |
 | B8 | Drawer search | P / L | Search works, results open, the search sheet matches the drawer |
 | B9 | Folder cover image: set, change, remove | RL, RB | The image shows square and sharp; removing it brings back the apps |
+| B10 | Create a new folder, pick an emoji for it, then look at every other folder in the drawer **and** in the module's folder list | RL | Only the new folder has that emoji; every other folder keeps its own (reported once on 0.70.61: "Files" showed the new folder's emoji until its own emoji was picked again) |
 
 ## C. Covers and dot matrix (beta)
 
