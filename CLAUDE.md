@@ -143,6 +143,14 @@ with no accounts added, so its setup is explained step by step)
     Banking apps: on a rooted phone they need the usual integrity modifications either way;
     in Dr.Essence's experience on three devices, banks that work rooted with Play services
     also work with microG. The warning says so, without promising it for every bank.
+- **Nothing2Something Lite for unrooted phones** (idea, 2026-11-17): the part of the module that
+  works with Shizuku or Dhizuku instead of LSPosed (shell or device-owner rights, no code
+  hooks). Possible: Android's and Nothing's hidden settings and feature flags (device_config),
+  colours, sizes and on/off values in other apps and System UI through fabricated overlays
+  (Android 12+, as ColorBlendr does), rotation, refresh rate and animation settings, and the
+  debloater. Not possible: anything that adds behaviour or drawing (dot covers, custom
+  folders, glass, landscape home, Ndot status bar); those stay in the LSPosed module. Lite and
+  the debloater could be one app.
 - **A patched Nothing Launcher for unrooted phones** (idea, 2026-11-17): ReVanced-style. A small
   patcher app with Shizuku or Dhizuku reads Nothing Launcher from the user's own phone, applies
   Nothing2Something's launcher patches on the phone and installs the result under its own
