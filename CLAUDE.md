@@ -67,6 +67,9 @@
   - **The emoji covers today:** most of the current emoji and their animations were made by AI,
     as a concept, to see the idea working. The engine, with every emoji drawn by Dr.Essence, is
     what replaces them.
+- **Forever free, respectful of Nothing.** The module stays free. Nothing's fonts and assets are
+  read from the phone's own files, never copied into the module; Nothing is credited, and the
+  README states that the project is not associated with or endorsed by Nothing.
 - **A Kotlin course from this project.** Dr.Essence is learning to code and plans to maintain
   this module. New features are written in Kotlin (the Java code is converted only when a file
   is reworked anyway), and the project will become a course for learning Kotlin from it: how
