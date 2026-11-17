@@ -140,6 +140,17 @@ No dates.
     Banking apps: on a rooted phone they need the usual integrity modifications either way;
     in Dr.Essence's experience on three devices, banks that work rooted with Play services
     also work with microG. The warning says so, without promising it for every bank.
+- **A patched Nothing Launcher for unrooted phones** (idea, 2026-11-17): ReVanced-style. A small
+  patcher app with Shizuku reads Nothing Launcher from the user's own phone, applies
+  Nothing2Something's launcher patches on the phone and installs the result under its own
+  package name. Nothing's code is never distributed, only our patches. On a phone that is not
+  a Nothing or CMF phone, or without Nothing Launcher, it shows a clear message and does
+  nothing (never a crash). Known limits: the patched copy is an ordinary third-party launcher
+  (no system signature), so Recents and the swipe-home animations stay with the stock launcher
+  without root, and Nothing's widgets or services may refuse it; only launcher features can
+  work (System UI still needs root); each launcher update needs the patches checked again.
+  **First step, before any building:** a proof of concept on the phone (Nothing Launcher only
+  renamed, installed beside the original) to see whether it starts and what breaks.
 
 **Releases (decided 2026-11-15):** no public GitHub Release, not even a pre-release, until the
 whole testing and stabilization phase 1 is complete. Until then builds stay CI builds (GitHub
